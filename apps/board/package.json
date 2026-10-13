@@ -2,7 +2,7 @@
   "name": "@city/board",
   "version": "0.1.0",
   "private": true,
-  "description": "The Board: the Future City Builder page. Draws the site, turns clicks into commands and orders, words the events, and shows the line checks, the stretch tests and the clock.",
+  "description": "The Board: the Periopolis page. Draws the site, turns clicks into commands and orders, words the events, and shows the line checks, the stretch tests and the clock.",
   "type": "module",
   "scripts": {
     "dev": "vite",

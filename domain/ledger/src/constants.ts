@@ -1,5 +1,5 @@
 /**
- * @file Constants of the Future City Ledger: physical facts and measured shares that every derivation uses.
+ * @file Constants of the Periopolis Ledger: physical facts and measured shares that every derivation uses.
  * Public interface: HEX, WALK_M_PER_MIN, SHOPPING, WORK, CYCLIST_KG, RING_GAP, TINY, PARK, PARTIES, CLASSES,
  * and the types VehicleClassName, VehicleClass, Party.
  * Owner context: Ledger (domain).

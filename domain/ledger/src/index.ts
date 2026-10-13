@@ -1,5 +1,5 @@
 /**
- * @file The Future City Ledger. Premises in, consequences out, for the car city and your city.
+ * @file The Periopolis Ledger. Premises in, consequences out, for the car city and your city.
  * Public interface: deriveCarCity, deriveWalkingCity; the premise and consequence types; the Revision 3 defaults
  * SHARED, CAR_CITY, WALKING_CITY, NEEDS; and the constants and geometry the other contexts build on.
  * Owner context: Ledger (domain). Imports nothing outside this package.

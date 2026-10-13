@@ -1,7 +1,7 @@
 # Project Profile
 
 **Generated**: 2026-10-12
-**Repository**: simcity-ai (Future City)
+**Repository**: periopolis (formerly simcity-ai; the directory is renamed by hand)
 
 ## Domains
 

@@ -2,7 +2,7 @@
   "name": "@city/ledger",
   "version": "0.1.0",
   "private": true,
-  "description": "The Future City Ledger: premises in, consequences out, for the car city and your city.",
+  "description": "The Periopolis Ledger: premises in, consequences out, for the car city and your city.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
