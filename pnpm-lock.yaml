@@ -17,6 +17,12 @@ importers:
 
   domain/ledger: {}
 
+  domain/run:
+    dependencies:
+      '@city/site':
+        specifier: workspace:*
+        version: link:../site
+
   domain/site:
     dependencies:
       '@city/ledger':

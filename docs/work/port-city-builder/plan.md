@@ -53,8 +53,8 @@
 - **Deliverable**: `domain/run` (`@city/run`): starting and stopping a run, placing orders as jobs, putting a job first, canceling, advancing a year, and the notices for what is announced. Run terms and scenarios added to the notation. Tests for the job mechanics, for a school waiting on its homes and a module on its site, and for the promise that a city holding all four stretch tests is never broken by a timeline.
 - **Exit state**: Every scenario test is green and `domain/run` depends on `@city/site` alone.
 - **Demonstration**: `pnpm --filter @city/run test` is green and shows the looped ledger's city left alone on 25 seeded timelines with 0 broken line-years, and a scripted founding reaching homes for 100,000 people by year 20.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-12, session 0b9b51. `pnpm --filter @city/run test`: 2 files, 123 tests passed, 0 failed (Vitest 5.0.4). `scenarios.test.ts` shows the looped ledger's city left alone on 25 seeded timelines with 0 broken line-years (worst run 0), the spoked city losing 3 or 4 line-years only in closure years, the job mechanics (a school waiting on its homes, a module on its site, ten crews over twelve jobs), and the scripted founding reaching 100,000 people by year 20 on 4 seeds with 151 crew-years ordered and 0 to 3 line-years. `parity.test.ts` matches 64 recorded steps, 7 timelines, 6 restores, 25 promise runs and 2 left-alone runs against the sketch's `clock.js`. `pnpm --filter @city/run typecheck` is clean; `domain/run/src` imports `@city/site` and nothing else. [verified: test event "Tests passed, 41 passed 72 passed 123 passed", 2026-10-13T02:41:37Z UTC, after last code edit 02:41:00Z]
+- **Status**: DONE
 
 ### Phase 4: Board: the web adapter at parity
 - **Tier**: Large
