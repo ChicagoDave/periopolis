@@ -1,0 +1,137 @@
+<div class="page">
+  <header class="sign">
+    <div class="sign-inner">
+      <h1>Future City Ledger</h1>
+      <p>Two cities worked out from their premises with the same arithmetic: the one we have, and yours.</p>
+    </div>
+  </header>
+
+  <dl class="block">
+    <div><dt>Project</dt><dd>Future city designer</dd></div>
+    <div><dt>Sheet</dt><dd>Nineteen premises and their consequences</dd></div>
+    <div><dt>Worked by</dt><dd>Claude</dd></div>
+    <div><dt>Revision</dt><dd>3, 8 Oct 2026</dd></div>
+    <div><dt>Checked by</dt><dd>open</dd></div>
+  </dl>
+
+  <div class="prose">
+    <p>The right-hand column follows from the nineteen premises you dictated. The left-hand column puts the premises car cities were built on through the same arithmetic. The left column comes out looking like the cities we have, which is the reason to trust the right one.</p>
+    <p>A field is a premise. Change one and everything below it moves. A figure with no field is a consequence.</p>
+    <ul class="legend">
+      <li><span class="tag">Measured</span>from a published source, linked</li>
+      <li><span class="tag assumed">Assumed</span>my placeholder, nothing behind it yet</li>
+      <li><span class="tag yours">Yours</span>a premise you stated</li>
+      <li><span class="tag derived">Derived</span>arithmetic on the rows above</li>
+    </ul>
+  </div>
+
+  <section aria-labelledby="h-spec">
+    <h2 id="h-spec">Your spec</h2>
+    <ol class="spec">
+      <li>Vehicles drive themselves and come in any size, from one seat to a bus.</li>
+      <li>Nobody drives inside the city, so nothing is parked there.</li>
+      <li>Daily needs sit within a walk: leisure, a library, non-ER medical and fresh food.</li>
+      <li>Parks with tennis, pickleball and basketball courts are nearby. Larger fields are a slightly longer walk or a short ride.</li>
+      <li>Nothing moves near pedestrians that can cause harm.</li>
+      <li>No one needs a vehicle near their door. People walk to the movers, which run on a sub level.</li>
+      <li>Freight reaches the door with a porter and a powered cart.</li>
+      <li>Bikes have segregated lanes.</li>
+      <li>Groups of houses share a single sub-level entry point.</li>
+      <li>Housing is townhouses, with no stand-alone homes. The middle is mixed-use: government, an auditorium, offices and condos.</li>
+      <li>Height graduates from the outer edges to the middle.</li>
+      <li>Every residence and office has a dumbwaiter for deliveries, so the market can shrink.</li>
+      <li>There are still farmers markets or produce stores, butchers and bakeries.</li>
+      <li>There are cafés, casual dining and fine dining.</li>
+      <li>Elementary schools hold at most 500 pupils (K–5), middle schools 1,000 (6–8) and high schools 1,500 (9–12).</li>
+      <li>Kids and adults can walk up to 30 minutes to reach school or work.</li>
+      <li>All other walks are uncapped, because there are people movers.</li>
+      <li>The city has to stretch: land can grow, housing can grow or shrink, and density and school population move.</li>
+      <li>The middle is a circle of 25-story buildings.</li>
+    </ol>
+    <h3 class="minor">What I filled in</h3>
+    <ul class="list">
+      <li>The stretch band is 20% either way. You named what stretches and not how far.</li>
+      <li>People switch from walking to a mover at a 15-minute walk. Line 17 sets no cap, and the ledger still needs the switch.</li>
+      <li>Townhouses are three stories.</li>
+      <li>A ring building has 2,000 m² floors, and the buildings stand a building's width apart.</li>
+      <li>The elementary school is shared between centers, now that line 16 lets it be.</li>
+      <li>There is one mover stop under each center and one under the ring. The entries lead to a walkway, because you said people still walk to the movers. Step 4 has the dial that brings the stops closer.</li>
+      <li>A group that shares an entry is everyone within a one-minute walk of it.</li>
+      <li>Bike lanes run along the edges between neighborhoods.</li>
+      <li>The goods pipe carries staples, parcels and trash.</li>
+      <li>Fire crews and ambulances arrive below and work from inside the buildings. That follows from line 5 and is not costed.</li>
+      <li>Every field in the ledger marked assumed.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-sum">
+    <h2 id="h-sum">Where the two columns end up</h2>
+    <div class="sum" id="sum"></div>
+  </section>
+
+  <section aria-labelledby="h-led">
+    <h2 id="h-led">The ledger</h2>
+    <p class="lede">Seven steps in the order the arithmetic runs. Each step uses only the rows above it. Two steps hold a table of their own: your list of needs in step 3, and the harm rule in step 7.</p>
+    <div class="ledger" id="ledger">
+      <div class="cols"><span>Row</span><span>Car city</span><span>Your city</span><span>Where the number comes from</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-str">
+    <h2 id="h-str">How far it stretches</h2>
+    <p class="lede">Line 18, row by row: what each thing can do before one of your rules gives, with nothing rebuilt. The band in step 1 is what buys this room. Set it to zero and most of it goes.</p>
+    <div class="scroll"><table id="stretch"></table></div>
+  </section>
+
+  <section aria-labelledby="h-chk">
+    <h2 id="h-chk">Does the car column look like real cities?</h2>
+    <p class="lede">The car column is built only from its premises above. None of them was adjusted after seeing these comparisons.</p>
+    <div class="scroll"><table id="checks"></table></div>
+  </section>
+
+  <section aria-labelledby="h-walk">
+    <h2 id="h-walk">What a need costs in walking</h2>
+    <p class="lede">The farthest home from one of anything, by how many people share it and how tall the townhouses are. A café needs 500 people, a doctor's office about 4,000 and a full 1,500-pupil high school about 31,000.</p>
+    <div class="scroll"><table id="walk"></table></div>
+  </section>
+
+  <section aria-labelledby="h-scale">
+    <h2 id="h-scale">The same premises at other sizes</h2>
+    <p class="lede">Both columns at four populations. Past the ceiling in step 2 the rim is farther from the one middle than line 16 allows, so the larger sizes show what gives. Trips that go to no center, shared place or middle go to a random spot in the city, so the big-city distances run long.</p>
+    <div class="scroll"><table id="scale"></table></div>
+  </section>
+
+  <section aria-labelledby="h-out">
+    <h2 id="h-out">Not in the ledger yet</h2>
+    <ul class="list">
+      <li>Trips that leave the city, and the edge where the movers meet the outside world.</li>
+      <li>What any of it costs: the sub level, the goods pipe and the ring.</li>
+      <li>A second middle, for a city past the ceiling in step 2.</li>
+      <li>How fire and ambulance crews work with no vehicles on the surface.</li>
+      <li>People who cannot manage the walk to a stop. Line 6 leaves them a chair or a cart slower than the harm line, and step 4 counts their trips.</li>
+      <li>Chauffeuring. About 8% of US car trips are a driver ferrying someone else. They should mostly vanish here, and the ledger keeps them.</li>
+      <li>Who lives here. The ledger uses the US age mix, and a new city of townhouses would likely have more children.</li>
+      <li>Where the jobs are, beyond the offices.</li>
+      <li>The rest of a neighborhood: childcare, worship, a gym, a barber. Their floor area is counted. Their trips are treated as going anywhere in the city.</li>
+      <li>People choosing nearer places over farther ones.</li>
+      <li>Industry, institutions, airports and vacant land, in either column.</li>
+      <li>Buses and trains in the car column. They carry 2.5% of US trips.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-act">
+    <h2 id="h-act">Take it with you</h2>
+    <p class="lede">Copy the whole ledger as text, with your changes, and paste it back into the conversation.</p>
+    <div class="actions">
+      <button class="btn" id="copy" type="button">Copy the ledger as text</button>
+      <button class="btn" id="reset" type="button">Reset to the starting premises</button>
+      <span class="said" id="said" role="status"></span>
+    </div>
+    <textarea id="dump" hidden readonly aria-label="The ledger as text"></textarea>
+  </section>
+
+  <section aria-labelledby="h-src">
+    <h2 id="h-src">Sources</h2>
+    <ul class="list sources" id="sources"></ul>
+  </section>
+</div>

@@ -1,0 +1,19 @@
+{
+  "name": "future-city",
+  "private": true,
+  "description": "A city worked out from post-car premises: the ledger, the site, the run, and the board that shows them.",
+  "type": "module",
+  "scripts": {
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm -r build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vitest": "5.0.4"
+  }
+}

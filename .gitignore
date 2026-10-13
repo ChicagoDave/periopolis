@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+docs/context/.session-state-*.json
+docs/context/.devarch-gate-*
+docs/context/.devarch-events-*.jsonl
+docs/context/.active-session

@@ -1,0 +1,113 @@
+<div class="page">
+  <header class="sign">
+    <div class="sign-inner">
+      <h1>Future City Builder</h1>
+      <p>Lay your city out on the site and your lines are checked against the map. First test: take it to 100,000 people with every line and all four stretches holding. Second: found a city from nothing and keep it whole for 20 years.</p>
+    </div>
+  </header>
+
+  <dl class="score" id="score" aria-label="Your city against a car city of the same size"></dl>
+
+  <div class="game">
+    <nav class="tray" id="tray" aria-label="Build"></nav>
+
+    <div class="stage">
+      <div class="banner" id="banner" hidden>
+        <span id="bannertext"></span>
+        <button class="btn small" id="today" type="button">Back to today</button>
+      </div>
+      <div class="boardscroll" id="boardscroll">
+        <svg id="board" role="group" aria-label="The site. Each hexagon is the ground of one neighborhood." xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <p class="said" id="said" role="status"></p>
+      <div class="bar">
+        <button class="btn" id="undo" type="button">Undo</button>
+        <button class="btn" id="starter" type="button">Load the ledger's city</button>
+        <button class="btn" id="clear" type="button">Clear the site</button>
+        <button class="btn" id="copy" type="button">Copy the city as text</button>
+      </div>
+      <textarea id="dump" hidden readonly aria-label="The city as text"></textarea>
+    </div>
+
+    <div class="side">
+      <section class="card" id="clock" aria-labelledby="h-clock">
+        <h2 id="h-clock">The clock</h2>
+        <p class="clocknow" id="clocknow"></p>
+        <ol class="years" id="years" aria-label="The twenty years of the run. Past years show a check if every line held, or the number of lines broken."></ol>
+        <div class="row">
+          <button class="btn primary" id="tick" type="button">Next year</button>
+          <button class="btn small" id="stop" type="button">Stop the clock</button>
+          <button class="btn small" id="run" type="button">Run this city for 20 years</button>
+          <button class="btn small" id="found" type="button">Found a city from nothing</button>
+        </div>
+        <ul class="notices" id="notices"></ul>
+        <p class="keeprule" id="keeprule">Each of these is one of the four stretch tests come true. A city that holds all four cannot be broken by any of them.</p>
+        <details class="recordbox" id="recordbox">
+          <summary>The record, year by year</summary>
+          <div class="tablescroll">
+            <table id="record">
+              <thead><tr><th scope="col">Year</th><th scope="col">People</th><th scope="col">Broken</th><th scope="col">Opened</th></tr></thead>
+              <tbody id="recordrows"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+      <section class="card" id="inspector" aria-label="The tile you picked"></section>
+      <section class="card" id="workcard" aria-labelledby="h-work" hidden>
+        <h2 id="h-work">Work in hand</h2>
+        <p class="quiet" id="worknow"></p>
+        <ol class="work" id="work"></ol>
+      </section>
+      <section class="panel" aria-labelledby="h-rules">
+        <h2 id="h-rules">Your lines, against this map</h2>
+        <p class="tally" id="tally"></p>
+        <ul class="rules" id="rules"></ul>
+      </section>
+    </div>
+
+    <section class="panel stretch" aria-labelledby="h-tests">
+      <h2 id="h-tests">Does it stretch?</h2>
+      <p class="quiet">Line 18. The same board with the city pushed to the edge of its 20% band, or with one stretch of its mover line closed. These four are everything the clock can deal.</p>
+      <ul class="tests" id="tests"></ul>
+    </section>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h2>What a tile is</h2>
+      <p>One hexagon is the ground of one center: 5,000 people in three-story townhouses on 93 acres, with a bakery, butcher, cafés, library, doctor and park in the middle. The farthest home is a 6-minute walk from it. Neighboring centers are a 10-minute walk apart.</p>
+      <p>Lines 1, 2, 7 to 9, 11 and 12 are not pieces on the board. They are built into every tile the way the ledger worked them out.</p>
+    </section>
+    <section>
+      <h2>How the numbers are made</h2>
+      <p>The rates are the ledger's: who makes which trips, what a school holds, what a ring building serves. The distances are this map's. So a tight layout and a stretched one score differently, and neither matches the ledger's round city exactly.</p>
+      <p>Ground taken counts every tile you build on, the ring and the plants included. The car city's figure leaves its plants out.</p>
+    </section>
+    <section>
+      <h2>How the clock runs</h2>
+      <p>Ten crews, one job each. A neighborhood, a ring building, a high school or a plant unit takes two years. A smaller school, fields, a stretch of line or a further reactor module takes one. A reactor site with its first module takes three.</p>
+      <p>People move in the year their homes are finished, and a school opens with its neighborhood. Each year the city is checked as it stands, and every broken line counts one line-year against the run.</p>
+      <p>Five things happen in a run, each announced a year or two ahead: a housing squeeze, a wave of children that moves up a grade a year, a slump, and two closures of a stretch of line.</p>
+    </section>
+    <section>
+      <h2>Assumed by me</h2>
+      <ul>
+        <li>One unit of a water, sewage or waste plant serves 60,000 people: the ledger's 50,000 plus the band.</li>
+        <li>The city's power peaks at 1.5 kW a person, and one reactor module may be down for fuel at any time.</li>
+        <li>Fields count as near inside a 20-minute walk. Line 4 says only "slightly longer".</li>
+        <li>Past a 30-minute walk to the ring, work is a warning as long as a mover runs there. A school gets no such pass.</li>
+        <li>People use the nearest ring. Children fill the nearest schools first.</li>
+        <li>Ten crews, and the years each job takes. Ten is enough to build the ledger's city in eight years. The three years for a reactor site follow <a href="https://prd2.nuscalepower.com/-/media/nuscale/pdf/fact-sheets/smr-fact-sheet.pdf">NuScale's target</a> of 30 to 39 months from first concrete to fuel.</li>
+        <li>When each event comes and how long it lasts. A year-long closure of a stretch of line is my invention.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Not in this version</h2>
+      <ul>
+        <li>How fast people would come. Homes fill the year they are finished. Irvine, incorporated in 1971, had 62,134 people in 1980 and 110,330 in 1990, <a href="https://www.fullerton.edu/cdr/_resources/pdf/progressreport/Irvine.pdf">by the census</a>.</li>
+        <li>Money. The board counts kilometers, buildings and crew-years, and puts no price on them.</li>
+        <li>Terrain, the world outside the site, and the paper and plastic rules of line 23.</li>
+      </ul>
+    </section>
+  </div>
+</div>

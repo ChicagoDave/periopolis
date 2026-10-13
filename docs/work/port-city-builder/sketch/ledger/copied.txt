@@ -1,0 +1,159 @@
+FUTURE CITY LEDGER
+Each line: car city | your city. One value means it is the same in both.
+
+
+1. PEOPLE
+Population: 50000
+Trips per person per day: 3.37
+Home floor area per person: 68.8 m²
+People per home: 2.45
+Shops, offices, schools and clinics per person: 27.4 m²
+People in each school year: 1.2%
+Bike ride they will make: 15 min
+Trips that need a ride at any distance: 10%
+Share of the day's trips made in the busiest hour: 10%
+Walk at which people take a ride instead: 15 min
+Walk a driver will make for daily needs: 5 min | no cap
+Walk to school or work, at most: as any other trip | 30 min
+Stretch the city must hold its rules across: none | 20%
+
+2. BUILDINGS AND LAND
+Homes: houses on lots | townhouses, none detached
+Ground per home: 590 m² | 94 m²
+Building height: 1.5 stories | 3 stories
+Share of a building site that is built on: 80% | 60%
+Parks per person: 42.9 m² | 10 m²
+Land given to movement: 24% | 20%
+Offices, as a share of the non-home floor: – | 17%
+Office work kept in neighborhood rooms: – | 0%
+Government and auditorium floor per person: – | 0.4 m²
+Homes that are condos in the ring: – | 2%
+Floor the middle has to hold: – | 321,700 m²
+Height of a ring building: – | 25 stories
+One floor of a ring building: – | 2000 m²
+People one ring building serves: – | 7,771
+Ring buildings: – | 8
+The circle: – | 272 m across
+Building footprints: 64.1 m² | 29.9 m²
+Yards, courtyards and setbacks: 185.6 m² | 19.9 m²
+Parking off the street: 67.6 m² | none
+Parks: 42.9 m² | 10 m²
+Streets, or paths and lanes: 113.8 m² | 15 m²
+The ring: – | 0.6 m²
+Land per person: 474 m² | 75.5 m²
+Density: 2,110 per km² | 13,249 per km²
+Land area: 23.7 km² | 3.77 km²
+Radius, if round: 2.75 km | 1.1 km
+Land held in reserve at the edge: – | 75 ha
+Homes inside the walk to work in the middle: – | 100%
+People the city holds before the rim is past that walk: – | 166,492
+
+3. WHAT GOES WHERE
+Bakery: every center; needs 2,100 people; 2% of trips; 10 in the city; can lose 58%
+Butcher: every center; needs 3,700 people; 2% of trips; 10 in the city; can lose 26%
+Produce store or farmers market: every center; no minimum; 2% of trips; 10 in the city
+Cafés and casual dining: every center; needs 500 people; 6% of trips; 80 in the city; 8 in each, can lose 20%
+Library: every center; no minimum; 1% of trips; 10 in the city
+Non-ER medical: every center; needs 4,000 people; 2% of trips; 10 in the city; can lose 20%
+Park with courts: every center; no minimum; 8% of trips; 10 in the city
+Elementary school, K–5: shared; at most 500 pupils; 5% of trips; 9 in the city; 400 pupils each, can grow 25%
+Middle school, 6–8: shared; at most 1,000 pupils; 2% of trips; 3 in the city; 600 pupils each, can grow 67%
+High school, 9–12: shared; at most 1,500 pupils; 2% of trips; 2 in the city; 1,200 pupils each, can grow 25%
+Larger playing fields: shared; no minimum; 1% of trips; 2 in the city
+Urgent care: shared; needs 23,300 people; 0% of trips; 1 in the city; can lose 53%
+Fine dining: the middle; needs 71,300 people; 0.5% of trips; 1 in the city; has 70% of what it needs
+Auditorium: the middle; no minimum; 0.5% of trips; 1 in the city
+Government: the middle; no minimum; 0.5% of trips; 1 in the city
+Daily needs are reached: by car | on foot
+Time allowed to get there: 10 min | no cap
+Vehicle speed, door to door: 35 km/h | 25 km/h
+Path length ÷ straight line: 1.3 | 1.2
+Ground inside the drive: 52.3 km² | –
+People the hungriest daily need wants: 7500 | 4,000
+People a center has: 7,500 | 5,000
+Centers in the city: 6.7 | 10
+Ground one center serves: 3.56 km² | 37.7 ha
+Farthest walk to the center: 19 min | 5.7 min
+Typical trip to the center: 0.98 km | 0.29 km
+Density over what daily needs demand: 14.7× | –
+Shopping trips the dumbwaiter replaces: none | 67%
+Trips per person per day, after deliveries: 3.37 | 2.95
+Work trips that go to the middle: – | 30%
+Trips that are daily needs: 35% | 26.2%
+Trips to places shared between centers: – | 11.4%
+Trips to the middle: – | 8.2%
+Trips to anywhere else in the city: 65% | 54.1%
+
+4. TRIPS
+Bikeable trips that people do bike: 5% | 50%
+Mover stops in the ground of each center: the car is at the door | 1
+Farthest walk to a stop: – | 5.7 min
+On foot: 8.3% | 76.4%
+By bike: 3% | 8.7%
+By vehicle: 88.7% | 14.9%
+Trips that want a ride and have none to take: none | 3.8%
+Average ride: 2.6 km | 1.5 km
+
+5. MOVERS AND THE SUB LEVEL
+Who holds the vehicles: every household | one fleet, no drivers
+Seats per vehicle: 5 | 2 seats 87%, 4 seats 7%, 15 seats 6%
+People per vehicle trip: 1.39 | 1.76
+Riders who share a shuttle: none | 25%
+Wait for a mover: – | 2 min
+Getting to and from a ride: 3 min | 9 min
+Walk past which a ride is quicker: 3.5 min | 7 to 11.6 min
+Door to door, average ride: 7.5 min | 12.5 min
+Extra driving with nobody aboard: none | 20%
+Spare vehicles: none | 15%
+Vehicle trips per day: 107,558 | 12,515
+Seats filled while moving: 28% | 59%
+Vehicles moving in the busiest hour: 1,341 | 138
+Vehicles per 1,000 people: 840 | 3.2
+Vehicles: 42,000 | 159
+Places to wait, per vehicle: 3.3 | 1 depot slot
+Ground per place: 30.2 m² | 5 m²
+Ground those places take: 419 ha | 0.08 ha
+City land that is parking: 17.7% | none
+Mover stops: – | 11
+Berths at each stop: – | 9
+Places to leave a vehicle, per 1,000 people: 2,772 | 5.2
+Walk to a sub-level entry: – | 1 min
+Homes that share an entry: – | 62
+Entries: – | 327
+Sub-level walkway, entries to stops: – | 37 km
+Mover line, linking the stops: – | 8.3 km
+Sub level to build: – | 45 km
+
+6. GOODS
+Parcels per person per year: 64
+Other goods in and waste out, per person per day: 7 kg
+How goods reach the door: van and truck, to the curb | pipe and dumbwaiter; a porter for big things
+Parcels per delivery run: 150 | by pipe
+Load per bulk run: 5000 kg | 500 kg
+Weight the pipe takes: none | 60%
+Vehicle runs for goods per day: 128 | 280
+Goods runs among all vehicle trips: 0.1% | 2.2%
+Dumbwaiters: – | 20,408
+Width of a townhouse front: – | 6 m
+Rows of townhouses one pipe serves: – | 2
+Goods pipe: – | 61 km
+Grocery deliveries per home per week: – | 2
+Trash totes out per home per day: – | 1
+Totes through the pipe per day: – | 35,006
+Bulky deliveries per 1,000 homes per day: – | 10
+Homes that change hands each year: – | 9%
+Porters: – | 33
+
+7. PATHS, LANES AND THE HARM RULE
+The line: – | 310 J
+Speed at which a bike is under the line: – | 9.2 km/h
+Width of a bike lane: – | 3.5 m
+Bike lanes: – | 11 km
+City land in bike lanes: – | 1.1%
+Farthest door to a lane: – | 2.6 min
+
+HOW FAR IT STRETCHES
+More children in the same homes: 25%. Elementary school, K–5 reaches its cap.
+Fewer people, from emptier homes or lower density: 20%. Non-ER medical runs short of people. Already short today: Fine dining.
+More people on the same land: 24%. The ring is full.
+More land at the same density: 3.3 times. At 166,492 people on 3,105 acres, the rim is 30 minutes on foot from the middle.

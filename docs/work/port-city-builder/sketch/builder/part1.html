@@ -1,0 +1,228 @@
+<title>Future City Builder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: a site plan with a build tray on its left and the rule book on its right. Same sheet as the ledger:
+   the board is the drawing, the tray is the legend you build from, the rules are the checker's column. */
+:root {
+  --paper: #ECF0EA; --sheet: #F8FAF6; --ink: #17211C; --ink-2: #4D5C53;
+  --rule: #C3CEC5; --rule-2: #DCE3DC; --field: #FFFFFF;
+  --sign: #0B6B49; --sign-ink: #FFFFFF; --new: #0B6B49;
+  --flag: #8F5600; --flag-bg: #FBF1DC; --bad: #B3261E; --bad-bg: #FBE9E7; --ok-bg: #DCEEE4;
+  --ground: #E1E8DF; --hood: #FCFDFA; --hood-edge: #93A699; --plant: #C6D1CB; --plant-edge: #74867B;
+  --display: "Overpass", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --data: "Overpass Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1512; --sheet: #161E1A; --ink: #E4EBE5; --ink-2: #9CAEA2;
+    --rule: #2F3E35; --rule-2: #222D27; --field: #0A0F0D;
+    --sign: #0E7A54; --sign-ink: #FFFFFF; --new: #5CCBA0;
+    --flag: #E5AE45; --flag-bg: #2B2414; --bad: #FF8A80; --bad-bg: #331A18; --ok-bg: #143326;
+    --ground: #131A16; --hood: #26332C; --hood-edge: #52675A; --plant: #2E3B45; --plant-edge: #627585; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1512; --sheet: #161E1A; --ink: #E4EBE5; --ink-2: #9CAEA2;
+  --rule: #2F3E35; --rule-2: #222D27; --field: #0A0F0D;
+  --sign: #0E7A54; --sign-ink: #FFFFFF; --new: #5CCBA0;
+  --flag: #E5AE45; --flag-bg: #2B2414; --bad: #FF8A80; --bad-bg: #331A18; --ok-bg: #143326;
+  --ground: #131A16; --hood: #26332C; --hood-edge: #52675A; --plant: #2E3B45; --plant-edge: #627585; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.page { max-width: 1340px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 20px 64px; display: flex; flex-direction: column; gap: 20px; }
+a { color: var(--new); text-underline-offset: 2px; }
+button { font: inherit; color: inherit; }
+button:focus-visible, .tile:focus-visible, a:focus-visible { outline: 2px solid var(--new); outline-offset: 2px; }
+h2 { font: 800 1.05rem/1.2 var(--display); margin: 0; text-wrap: balance; }
+p { margin: 0; }
+
+/* title */
+.sign { background: var(--sign); color: var(--sign-ink); border-radius: 10px; padding: 5px; }
+.sign-inner { border: 2px solid var(--sign-ink); border-radius: 6px; padding: 12px 18px 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 20px; }
+.sign h1 { font: 800 clamp(1.5rem, 4.4vw, 2.1rem)/1.05 var(--display); margin: 0; }
+.sign p { font: 400 .98rem/1.35 var(--display); max-width: 62ch; }
+
+/* score: your city against a car city of the same size */
+.score { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--rule); background: var(--sheet); margin: 0; }
+.score div { padding: 8px 12px 9px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin: 0 -1px -1px 0; min-width: 0; }
+.score dt { font: 600 .66rem/1.4 var(--display); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); }
+.score dd { margin: 1px 0 0; }
+.score .mine { font: 600 1.25rem/1.2 var(--data); font-variant-numeric: tabular-nums; display: block; }
+.score .mine.bad, .score .car.bad { color: var(--bad); }
+.score .mine.warn { color: var(--flag); }
+.score .car { font: 400 .76rem/1.3 var(--display); color: var(--ink-2); display: block; overflow-wrap: anywhere; }
+
+/* the game: tray, board, rule book */
+.game { display: grid; grid-template-columns: 12.5rem minmax(0, 1fr) 21.5rem; grid-template-rows: auto 1fr; grid-template-areas: "tray stage side" "tray stretch side"; gap: 20px; align-items: start; }
+.tray { grid-area: tray; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.tray .group { display: flex; flex-direction: column; gap: 4px; }
+.tray h2 { font: 600 .66rem/1.4 var(--display); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); }
+.tool { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 5px 8px 5px 6px; background: transparent; border: 1px solid transparent; border-radius: 4px; cursor: pointer; font: 600 .88rem/1.2 var(--display); }
+.tool:hover { background: var(--sheet); border-color: var(--rule); }
+.tool[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tool .n { font: 400 .76rem var(--data); opacity: .75; font-variant-numeric: tabular-nums; }
+.tool svg { width: 26px; height: 26px; display: block; }
+.glyph { stroke: var(--ink); stroke-width: 2; fill: none; stroke-linecap: round; }
+.tool text.badgetext { fill: var(--paper); }
+.tool text.badgetext.out { fill: var(--ink); }
+/* a pressed tool is ink on paper turned inside out, so its picture turns with it */
+.tool[aria-pressed="true"] .glyph, .tool[aria-pressed="true"] .mover { stroke: var(--paper); }
+.tool[aria-pressed="true"] .badge:not(.out) { fill: var(--paper); }
+.tool[aria-pressed="true"] text.badgetext:not(.out) { fill: var(--ink); }
+.tool[aria-pressed="true"] .badge.out { fill: var(--ink); stroke: var(--paper); }
+.tool[aria-pressed="true"] text.badgetext.out { fill: var(--paper); }
+
+.stage { grid-area: stage; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 7px 10px; background: var(--flag-bg); color: var(--ink); border: 1px solid var(--flag); border-radius: 4px; font: 400 .9rem/1.35 var(--display); }
+.boardscroll { overflow: auto; border: 1px solid var(--rule); background: var(--sheet); border-radius: 4px; }
+#board { display: block; width: 100%; height: auto; min-width: 520px; max-width: 760px; margin-inline: auto; touch-action: manipulation; }
+.said { min-height: 1.4em; font: 400 .9rem/1.4 var(--display); color: var(--ink-2); }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: 600 .84rem var(--display); color: var(--ink); background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.small { padding: 3px 9px; font-size: .8rem; border-width: 1px; }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.primary:hover:not(:disabled) { background: var(--new); border-color: var(--new); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+/* the board */
+#board text { font-family: var(--display); fill: var(--ink); }
+.tile { cursor: pointer; outline: none; }
+.hex { fill: var(--ground); stroke: var(--rule); stroke-width: 1; }
+.tile.hood .hex { fill: var(--hood); stroke: var(--hood-edge); }
+.tile.ring .hex { fill: var(--sign); stroke: var(--sign); }
+.tile.power .hex, .tile.water .hex, .tile.sewage .hex, .tile.waste .hex { fill: var(--plant); stroke: var(--plant-edge); }
+.tile:hover .hex { stroke: var(--ink-2); stroke-width: 1.6; }
+.tile.warn .hex { stroke: var(--flag); stroke-width: 2.4; }
+.tile.bad .hex { stroke: var(--bad); stroke-width: 2.4; }
+.tile.picked .hex { stroke: var(--ink); stroke-width: 2.8; }
+.tile.from .hex { stroke: var(--new); stroke-width: 3; stroke-dasharray: 5 3; }
+.tile.flash .hex { stroke: var(--ink); stroke-width: 3; stroke-dasharray: 2 3; }
+.tile:focus-visible .hex { stroke: var(--new); stroke-width: 3.2; }
+.plaza { fill: var(--hood-edge); }
+.bldg { fill: var(--sign-ink); }
+.hub { fill: var(--sign); stroke: var(--sign-ink); stroke-width: 1; }
+#board text.onring { fill: var(--sign-ink); font: 800 9.5px var(--display); }
+#board text.plantname { font: 600 7.2px var(--display); }
+#board text.plantn { font: 600 8.5px var(--data); }
+#board text.plantname, #board text.plantn { paint-order: stroke; stroke: var(--plant); stroke-width: 2.6px; stroke-linejoin: round; }
+.badge { fill: var(--ink); }
+.badge.out { fill: var(--hood); stroke: var(--ink); stroke-width: 1.1; }
+#board text.badgetext { fill: var(--paper); font: 800 6.4px var(--display); }
+#board text.badgetext.out { fill: var(--ink); }
+.mark.bad { fill: var(--bad); }
+.mark.warn { fill: var(--flag); }
+.mover { stroke: var(--ink); stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 7 4; fill: none; }
+.stop { fill: var(--sheet); stroke: var(--ink); stroke-width: 1.8; }
+.reach { fill: none; stroke: var(--new); stroke-width: 1.4; stroke-dasharray: 3 4; }
+#board text.reachlabel { fill: var(--new); font: 600 7.5px var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.over { pointer-events: none; }
+/* work in hand: a hatched site, dashed badges, a dotted line; and a stretch of line closed or about to be */
+.hatchline { stroke: var(--hood-edge); stroke-width: 1.2; }
+.tile.site .hex { fill: url(#hatch); stroke: var(--hood-edge); stroke-dasharray: 4 3; }
+#board text.sitename { font: 600 7px var(--display); }
+#board text.sitewhen { font: 600 7.5px var(--data); }
+#board text.sitename, #board text.sitewhen { paint-order: stroke; stroke: var(--sheet); stroke-width: 2.8px; stroke-linejoin: round; }
+.badge.soon { fill: var(--sheet); stroke: var(--ink); stroke-width: 1; stroke-dasharray: 2 1.6; }
+#board text.badgetext.soon { fill: var(--ink); }
+.mover.soon { stroke: var(--ink-2); stroke-width: 1.8; stroke-dasharray: 1.5 4; }
+.mover.closed { stroke: var(--bad); }
+.mover.doomed { stroke: var(--flag); }
+.shutmark { stroke: var(--bad); stroke-width: 2.4; stroke-linecap: round; fill: none; }
+.shutdisc { fill: var(--sheet); stroke: var(--bad); stroke-width: 1.4; }
+.shutdisc.doomed { stroke: var(--flag); }
+#board text.shutsoon { fill: var(--ink); font: 800 8px var(--display); }
+.scalebar { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+#board text.scaletext { font: 400 7.5px var(--data); fill: var(--ink-2); }
+
+/* the rule book */
+.side { grid-area: side; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.stretch { grid-area: stretch; }
+.card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.quiet { font-size: .9rem; color: var(--ink-2); }
+.facts { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; margin: 0; font: 400 .88rem/1.35 var(--display); }
+.facts dt { color: var(--ink-2); }
+.facts dt.sub { padding-left: .9rem; }
+.facts dd { margin: 0; text-align: right; font-family: var(--data); font-variant-numeric: tabular-nums; }
+.issues { margin: 0; padding-left: 1.1rem; font: 400 .88rem/1.4 var(--display); color: var(--bad); display: flex; flex-direction: column; gap: 3px; }
+.issues li.warn { color: var(--flag); }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.row .lab { font: 600 .66rem var(--display); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); width: 100%; }
+.panel { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.panel > p.quiet { margin-top: -2px; }
+.rules { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); }
+.rules li { border-bottom: 1px solid var(--rule); }
+.rulebtn { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: 10px; width: 100%; text-align: left; background: transparent; border: 0; padding: 8px 0; cursor: pointer; }
+.rulebtn:hover .title { text-decoration: underline; }
+.rulebtn .title { font: 600 .9rem/1.3 var(--display); display: block; }
+.rulebtn .ref { font: 400 .72rem/1.3 var(--data); color: var(--ink-2); display: block; }
+.rulebtn .detail { font: 400 .84rem/1.4 var(--body); color: var(--ink-2); display: block; margin-top: 2px; }
+.chip { display: inline-block; justify-self: start; align-self: start; margin-top: 1px; font: 600 .64rem/1.7 var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 0 7px; border-radius: 10px; border: 1px solid var(--rule); white-space: nowrap; color: var(--ink-2); }
+.chip.ok { color: var(--new); border-color: var(--new); }
+.chip.warn { color: var(--flag); border-color: var(--flag); }
+.chip.bad { color: var(--bad); border-color: var(--bad); background: var(--bad-bg); }
+.tests { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0 24px; }
+.tests li { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 10px 0 12px; border-bottom: 1px solid var(--rule); min-width: 0; }
+.tests .title { font: 600 .9rem/1.3 var(--display); }
+.tests .detail { font: 400 .84rem/1.4 var(--body); color: var(--ink-2); }
+.tests .btn { margin-top: auto; }
+.tally { font: 400 .84rem/1.4 var(--display); color: var(--ink-2); }
+.tally b { color: var(--ink); font-weight: 600; }
+
+/* the clock: the year, the twenty years as a strip, what is announced, and the work in hand */
+.clocknow { font: 400 .9rem/1.4 var(--display); }
+.clocknow b { font-weight: 800; }
+.years { list-style: none; margin: 0; padding: 0 0 7px; display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 2px; }
+.yr { position: relative; width: 100%; padding: 2px 0 3px; border: 1px solid var(--rule); border-radius: 3px; background: transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; font: 400 .56rem/1.25 var(--data); color: var(--ink-2); }
+.yr .m { font: 600 .66rem/1.1 var(--display); color: var(--ink); min-height: .74rem; }
+.yr.clean { background: var(--ok-bg); border-color: var(--new); }
+.yr.broken { background: var(--bad-bg); border-color: var(--bad); }
+.yr.now { outline: 2px solid var(--ink); outline-offset: 1px; color: var(--ink); }
+.yr.event::after { content: ""; position: absolute; left: 1px; right: 1px; bottom: -6px; height: 2px; background: var(--ink); }
+.notices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font: 400 .84rem/1.4 var(--display); }
+.notices li.quiet { font-size: .84rem; }
+.notices b { font-weight: 800; }
+.notices .btn { margin-left: 4px; }
+.keeprule { font: 400 .8rem/1.4 var(--body); color: var(--ink-2); }
+.recordbox summary { cursor: pointer; font: 600 .8rem/1.4 var(--display); }
+.tablescroll { overflow-x: auto; margin-top: 4px; }
+#record { border-collapse: collapse; width: 100%; font: 400 .76rem/1.35 var(--display); }
+#record th, #record td { text-align: left; padding: 3px 8px 3px 0; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+#record th { font-weight: 600; color: var(--ink-2); }
+#record td.num { font-family: var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.work { list-style: none; margin: 0; padding: 0; max-height: 15.5rem; overflow: auto; border-top: 1px solid var(--rule); }
+.work li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--rule-2); }
+.joblabel { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; font: 600 .84rem/1.3 var(--display); color: var(--ink); min-width: 0; }
+.joblabel:hover { text-decoration: underline; }
+.joblabel span { display: block; font: 400 .74rem/1.3 var(--data); color: var(--ink-2); }
+.jobbtns { display: flex; gap: 4px; }
+
+/* notes under the game */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(225px, 1fr)); gap: 16px 32px; border-top: 2px solid var(--ink); padding-top: 14px; }
+.notes section { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.notes p, .notes li { font-size: .92rem; color: var(--ink-2); }
+.notes ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 4px; }
+#dump { width: 100%; min-height: 10rem; font: 400 .78rem/1.4 var(--data); background: var(--field); color: var(--ink); border: 1px solid var(--rule); padding: 8px; }
+
+@media (max-width: 1180px) {
+  .game { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "tray" "stage" "side" "stretch"; }
+  .tray { flex-direction: row; overflow-x: auto; gap: 14px; padding-bottom: 6px; align-items: flex-start; }
+  .tray .group { flex: 0 0 auto; }
+  .tray .group .tools { display: flex; gap: 4px; }
+  .tool { width: auto; white-space: nowrap; border-color: var(--rule); background: var(--sheet); }
+  .side { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px 24px; align-items: start; }
+}
+@media (min-width: 1181px) { .tray .group .tools { display: flex; flex-direction: column; gap: 2px; } }
+/* on a phone the score is one row to swipe, so the board stays on the first screen */
+@media (max-width: 700px) {
+  .score { display: flex; overflow-x: auto; }
+  .score div { flex: 0 0 auto; min-width: 8.4rem; margin: 0; border-bottom: 0; }
+  .score div:last-child { border-right: 0; }
+  .score .mine { font-size: 1.1rem; }
+  .score .car { white-space: nowrap; }
+}
+@media (prefers-reduced-motion: no-preference) { .tile .hex { transition: stroke-width .12s; } }
+</style>
