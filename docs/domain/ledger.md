@@ -62,4 +62,4 @@ The car city is a comparison column and nothing more. There is no car city in th
 
 ## Acceptance
 
-Revision 3 for 50,000 people is the oracle (`docs/work/port-city-builder/sketch/ledger/copied.txt`). Among its figures: 2,110 against 13,249 people per km²; 10 centers of 5,000; 9 elementary schools of 400, 3 middle of 600, 2 high of 1,200; 8 ring buildings 272 m across; 76.4% of trips on foot; 159 movers against 42,000 cars; 45 km of sub level; a ceiling of 166,492 people. `domain/ledger/test/published.test.ts` asserts them; `parity.test.ts` asserts every figure of 19 recorded cases against the sketch's model.
+Revision 3 for 50,000 people is the oracle (`docs/work/archive/port-city-builder/sketch/ledger/copied.txt`). Among its figures: 2,110 against 13,249 people per km²; 10 centers of 5,000; 9 elementary schools of 400, 3 middle of 600, 2 high of 1,200; 8 ring buildings 272 m across; 76.4% of trips on foot; 159 movers against 42,000 cars; 45 km of sub level; a ceiling of 166,492 people. `domain/ledger/test/published.test.ts` asserts them; `parity.test.ts` asserts every figure of 19 recorded cases against the sketch's model.

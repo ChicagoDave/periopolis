@@ -1,8 +1,8 @@
 // Records the parity fixtures for @city/ledger from the sketch's model.js, the ledger as published on 2026-10-11.
 // Run once from the repository root when the fixtures are to be refreshed:
 //   node domain/ledger/test/record-fixtures.mjs
-// The sketch is archived with its plan, so after docs/work/port-city-builder/ moves to docs/work/archive/,
-// point SKETCH at the archive. The recorded JSON is what the tests read; this script is not run by them.
+// The sketch is archived with its plan under docs/work/archive/port-city-builder/sketch/ (plan DONE 2026-10-13).
+// The recorded JSON is what the tests read; this script is not run by them.
 import { createRequire } from 'node:module';
 import { copyFileSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SKETCH = join(here, '../../../docs/work/port-city-builder/sketch/ledger/model.js');
+const SKETCH = join(here, '../../../docs/work/archive/port-city-builder/sketch/ledger/model.js');
 // The repository is ES modules, so the sketch's CommonJS file is copied under a .cjs name before it is required.
 const copy = join(mkdtempSync(join(tmpdir(), 'ledger-sketch-')), 'model.cjs');
 copyFileSync(SKETCH, copy);
@@ -39,7 +39,7 @@ for (const pop of [250000, 1000000, 5000000]) {
 car('car city, no empty running, 2 stories', shared, { ...old, stories: 2, emptyRunning: 0.1 });
 
 const json = JSON.stringify(
-  { recorded: '2026-10-12', source: 'docs/work/port-city-builder/sketch/ledger/model.js', needs: typedNeeds, cases },
+  { recorded: '2026-10-12', source: 'docs/work/archive/port-city-builder/sketch/ledger/model.js', needs: typedNeeds, cases },
   (_k, v) => (v === Infinity ? 'Infinity' : v === -Infinity ? '-Infinity' : v),
   1,
 );

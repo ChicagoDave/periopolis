@@ -1,8 +1,8 @@
 // Records the parity fixtures for @city/site from the sketch's engine.js, the site as published on 2026-10-11.
 // Run from the repository root when the fixtures are to be refreshed:
 //   node domain/site/test/record-fixtures.mjs
-// The sketch is archived with its plan, so after docs/work/port-city-builder/ moves to docs/work/archive/,
-// point SKETCH at the archive. The recorded JSON is what the tests read; this script is not run by them.
+// The sketch is archived with its plan under docs/work/archive/port-city-builder/sketch/ (plan DONE 2026-10-13).
+// The recorded JSON is what the tests read; this script is not run by them.
 // The sketch's sentences (rule titles and details, tile issues, what a move said) are recorded too, for the Board's
 // wording tests in Phase 4; the site's own tests compare the structure and the figures.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SKETCH = join(here, '../../../docs/work/port-city-builder/sketch');
+const SKETCH = join(here, '../../../docs/work/archive/port-city-builder/sketch');
 const ctx = { console };
 vm.createContext(ctx);
 vm.runInContext(
@@ -146,7 +146,7 @@ const bridgeCases = [
 ];
 
 const json = JSON.stringify(
-  { recorded: '2026-10-12', source: 'docs/work/port-city-builder/sketch/builder/engine.js', rates, evaluations, acts, seatingCases, cleanCases, bridgeCases },
+  { recorded: '2026-10-12', source: 'docs/work/archive/port-city-builder/sketch/builder/engine.js', rates, evaluations, acts, seatingCases, cleanCases, bridgeCases },
   null,
   0,
 );

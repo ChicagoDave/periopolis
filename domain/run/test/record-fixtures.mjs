@@ -1,8 +1,8 @@
 // Records the parity fixtures for @city/run from the sketch's clock.js, the clock as published on 2026-10-11.
 // Run from the repository root when the fixtures are to be refreshed:
 //   node domain/run/test/record-fixtures.mjs
-// The sketch is archived with its plan, so after docs/work/port-city-builder/ moves to docs/work/archive/,
-// point SKETCH at the archive. The sketch's sentences (what an order said, the notices' text) are recorded for
+// The sketch is archived with its plan under docs/work/archive/port-city-builder/sketch/ (plan DONE 2026-10-13).
+// The sketch's sentences (what an order said, the notices' text) are recorded for
 // the Board's wording tests in Phase 4; the run's own tests compare the structures and the figures.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SKETCH = join(here, '../../../docs/work/port-city-builder/sketch');
+const SKETCH = join(here, '../../../docs/work/archive/port-city-builder/sketch');
 const ctx = { console };
 vm.createContext(ctx);
 const src = (f) => readFileSync(join(SKETCH, f), 'utf8');
@@ -167,6 +167,6 @@ const founding = [[1, false], [1, true], [2, true], [3, true]].map(([seed, react
 
 writeFileSync(
   join(here, 'fixtures/parity.json'),
-  JSON.stringify({ recorded: '2026-10-12', source: 'docs/work/port-city-builder/sketch/builder/clock.js', rules, steps, wave, timelines, cleanCases, promise, leftAlone, founding }, null, 0) + '\n',
+  JSON.stringify({ recorded: '2026-10-12', source: 'docs/work/archive/port-city-builder/sketch/builder/clock.js', rules, steps, wave, timelines, cleanCases, promise, leftAlone, founding }, null, 0) + '\n',
 );
 console.log(`recorded ${steps.length} steps, ${timelines.length} timelines, ${cleanCases.length} restores, ${promise.runs.length} promise runs, ${leftAlone.length} left-alone runs, ${founding.length} foundings`);

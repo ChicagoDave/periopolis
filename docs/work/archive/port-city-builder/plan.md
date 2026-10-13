@@ -1,7 +1,7 @@
 # Session Plan: Port the city builder into a tested TypeScript workspace
 
 **Created**: 2026-10-12
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Move the working ledger and builder out of the single published page into this repository as three pure domain contexts whose rules are proven by tests, with the web board as an adapter over them. Behavior stays what the published page does today; nothing new is designed here.
 **Bounded contexts touched**: Ledger, Site, Run (domain, all new); Board (web adapter, new)
 **Key domain language**: line (one numbered premise), neighborhood, ring, stretch, run, line-year
