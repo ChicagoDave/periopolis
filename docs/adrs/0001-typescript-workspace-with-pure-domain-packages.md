@@ -12,7 +12,7 @@ The prototype is one published page of plain browser JavaScript with no build st
 
 1. One pnpm workspace, TypeScript in strict mode, ES modules. Packages under `domain/*` are bounded contexts; packages under `apps/*` are adapters. The scope is `@city/*`.
 2. Domain packages are pure and deterministic: no DOM, no storage, no wall clock, no random source that is not seeded. They compile with `lib: ["ES2022"]` and `types: []`, so a DOM or Node import fails the type check.
-3. Dependencies point inward only: Board → Run → Site → Ledger. The Board may also import Site. Each context exports one intentional interface from its `index.ts`; nothing else in the package is public.
+3. Dependencies point inward only: Board → Run → Site → Ledger. The Board may also import Site. Each context exports one intentional interface from its `index.ts`; nothing else in the package is public. *Amended by ADR-0005 (2026-10-13): Ground joins the chain as a sibling of Site over the Ledger, and the Board may import it.*
 4. Vitest runs the tests; each package owns its `test` and `typecheck` scripts, and the root runs them recursively.
 5. Versions are pinned from the registry as it stood on 2026-10-12: TypeScript 7.0.2, Vitest 5.0.4, pnpm 10.28.2. Vitest 5 declares Node 22, 24 or 26 and newer; it runs on the Node 25 this was built with, which is noted rather than relied on.
 

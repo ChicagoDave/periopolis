@@ -40,6 +40,12 @@ importers:
         specifier: 2.3.3
         version: 2.3.3(vite@8.3.4(@types/node@26.6.5))
 
+  domain/ground:
+    dependencies:
+      '@city/ledger':
+        specifier: workspace:*
+        version: link:../ledger
+
   domain/ledger: {}
 
   domain/run:
