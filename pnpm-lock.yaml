@@ -17,6 +17,12 @@ importers:
 
   domain/ledger: {}
 
+  domain/site:
+    dependencies:
+      '@city/ledger':
+        specifier: workspace:*
+        version: link:../ledger
+
 packages:
 
   '@jridgewell/resolve-uri@3.1.2':

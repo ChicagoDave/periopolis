@@ -1,0 +1,19 @@
+{
+  "name": "@city/site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Site: a board of hexagonal tiles where the city is laid out, and every line checked against the layout.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@city/ledger": "workspace:*"
+  }
+}

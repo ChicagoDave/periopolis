@@ -6,7 +6,7 @@ The bounded contexts of Future City, each with its terms, its rules and the line
 |---|---|---|---|
 | The lines | [lines.md](lines.md) | — | Phase 1 |
 | Ledger | [ledger.md](ledger.md) | `@city/ledger` | Phase 1 |
-| Site | site.md | `@city/site` | Phase 2 |
+| Site | [site.md](site.md) | `@city/site` | Phase 2 |
 | Run | run.md | `@city/run` | Phase 3 |
 
 Two marks carry over from the brainstorm (`docs/brainstorm/future-city/overview.md`). **Yours** is something David stated. **Mine** is a placeholder Claude filled in so the arithmetic could run; each is open to change.

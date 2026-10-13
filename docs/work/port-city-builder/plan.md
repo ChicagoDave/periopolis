@@ -42,8 +42,8 @@
 - **Deliverable**: `domain/site` (`@city/site`): site geometry, the layout, layout commands answering with events or rejections, the assessment of a layout under a stress (line checks, score against a car city), seating by chains of moves, and the stretch tests including one stretch of mover line closed. Site terms and scenarios added to the notation. Scenario tests, plus parity fixtures recorded from the sketch.
 - **Exit state**: Every scenario test is green, the parity fixtures show no difference from the sketch, and `domain/site` depends on `@city/ledger` alone.
 - **Demonstration**: `pnpm --filter @city/site test` is green and shows the ledger's city holding 14 of 15 lines with fine dining to watch, two far neighborhoods with no line marking only themselves, and 100,000 people with loops holding all four stretch tests; the parity suite reports 0 differences.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-12, session 0b9b51. `pnpm --filter @city/site test`: 2 files, 72 tests passed, 0 failed (Vitest 5.0.4). `scenarios.test.ts` shows the ledger's city holding 14 of 15 lines with fine dining the watch; two far neighborhoods with no line breaking work, stops and ways with only themselves marked and 9.1% of trips stuck; 100,000 on spokes holding every line but giving under a closure; 100,000 with loops holding every line and all four stretch tests on 584 movers. `parity.test.ts` reports 0 differences across 15 recorded assessments, 29 moves, 2 seatings, 4 restores and 4 bridge cases. `pnpm --filter @city/site typecheck` is clean; `domain/site/src` imports `@city/ledger` and nothing else. [verified: test event "Tests passed, 41 passed 72 passed", 2026-10-13T02:25:51Z UTC, after last code edit 02:23:52Z]
+- **Status**: DONE
 
 ### Phase 3: Run context: twenty years on the clock
 - **Tier**: Medium
@@ -61,7 +61,7 @@
 - **Budget**: 400
 - **Domain focus**: Board. The adapter that draws the site, turns clicks into commands, words the events, and shows the line checks, the stretch tests and the clock. Browser storage sits behind its own adapter.
 - **Entry state**: Phases 1 to 3 are DONE: the three contexts are complete and tested.
-- **Deliverable**: `apps/board` (`@city/board`, Vite): the board, tray, score, inspector, clock card, work in hand, line checks, stretch tests and notes of the published page, a storage adapter, a browser smoke test replaying the sketch's flows, and a build that still emits one publishable page.
+- **Deliverable**: `apps/board` (`@city/board`, Vite): the board, tray, score, inspector, clock card, work in hand, line checks, stretch tests and notes of the published page, a storage adapter, a browser smoke test replaying the sketch's flows, and a build that still emits one publishable page. The Board words the Site's events, checks and tile issues (the domain emits typed facts, Phase 2); its wording is tested against the sentences recorded in `domain/site/test/fixtures/parity.json`.
 - **Exit state**: The app behaves as the published page for the smoke flows, and no domain package imports the DOM or storage.
 - **Demonstration**: `pnpm --filter @city/board test:e2e` is green for four flows (the opening city at 14 of 15; two far neighborhoods breaking three lines; a founding run through year 3; the ledger's city run to year 20), and `pnpm --filter @city/board build` emits the single page.
 - **Demonstrated**: 

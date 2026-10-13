@@ -1,0 +1,6 @@
+{
+  "name": "port-city-builder-sketch",
+  "private": true,
+  "type": "commonjs",
+  "description": "Keeps the sketch under sketch/ runnable as CommonJS now that the repository root is an ES module package. Not a workspace package; nothing imports it."
+}
