@@ -8,6 +8,7 @@ The bounded contexts of Future City, each with its terms, its rules and the line
 | Ledger | [ledger.md](ledger.md) | `@city/ledger` | Phase 1 |
 | Site | [site.md](site.md) | `@city/site` | Phase 2 |
 | Run | [run.md](run.md) | `@city/run` | Phase 3 |
+| Board (adapter) | [board.md](board.md) | `@city/board` | Phase 4 |
 
 Two marks carry over from the brainstorm (`docs/brainstorm/future-city/overview.md`). **Yours** is something David stated. **Mine** is a placeholder Claude filled in so the arithmetic could run; each is open to change.
 

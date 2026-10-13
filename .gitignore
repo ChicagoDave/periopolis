@@ -6,3 +6,6 @@ docs/context/.session-state-*.json
 docs/context/.devarch-gate-*
 docs/context/.devarch-events-*.jsonl
 docs/context/.active-session
+apps/board/dist/
+apps/board/test-results/
+apps/board/playwright-report/
