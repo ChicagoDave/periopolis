@@ -39,8 +39,8 @@
 - **Deliverable**: `planRing(ledger)` and `layersAt(plan, level)` in `@city/ground`; guards that the eight footprints do not overlap, sit on a circle consistent with the ledger's ring radius, and enclose the plaza area the ledger derives. A rejection for a ring of zero buildings. Behavior Statement and tests; `docs/domain/ground.md` completed.
 - **Exit state**: Ground covers every figure listed in the goal; suites green.
 - **Demonstration**: `pnpm --filter @city/ground test` shows ring diameter 272 m and plaza 6.5 acres reconcile with the ledger, and a level switch returns only that level's shapes.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-13 — `pnpm --filter @city/ground test`: 27 passed (ring.test.ts 10 new), `planRing` with the Ledger's eight buildings gives 272 m across and a 26,314 m² (6.5-acre) plaza equal to the Ledger's `ringAcrossM` and `plazaM2` to nine decimals; every count 1 to 40 stands clear by the separating-axis check; 21 buildings is the last that fits the tile; `layersAt` returns only the asked level for both plan kinds. `pnpm -r test`: ledger 41, site 72, ground 27, run 123, board 97; `pnpm -r typecheck` clean; Ground still imports only `@city/ledger`; no regular expressions. [verified: test event "Tests passed" 41/72/27/123/97, 2026-10-13T23:53:13Z, after last edit 23:53:03Z]
+- **Status**: DONE
 
 ### Phase 3: Plan view in the Board — zoom into a tile, switch surface/sub level
 - **Tier**: Medium

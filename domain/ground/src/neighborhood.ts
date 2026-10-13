@@ -15,7 +15,12 @@ import type { Frame, GridPoint, Point, Segment } from './frame.ts';
 import type { Disc, Entry, NeighborhoodPlan, Placeholder, Row } from './plan.ts';
 
 /** Why a plan could not be drawn. */
-export type GroundErrorReason = 'homes-do-not-fit' | 'entries-do-not-fit' | 'figure-not-positive';
+export type GroundErrorReason =
+  | 'homes-do-not-fit'
+  | 'entries-do-not-fit'
+  | 'figure-not-positive'
+  | 'no-ring-buildings'
+  | 'buildings-overlap';
 
 /** The plan refused: the figures given cannot be laid out. */
 export class GroundError extends Error {
@@ -263,6 +268,7 @@ export function planNeighborhood(s: SharedPremises, c: WalkingCityPremises, l: W
   if (!close(laneM, 3 * frame.cornerM) || !close(park.areaM2, parkM2)) throw new GroundError('figure-not-positive');
 
   return {
+    kind: 'neighborhood',
     frame,
     figures: {
       people: l.centerPop,
@@ -279,8 +285,8 @@ export function planNeighborhood(s: SharedPremises, c: WalkingCityPremises, l: W
       farthestEntryWalkMin: walkMins.reduce((a, b) => Math.max(a, b), 0),
       rowPitchM: pitchM,
     },
-    surface: { rows, center, park, lane },
-    sub: { stop: { at: { x: 0, y: 0 }, berths: l.berths }, entries, pipes },
+    surface: { of: 'neighborhood', level: 'surface', rows, center, park, lane },
+    sub: { of: 'neighborhood', level: 'sub', stop: { at: { x: 0, y: 0 }, berths: l.berths }, entries, pipes },
     placeholders: PLACEHOLDERS,
   };
 }
