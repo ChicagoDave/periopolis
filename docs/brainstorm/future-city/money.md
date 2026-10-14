@@ -327,6 +327,18 @@ Phase 4 of `docs/work/archive/accept-money-premises/plan.md`. The car column, a 
 
 The shortfall in civic is in both columns alike: what the ledger does not count, it does not count for either city. It is recorded here, not tuned away; a fuller civic layer would add the missing services as rows with their own premises.
 
+### Rerun with the civic layer widened, 2026-10-14
+
+Phase 3 of `docs/work/widen-civic-layer/plan.md`. Structures, pupils and a car's year do not move (221,525; 15.6%; 4,860). The civic checks, the car column a person:
+
+| Check | America | Car column | Reading |
+|---|---|---|---|
+| Government services (civic less schools, grid electricity, water and goods runs), against the restated band | 8,760 (state and local less schools) | 7,069 | **81%.** The rest is what David left out or is counted elsewhere: interest on debt (about 330, in Financing), housing and community development (196), air transportation and natural resources (about 110 each), the miscellaneous remainder (665 to 890), less police counted 43 above the source's 407. That sums to about 1,370 to 1,600 of the 1,691 gap; the shares are rounded to whole percents, which covers the last 100 to 300 |
+| The whole civic layer, the test's band | 40% to 120% of 11,087 | 11,692 | 105%, inside |
+| Civic less schools, the old band, for the record | 5,000 to 7,000 | 9,114 | Over, as expected: that band did not match its source, and this figure still holds 2,045 of utility bills and goods runs |
+
+The 4,331 finding of the previous rerun has its successor: the services are counted, and what remains of the gap is named. Your city's government services are 6,746 a person; the 323 between the columns is the running of the streets and parks it does not have.
+
 ## Civic categories not yet counted
 
 Phase 1 of `docs/work/widen-civic-layer/plan.md`, looked up 2026-10-14. Nothing here is in `cost.ts` yet; each row waits for David.

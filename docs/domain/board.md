@@ -31,7 +31,7 @@ The page's HTML and styles are the sketch's two halves, plus the view bar and th
 
 Six flows run in Chromium against the built page (`pnpm --filter @city/board test:e2e`):
 
-1. The opening city holds 14 of 15 lines, fine dining to watch; the closure test can be shown on the board and shows 12 of 15; the money card reads $13.4 B to build and $571 M a year, ten layer rows, every row's chip a mark (Yours, Sourced or Mine) with accepted Sourced chips among them, no spend without a clock.
+1. The opening city holds 14 of 15 lines, fine dining to watch; the closure test can be shown on the board and shows 12 of 15; the money card reads $13.4 B to build and $794 M a year, ten layer rows, every row's chip a mark (Yours, Sourced or Mine) with accepted Sourced chips among them, no spend without a clock.
 2. Two far neighborhoods with no line break three lines; only they are marked; their issues read as the sketch wrote them; undo brings the city back.
 3. Founding from nothing: nothing costs or is spent at year 0; orders for plants, a ring and a line; year 1 opens three stretches and spends on groundworks alone; homes and schools ordered on building sites; a waiting job put first; the inspector on a building site; year 3 with homes for 10,000; the clock stopped.
 4. The ledger's city run to year 20: a closure announced and shown; 20 years in the strip and 21 rows in the record with a Spent column; twenty years' spend by six layers; the export carries the clock and the money; the run survives a reload.
