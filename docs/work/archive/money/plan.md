@@ -2,7 +2,7 @@
 
 **Created**: 2026-10-13
 **Revised**: 2026-10-13, after the money brainstorm (`docs/brainstorm/future-city/money.md`) and the amendment of ADR-0007 (Decisions 8 to 13): a new Phase 2 prices the city in six layers from sourced premises; Site and Run become Phase 3, the Board Phase 4, both carrying layers and marks. Phase 1 is untouched.
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Brainstorm "Next" item 3. Capital cost to build and yearly cost to run become ledger consequences, derived by the same arithmetic for both columns, reported to the city as a whole in six layers (groundworks, buildings, fleet to build; upkeep, civic services, households to run) with Land and Financing as their own lines. Every unit cost carries a mark: Yours, Sourced (source and year) or Mine. Phase 1 landed the first derivation on Mine placeholders; Phase 2 restructures it by layer with sourced premises and vouches the car column against US figures; Site and Run then carry the cost of what stands and what is ordered; the Board shows the layers, rows and marks beside the others.
 **Bounded contexts touched**: Ledger (`@city/ledger`, Phases 1 and 2), Site and Run (Phase 3), Board (Phase 4); docs throughout. Ground is not touched.
 **Key domain language**: Premise, Consequence, Column, Capital cost, Running cost, Layer (groundworks, buildings, fleet, upkeep, civic services, households), Mark (Yours, Sourced, Mine), Land, Financing

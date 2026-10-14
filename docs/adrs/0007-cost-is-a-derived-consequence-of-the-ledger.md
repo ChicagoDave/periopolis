@@ -7,7 +7,7 @@
 
 ## Context
 
-The brainstorm's "Next" item 3 is the one word "Money", and its open list says "what any of it costs" is still unknown (`docs/brainstorm/future-city/overview.md`). ADR-0003 Decision 4 names money as its own plan after the port. The ledger already counts nearly everything a city is made of, per city and per person, for both columns, by one arithmetic the car column vouches for. The question was where money enters and how far it reaches: a price on every count, or a budget the clock plays with, or a business model for the tool itself. The plan (`docs/work/money/plan.md`) reads it as the first, to be confirmed by the figures it prints.
+The brainstorm's "Next" item 3 is the one word "Money", and its open list says "what any of it costs" is still unknown (`docs/brainstorm/future-city/overview.md`). ADR-0003 Decision 4 names money as its own plan after the port. The ledger already counts nearly everything a city is made of, per city and per person, for both columns, by one arithmetic the car column vouches for. The question was where money enters and how far it reaches: a price on every count, or a budget the clock plays with, or a business model for the tool itself. The plan (`docs/work/archive/money/plan.md`) reads it as the first, to be confirmed by the figures it prints.
 
 ## Decision
 
@@ -29,7 +29,7 @@ The brainstorm's "Next" item 3 is the one word "Money", and its open list says "
 ## Consequences
 
 - `domain/ledger/src/cost.ts` holds the premises, the row ids, the pricing and the two column lists. A new thing the city builds is a new row id, a new count from the ledger, and a new unit cost in `COSTS`, in one change; the type checker reports a row the Board has not worded.
-- The Site and the Run, in `docs/work/money/plan.md` Phase 3, price what stands from `COSTS` and their own counts. They do not carry unit costs of their own.
+- The Site and the Run, in `docs/work/archive/money/plan.md` Phase 3, price what stands from `COSTS` and their own counts. They do not carry unit costs of their own.
 - *Added 2026-10-13, Phase 3:* the pricing arithmetic is the Ledger's too. `priceCounts` and `tallyCost` are exported, and the Site's `costOf` (`domain/site/src/cost.ts`) and the Run's `spendOf` (`domain/run/src/spend.ts`) go through them. A neighborhood is one center's share of the walking column, so a finished tile costs exactly its share; plants are modules and units at the groundworks premises, in two row ids (`reactorModules`, `plantUnits`) that no ledger column carries. The Run's record row carries `standing` and `spend` by layer: a built layer's spend in a year is what stands at the end of it less what stood a year before, so a take-down or a shrinking fleet comes off; a yearly layer's spend is the year's bill; year 0 spends nothing. The sketch's clock has no money, so the Run's parity compares the record's old fields only, as Decision 7 has the ledger's parity do. A stored row without money restores zeros.
 - The premises are dollars of their source's year and are not tuned. *Amended 2026-10-13:* at the premises tabled in `money.md`, the published city costs about 255 thousand dollars a person to build in the car column and 210 in yours, about 14,900 against 10,400 a year to run, and about 12,900 against 12,600 a year to finance the structures. Those figures are pinned in `cost.test.ts` as a check on the premises, not as truth. (At Phase 1's all-Mine placeholders they were 248 against 247 and 5,900 against 3,200.)
 - Changing a placeholder moves exactly the rows that use it, and the test suite asserts that. A budget the clock spends, or who pays, is a new decision, not a change to a placeholder.
@@ -39,4 +39,4 @@ The brainstorm's "Next" item 3 is the one word "Money", and its open list says "
 
 ## Session
 
-Session ec9b68, 2026-10-13, Phase 1 of `docs/work/money/plan.md`. Amended the same session, after the money brainstorm, with Decisions 8 to 13 and the consequences marked *Added 2026-10-13*. Session edaab5, 2026-10-13, Phase 3: the consequence marked *Added 2026-10-13, Phase 3*.
+Session ec9b68, 2026-10-13, Phase 1 of `docs/work/archive/money/plan.md`. Amended the same session, after the money brainstorm, with Decisions 8 to 13 and the consequences marked *Added 2026-10-13*. Session edaab5, 2026-10-13, Phase 3: the consequence marked *Added 2026-10-13, Phase 3*.
