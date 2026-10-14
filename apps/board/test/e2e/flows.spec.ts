@@ -1,8 +1,10 @@
 /**
- * @file The Board's four flows in a browser, on the built page: the opening city, two far neighborhoods, a founding run
- * through year 3, and the ledger's city run to year 20.
+ * @file The Board's six flows in a browser, on the built page: the opening city, two far neighborhoods, a founding run
+ * through year 3, the ledger's city run to year 20, undo and storage, and a tile's ground zoomed into at both levels.
  * Owner context: Board (adapter), tests.
  */
+import { planNeighborhood, planRing } from '@city/ground';
+import { RATES } from '@city/site';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { dirname, join } from 'node:path';
@@ -168,4 +170,66 @@ test('undo, clear and storage: tiles come and go, the board survives a reload, a
   await page.reload();
   await expect(page.locator('#said')).toHaveText("This is the ledger's city of 50,000. Pick a tool and change it, or clear the site and start your own.");
   await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+});
+
+test("a tile's ground: the drawn homes, entries and ring buildings are the Ground's, the levels swap, and the map comes back whole", async ({ page }) => {
+  const hood = planNeighborhood(RATES.shared, RATES.walking, RATES.base);
+  const ring = planRing(RATES.walking, RATES.base, 8);
+  const sum = (selector: string): Promise<number> =>
+    page.locator(selector).evaluateAll((nodes) => nodes.reduce((n, e) => n + Number(e.getAttribute('data-homes')), 0));
+  await expect(page.locator('#viewbar')).toBeHidden();
+  await page.click('#tool-inspect');
+  await tile(page, '1,0').click();
+  await page.click('#look');
+  await expect(page.locator('#said')).toHaveText(
+    'One neighborhood: 2,041 townhouses of 3 stories in 47 rows, 12.2 km of frontage; the center, a 12-acre park, 1.1 km of bike lane. Below, 33 entries of about 62 homes, 3.7 km of walkway, 6.1 km of goods pipe, and the stop.',
+  );
+  await expect(page.locator('#viewbar')).toBeVisible();
+  await expect(page.locator('#viewtext')).toHaveText('Neighborhood at 1,0, 93 acres');
+  await expect(page.locator('#level-surface')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#board .ground')).toHaveAttribute('data-level', 'surface');
+  await expect(page.locator('#board .g-row')).toHaveCount(hood.figures.rows);
+  expect(await sum('#board .g-row')).toBe(hood.figures.homes);
+  expect(hood.figures.homes).toBe(2041);
+  await expect(page.locator('#board .g-lane')).toHaveCount(3);
+  await expect(page.locator('#board .g-entry')).toHaveCount(0);
+  await expect(page.locator('#board .tile')).toHaveCount(0);
+  await page.click('#level-sub');
+  await expect(page.locator('#board .ground')).toHaveAttribute('data-level', 'sub');
+  await expect(page.locator('#level-sub')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#board .g-entry')).toHaveCount(hood.figures.entries);
+  expect(await sum('#board .g-entry')).toBe(hood.figures.homes);
+  await expect(page.locator('#board .g-walkway')).toHaveCount(hood.figures.entries - 1);
+  await expect(page.locator('#board .g-pipe')).toHaveCount(hood.sub.pipes.length);
+  await expect(page.locator('#board .g-stop')).toHaveCount(1);
+  await expect(page.locator('#board .g-row')).toHaveCount(0);
+  await page.click('#back');
+  await expect(page.locator('#said')).toHaveText('The map.');
+  await expect(page.locator('#viewbar')).toBeHidden();
+  await expect(page.locator('#board .tile')).toHaveCount(91);
+  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await tile(page, '0,0').click();
+  await page.click('#look');
+  await expect(page.locator('#said')).toHaveText('The ring: 8 buildings of 25 stories, 272 m across, round a 6.5-acre plaza. Below, the stop.');
+  await expect(page.locator('#board .g-bldg')).toHaveCount(ring.figures.buildings);
+  await expect(page.locator('#board .g-bldg').first()).toHaveAttribute('data-stories', '25');
+  await expect(page.locator('#inspector #look')).toHaveText('Back to the map');
+  // Taking the ring down from under the view, one building at a time, sends it back to the map once the tile is bare.
+  for (let left = 7; left >= 1; left--) {
+    await page.click('#inspector button:has-text("Remove one")');
+    await expect(page.locator('#board .g-bldg')).toHaveCount(left);
+  }
+  await page.click('#inspector button:has-text("Remove one")');
+  await expect(page.locator('#viewbar')).toBeHidden();
+  await expect(page.locator('#board .tile')).toHaveCount(91);
+  await expect(tile(page, '0,0')).toHaveClass(/open/);
+  await expect(page.locator('#inspector h2')).toHaveText('Open ground');
+  // The view is the page's alone: a reload comes back on the map with the city as saved.
+  await page.click('#undo');
+  await tile(page, '0,0').click();
+  await page.click('#look');
+  await expect(page.locator('#viewbar')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('#viewbar')).toBeHidden();
+  await expect(page.locator('#board .tile.ring')).toHaveCount(1);
 });
