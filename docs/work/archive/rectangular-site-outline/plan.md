@@ -1,7 +1,7 @@
 # Session Plan: A plain rectangular site outline with fainter tile lines
 
 **Created**: 2026-10-13
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Brainstorm "Next" item 2. The site stops being a hexagon of hexagons (reads as Catan) and becomes a plain rectangle of the same hexagonal tiles, drawn with fainter tile lines. Tiles, spacing, nearest-center assignment and hexagonal catchments do not change.
 **Bounded contexts touched**: Site (`@city/site`: the board geometry and `RATES.board`), Run (`@city/run`: iterates the site's tiles), Board (`apps/board`: map drawing, export, e2e). Ground is revisited only for the frame it draws into (ADR-0005).
 **Key domain language**: Site, Tile, Stretch, Layout, Outline (new: the site's shape)
