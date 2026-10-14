@@ -3,14 +3,15 @@
  * households to run; with Land and Financing as their own lines (ADR-0007, lines 24 to 28). Every premise carries a
  * mark: Yours, Sourced (with its source and year) or Mine. Nothing here is tuned; a Sourced figure is still a
  * placeholder until David accepts it.
- * Public interface: Layer, LAYERS, Kind, kindOf, Mark, Marked, CostPremises, CostPremiseId, COSTS, CostId, CostRow,
- * CostFigures, carCost, walkingCost.
+ * Public interface: Layer, LAYERS, Kind, kindOf, Mark, Marked, CostPremises, CostPremiseId, COSTS, CostId, Counted,
+ * CostRow, LandLine, FinancingLine, CostFigures, priceCounts, levelPayment, tallyCost, carCost, walkingCost.
  * Owner context: Ledger (domain).
  *
  * Money is in dollars of the source's year, not escalated. A row is one premise times one ledger count, and both
  * columns are priced by the same function, so a difference between the columns is a difference in what they build
- * and run, never in the arithmetic. The Ledger is the only place a unit cost lives: the Site and the Run price what
- * stands from these premises and their own counts (Decision 6).
+ * and run, never in the arithmetic. The Ledger is the only place a unit cost lives, and the only place the pricing
+ * arithmetic lives: the Site and the Run price what stands from these premises and their own counts through
+ * priceCounts and tallyCost (Decision 6).
  */
 import type { CarCityLedger, WalkingCityLedger } from './consequences.ts';
 import type { CarCityPremises, SharedPremises, WalkingCityPremises } from './premises.ts';
@@ -317,7 +318,10 @@ export const COSTS: CostPremises = {
   financeYears: { value: 30, mark: MINE },
 };
 
-/** The rows. A column carries only the rows it has something of. */
+/**
+ * The rows. A column carries only the rows it has something of; the two plant rows are the Site's alone, since
+ * plants are not ledger counts (Decision 6).
+ */
 export type CostId =
   // groundworks
   | 'streets'
@@ -330,6 +334,8 @@ export type CostId =
   | 'entries'
   | 'pipe'
   | 'lanes'
+  | 'reactorModules'
+  | 'plantUnits'
   // buildings
   | 'lowRiseFloor'
   | 'highRiseFloor'
@@ -397,8 +403,8 @@ export interface CostFigures {
   readonly financing: FinancingLine;
 }
 
-/** A count waiting to be priced. */
-interface Counted {
+/** A count waiting to be priced: so many of something, in a layer, at a premise. */
+export interface Counted {
   readonly id: CostId;
   readonly layer: Layer;
   readonly count: number;
@@ -408,7 +414,13 @@ interface Counted {
 const DAYS = 365;
 const KM = 1000;
 
-function price(rows: readonly Counted[], k: CostPremises): CostRow[] {
+/**
+ * Price counts at the premises: each row is its count times its premise's value.
+ * @param rows - the counts
+ * @param k - the premises
+ * @returns one row per count, in the same order
+ */
+export function priceCounts(rows: readonly Counted[], k: CostPremises): CostRow[] {
   return rows.map((r) => {
     const unit = k[r.premise].value;
     return { id: r.id, layer: r.layer, count: r.count, premise: r.premise, unit, cost: r.count * unit };
@@ -421,11 +433,44 @@ function sum(rows: readonly CostRow[]): number {
 
 /**
  * The level yearly payment that pays off a capital sum over so many years at a rate. A rate of 0 divides evenly.
+ * @throws RangeError when the term is under a year
  */
-function levelPayment(capital: number, rate: number, years: number): number {
+export function levelPayment(capital: number, rate: number, years: number): number {
   if (!(years > 0)) throw new RangeError('financing needs a term of at least a year');
   if (rate <= 0) return capital / years;
   return (capital * rate) / (1 - (1 + rate) ** -years);
+}
+
+/**
+ * Total priced rows by layer and kind, and add the Land and Financing lines: the one tally the Ledger, the Site and
+ * the Run share (Decisions 3 and 6). Upkeep is not added here; the caller counts it as a row.
+ * @param rows - the priced rows, upkeep among them
+ * @param pop - the people the totals are divided by; 0 gives 0 a person, for a site with nobody on it
+ * @param areaM2 - the ground the Land line prices
+ * @param k - the premises
+ * @returns the money
+ */
+export function tallyCost(rows: readonly CostRow[], pop: number, areaM2: number, k: CostPremises): CostFigures {
+  const layers = {} as Record<Layer, number>;
+  for (const layer of LAYERS) layers[layer] = sum(rows.filter((r) => r.layer === layer));
+  const capitalTotal = layers.groundworks + layers.buildings + layers.fleet;
+  const runningTotal = layers.upkeep + layers.civic + layers.households;
+  const structures = layers.groundworks + layers.buildings;
+  return {
+    rows,
+    layers,
+    capitalTotal,
+    capitalPerPerson: pop > 0 ? capitalTotal / pop : 0,
+    runningTotal,
+    runningPerPerson: pop > 0 ? runningTotal / pop : 0,
+    land: { areaM2, unit: k.landM2.value, cost: areaM2 * k.landM2.value },
+    financing: {
+      capital: structures,
+      rate: k.financeRate.value,
+      years: k.financeYears.value,
+      yearly: levelPayment(structures, k.financeRate.value, k.financeYears.value),
+    },
+  };
 }
 
 /** The figures the two columns share, whichever column. */
@@ -456,7 +501,7 @@ function figures(
   k: CostPremises,
 ): CostFigures {
   if (!(s.pop > 0)) throw new RangeError('cost needs people to be counted per person');
-  const built = price(counted, k);
+  const built = priceCounts(counted, k);
   const structures = sum(built.filter((r) => r.layer === 'groundworks' || r.layer === 'buildings'));
   const pupils = s.pop * s.gradeShare * k.grades.value;
   const civic: Counted[] = [
@@ -471,27 +516,7 @@ function figures(
     { id: 'waste', layer: 'civic', count: s.pop * k.wasteTonsPerPersonYear.value, premise: 'wasteTon' },
     { id: 'goodsRuns', layer: 'civic', count: f.goodsRuns * DAYS, premise: 'goodsRun' },
   ];
-  const rows = [...built, ...price(civic, k)];
-  const layers = {} as Record<Layer, number>;
-  for (const layer of LAYERS) layers[layer] = sum(rows.filter((r) => r.layer === layer));
-  const capitalTotal = layers.groundworks + layers.buildings + layers.fleet;
-  const runningTotal = layers.upkeep + layers.civic + layers.households;
-  const areaM2 = f.areaKm2 * 1e6;
-  return {
-    rows,
-    layers,
-    capitalTotal,
-    capitalPerPerson: capitalTotal / s.pop,
-    runningTotal,
-    runningPerPerson: runningTotal / s.pop,
-    land: { areaM2, unit: k.landM2.value, cost: areaM2 * k.landM2.value },
-    financing: {
-      capital: structures,
-      rate: k.financeRate.value,
-      years: k.financeYears.value,
-      yearly: levelPayment(structures, k.financeRate.value, k.financeYears.value),
-    },
-  };
+  return tallyCost([...built, ...priceCounts(civic, k)], s.pop, f.areaKm2 * 1e6, k);
 }
 
 /** The household rows every column has: vehicles driven and vehicles worn out. */

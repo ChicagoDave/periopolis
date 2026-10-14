@@ -430,6 +430,8 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
     nowhere: pop > 0 ? total.nowhere / pop : 0,
     fleet,
     door: total.ride > 0 ? total.door / total.ride : 0,
+    vehicleTrips,
+    rideKm: (inVehicle / 60) * walking.rideKmh,
     moverKm,
     walkwayKm,
     pipeKm: hoods.length * rates.pipeKm,

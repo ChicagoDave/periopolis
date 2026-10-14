@@ -1,9 +1,14 @@
 /**
  * @file The Site. A board of hexagonal tiles inside an outline, where the city is laid out; commands that lay it out; the fifteen line
  * checks and the four stretch tests against the layout.
- * Public interface: the layout and its commands, assess, the rates, the board geometry, seating and the line network.
+ * Public interface: the layout and its commands, assess, the rates, the board geometry, seating, the line network,
+ * and the cost of what stands (with the Ledger's cost names re-exported, so the Run depends on the Site alone).
  * Owner context: Site (domain). Depends on @city/ledger alone.
  */
+export { costOf } from './cost.ts';
+export type { SiteCost } from './cost.ts';
+export { COSTS, LAYERS, kindOf } from '@city/ledger';
+export type { CostFigures, CostId, CostPremiseId, CostPremises, CostRow, FinancingLine, Kind, LandLine, Layer, Mark, Marked } from '@city/ledger';
 export { RATES, ratesFrom, SCHOOLS, EXTRAS, PLANTS } from './rates.ts';
 export type { SiteRates, TripShares, SchoolKind, ExtraKind, PlantKind } from './rates.ts';
 export { tileKey, tileAt, hexagon, rectangle, extent, onBoard, allTiles, neighbors, adjacent, kmBetween, edgeKey, edgeEnds } from './board.ts';

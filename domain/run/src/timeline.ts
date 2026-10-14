@@ -11,6 +11,7 @@ import { dice } from './dice.ts';
 import type { Job } from './jobs.ts';
 import { GRADES } from './rules.ts';
 import type { PieceKind, RunRules } from './rules.ts';
+import type { Money } from './spend.ts';
 
 /** What can happen: a housing squeeze, a stretch of line closed, a wave of young families, a slump. */
 export type EventType = 'squeeze' | 'closure' | 'families' | 'slump';
@@ -39,6 +40,10 @@ export interface RecordRow {
   readonly bad: number;
   readonly broken: readonly CheckId[];
   readonly opened: Readonly<Partial<Record<PieceKind, number>>>;
+  /** What stands costs at the end of the year, by layer: capital standing, and this year's running bill. */
+  readonly standing: Money;
+  /** The year's outlay by layer: capital as the change in what stands, running as the year's bill. Year 0 spends nothing. */
+  readonly spend: Money;
 }
 
 /** The clock: the year, the work in hand, the events and the record. */

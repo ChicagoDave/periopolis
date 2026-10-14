@@ -61,7 +61,17 @@ interface Fixture {
 const fixture = recorded as unknown as Fixture;
 
 const toGame = (g: SketchGame): Game => ({ layout: g.state, clock: g.clock });
-const fromGame = (g: Game): SketchGame => ({ state: g.layout, clock: g.clock });
+
+/**
+ * The sketch's clock has no money: its record rows end at `opened`. Parity compares the old rows only (ADR-0007
+ * Decision 7), so the port's `standing` and `spend` are left out here and asserted in spend.test.ts.
+ */
+function oldClock(clock: Clock | null): Clock | null {
+  if (!clock) return null;
+  const record = clock.record.map(({ standing: _standing, spend: _spend, ...row }) => row) as unknown as Clock['record'];
+  return { ...clock, record };
+}
+const fromGame = (g: Game): SketchGame => ({ state: g.layout, clock: oldClock(g.clock) });
 
 /** The sketch's inHand, which has no crews field difference; compared whole. */
 function order(game: Game, tool: string, k: string, from: string | null | undefined) {
@@ -133,7 +143,7 @@ describe('timelines', () => {
 describe('a clock read back from storage', () => {
   for (const c of fixture.cleanCases) {
     it(c.name, () => {
-      expect(restoreClock(c.raw, c.layout, RATES, RULES)).toEqual(c.result);
+      expect(oldClock(restoreClock(c.raw, c.layout, RATES, RULES))).toEqual(c.result);
     });
   }
 });

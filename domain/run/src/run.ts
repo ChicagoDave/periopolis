@@ -3,13 +3,15 @@
  * Public interface: Game, startRun, stopRun, tick, seenIn, restoreClock.
  * Owner context: Run (domain).
  */
-import { adjacent, allTiles, assess, edgeEnds } from '@city/site';
-import type { CheckId, CheckStatus, Layout, SiteRates, Stress } from '@city/site';
+import { LAYERS, adjacent, allTiles, assess, costOf, edgeEnds } from '@city/site';
+import type { CheckId, CheckStatus, Layer, Layout, SiteRates, Stress } from '@city/site';
 
 import type { Job } from './jobs.ts';
 import { addPiece, draftOf, planned } from './pieces.ts';
 import { PIECES } from './rules.ts';
 import type { PieceKind, RunRules } from './rules.ts';
+import { noMoney, spendOf, standingOf } from './spend.ts';
+import type { Money } from './spend.ts';
 import { beginClock, pickEdge, stressAt } from './timeline.ts';
 import type { Clock, EventType, RecordRow, TimelineEvent } from './timeline.ts';
 
@@ -22,12 +24,14 @@ export interface Game {
 const EXTRA_KINDS: readonly string[] = ['elementary', 'middle', 'high', 'fields'];
 
 /**
- * The city as it stands in one year: who lives there, how many homes there are, and which lines are broken.
+ * The city as it stands in one year: who lives there, how many homes there are, which lines are broken, what it all
+ * costs, and what the year spent against the year before.
  * @param layout - what stands
  * @param stress - this year's stress
  * @param year - the year
  * @param opened - what opened this year
  * @param rates - the ledger's rates
+ * @param before - what stood a year before, by layer; null for year 0, which spends nothing
  */
 export function seenIn(
   layout: Layout,
@@ -35,12 +39,25 @@ export function seenIn(
   year: number,
   opened: Readonly<Partial<Record<PieceKind, number>>>,
   rates: SiteRates,
+  before: Money | null = null,
 ): RecordRow {
   const a = assess(layout, rates, { now: stress });
   const t: Record<CheckStatus, number> = { ok: 0, warn: 0, bad: 0, idle: 0 };
   for (const c of a.checks) t[c.status]++;
   const broken: CheckId[] = a.checks.filter((c) => c.status === 'bad').map((c) => c.id);
-  return { year, pop: a.score.pop, homes: a.score.hoods * rates.hood, held: t.ok, warn: t.warn, bad: t.bad, broken, opened };
+  const standing = standingOf(costOf(layout, a, rates));
+  return {
+    year,
+    pop: a.score.pop,
+    homes: a.score.hoods * rates.hood,
+    held: t.ok,
+    warn: t.warn,
+    bad: t.bad,
+    broken,
+    opened,
+    standing,
+    spend: spendOf(before, standing),
+  };
 }
 
 /**
@@ -52,7 +69,7 @@ export function seenIn(
  */
 export function startRun(layout: Layout, seed: number, rates: SiteRates, rules: RunRules): Game {
   const clock = beginClock(seed, rules);
-  const record = [seenIn(layout, stressAt(clock, rates.band), 0, {}, rates)];
+  const record = [seenIn(layout, stressAt(clock, rates.band), 0, {}, rates, null)];
   return { layout, clock: { ...clock, record } };
 }
 
@@ -113,7 +130,8 @@ export function tick(game: Game, rates: SiteRates, rules: RunRules): Game {
       : e,
   );
   const next: Clock = { ...clock, year, jobs: still, events, record: clock.record, lineYears: clock.lineYears };
-  const row = seenIn(layout, stressAt(next, rates.band), year, opened, rates);
+  const last = clock.record[clock.record.length - 1];
+  const row = seenIn(layout, stressAt(next, rates.band), year, opened, rates, last ? last.standing : null);
   return {
     layout,
     clock: { ...next, record: [...clock.record, row], lineYears: clock.lineYears + row.bad },
@@ -129,6 +147,18 @@ function whole(x: unknown, lo: number, hi: number): x is number {
 }
 
 const EVENT_TYPES: readonly EventType[] = ['families', 'closure', 'squeeze', 'slump'];
+
+/** Money by layer read back from storage: every layer a finite number, or nothing at all. */
+function moneyOf(raw: unknown): Money {
+  if (!isRecord(raw)) return noMoney();
+  const out = {} as Record<Layer, number>;
+  for (const layer of LAYERS) {
+    const v = raw[layer];
+    if (typeof v !== 'number' || !Number.isFinite(v)) return noMoney();
+    out[layer] = v;
+  }
+  return out;
+}
 
 /**
  * Rebuild a clock from anything read back from storage, keeping only what a clock can hold against the layout it
@@ -208,6 +238,8 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
       bad: r['bad'] as number,
       broken: Array.isArray(broken) ? (broken.filter((x) => typeof x === 'string').slice(0, 40) as CheckId[]) : [],
       opened,
+      standing: moneyOf(r['standing']),
+      spend: moneyOf(r['spend']),
     });
   }
   return {

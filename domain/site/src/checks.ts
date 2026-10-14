@@ -202,6 +202,10 @@ export interface Score {
   readonly nowhere: number;
   readonly fleet: number;
   readonly door: number;
+  /** Mover trips a day. */
+  readonly vehicleTrips: number;
+  /** The average ride along the line, km. */
+  readonly rideKm: number;
   readonly moverKm: number;
   readonly walkwayKm: number;
   readonly pipeKm: number;

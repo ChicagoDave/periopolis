@@ -2,7 +2,7 @@
 
 **Purpose.** The ground the city is laid out on, divided into tiles; the commands that lay it out; and the fifteen line checks and four stretch tests that tell whether the city as drawn still honors the lines.
 
-**Package.** `@city/site` (`domain/site`). Pure and deterministic; depends on `@city/ledger` alone. Public interface: the layout and its commands, `assess`, the rates, the board geometry, seating and the line network.
+**Package.** `@city/site` (`domain/site`). Pure and deterministic; depends on `@city/ledger` alone. Public interface: the layout and its commands, `assess`, the rates, the board geometry, seating, the line network, and `costOf`, the cost of what stands (with the Ledger's cost names re-exported so the Run depends on the Site alone).
 
 **Consumers.** Run assesses a layout under each year's stress and counts broken lines; the Board draws the layout, turns clicks into commands, and words the findings.
 
@@ -27,6 +27,7 @@
 | Bridge | A stretch with no way round it. The closure test closes bridges worst first, the one that cuts off the most neighborhoods ahead, until one breaks a line. | Mine |
 | Seating | Pupils go to the nearest school with room; anyone left out is seated by a chain of moves, so nobody is counted out while a seat exists within the walk. | Mine |
 | Score | What has been built, how trips are made, the fleet, the sub level, and the same city as a car city from the ledger. | Mine |
+| Cost of what stands | Every tile and every stretch priced at the Ledger's premises in the six layers (ADR-0007 Decision 6), with the rows that belong to the city as a whole (the fleet and where it waits, upkeep, getting around), the Land and Financing lines, and the totals. A neighborhood is one center's share of the ledger's walking column, so a finished tile costs exactly its share; its walkway stands only where a stop does. A ring building is one building's worth of the middle's floor. A plant is its modules or units. A stretch is a step of mover floor and track. Schools and fields are inside the floor and the parks and add no row. The capital rows count the homes as built; the yearly per-person rows count the people living in them this year, stress included. The Ledger is the only home of a unit cost; the Site supplies the counts. | Mine |
 
 ## Commands
 
@@ -65,7 +66,8 @@ Trips are counted over the real distances between tiles. Inside the walking limi
 - **Two far neighborhoods with no line**: work, stops and ways break; 9.1% of trips are stuck; only the two are marked.
 - **100,000 on spokes**: every line holds on 649 movers; a closure gives.
 - **100,000 with loops**: every line holds, all four stretch tests hold, no bridges left, 584 movers, 30.4 km of line.
+- **What the ledger's city on the board costs** (at the premises of 2026-10-13, `docs/brainstorm/future-city/money.md`): about 14.0 billion dollars to build (groundworks 4.5, buildings 9.4, fleet 0.03) and 592 million a year to run, against the ledger column's 10.5 billion and 520 million: the board stands 3 reactor modules and 3 plant units the column does not count, and the band's 8 ring buildings where the column prices 6.4 buildings' floor. An empty site costs nothing.
 
 ## Acceptance
 
-`domain/site/test/parity.test.ts` matches 15 recorded assessments (checks, every tile's report, the score, the stretch tests), 29 moves, 2 seatings, 4 restores and 4 bridge cases against the sketch's `engine.js`. `scenarios.test.ts` asserts the scenarios above in the language of the lines. The sketch's sentences are kept in the fixture for the Board's wording tests in Phase 4.
+`domain/site/test/parity.test.ts` matches 15 recorded assessments (checks, every tile's report, the score, the stretch tests), 29 moves, 2 seatings, 4 restores and 4 bridge cases against the sketch's `engine.js`. `scenarios.test.ts` asserts the scenarios above in the language of the lines. `cost.test.ts` asserts that an empty site costs nothing, that a finished neighborhood costs the ledger's per-tile share row by row, that plants and stretches are priced at the groundworks premises, that the layers sum to the whole, that a squeeze moves the yearly rows and not the buildings, that a changed premise moves only its rows, and, loosely, that the board's city lands near the column's. The parity fixture is unchanged: money adds figures to the score (`vehicleTrips`, `rideKm`) and the record compares only the recorded keys. The sketch's sentences are kept in the fixture for the Board's wording tests in Phase 4.

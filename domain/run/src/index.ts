@@ -2,9 +2,11 @@
  * @file The Run. Twenty years on the clock: crews, jobs and the work in hand; the timeline of five announced events;
  * the yearly record and its line-years.
  * Public interface: startRun, stopRun, tick, placeOrder, cancelJob, putFirst, inHand, notices, stressAt, restoreClock,
- * the rules, and the types of games, clocks, jobs, events and records.
+ * totalSpend, the rules, and the types of games, clocks, jobs, events, records and money.
  * Owner context: Run (domain). Depends on @city/site alone.
  */
+export { noMoney, spendOf, standingOf, totalSpend } from './spend.ts';
+export type { Money, TotalSpend } from './spend.ts';
 export { RULES, PIECES, GRADES } from './rules.ts';
 export type { RunRules, PieceKind } from './rules.ts';
 export { dice } from './dice.ts';
