@@ -1,7 +1,7 @@
 # Session Plan: Accept the money premises
 
 **Created**: 2026-10-14
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Walk every unit cost in `domain/ledger/src/cost.ts` from a placeholder to a figure David owns. Research the open Mine premises first so David sees sourced proposals, then review the premises one layer at a time (accept to Yours, change, or stay Mine), record each outcome with its mark and source in the cost module, and rerun the vouching and parity checks. Who pays stays out of scope (money.md "Who pays"). The prior money plan is archived at `docs/work/archive/money/plan.md`.
 **Bounded contexts touched**: Ledger (`@city/ledger`, the cost module); Board (recorded figures in `docs/domain/board.md` only, no code change expected); Site and Run read `COSTS` and are re-tested, not edited.
 **Key domain language**: Premise, Mark (Yours, Sourced, Mine), Layer (groundworks, buildings, fleet, upkeep, civic services, households), Land, Financing, Bracket, Vouching

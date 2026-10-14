@@ -166,7 +166,7 @@ export type CostPremiseId = keyof CostPremises;
 /**
  * The premises as found on 2026-10-13 and 2026-10-14 (`docs/brainstorm/future-city/money.md`, "Sources for the unit
  * costs" and "Sources found 2026-10-14"). Every premise accepted 2026-10-14
- * (`docs/work/accept-money-premises/plan.md`).
+ * (`docs/work/archive/accept-money-premises/plan.md`).
  */
 export const COSTS: CostPremises = {
   lowRiseM2: {
