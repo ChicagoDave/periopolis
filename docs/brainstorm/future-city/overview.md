@@ -232,7 +232,7 @@ Next, in the order discussed:
 
 1. **The physical city.** *Done in plan view, 2026-10-13 (`docs/work/archive/physical-city/plan.md`, ADR-0005): `@city/ground` plans a neighborhood and the ring from the ledger, and the Board zooms into a tile with a surface/sub-level switch. The angled view remains open.* David likes the tile map as the zoomed-out view and wants the physical city shown as well. The ledger already fixes most of what is on the ground, so the view can be drawn from it. One neighborhood is 2,041 townhouses, each 6 m wide and three stories, in rows adding up to 12 km of frontage; a center beside a 12-acre park with courts; 33 sub-level entries shared by about 62 homes each; 1.1 km of bike lane; and underneath, 3.7 km of walkway, 6.1 km of goods pipe and the mover stop. The ring is eight 25-story buildings around a 6.5-acre plaza, 272 m across. Proposed and not yet agreed: a plan you zoom into on the same map, with a switch between the surface and the sub level.
 2. **The site's outline.** *Done 2026-10-13 (`docs/work/archive/rectangular-site-outline/plan.md`, ADR-0006): the site is a rectangle of 115 hexagonal tiles holding the sketch's 91, drawn as one plain outline with fainter tile lines.* The hexagon of hexagons reads as Catan. A plain rectangular site and fainter tile lines would remove that. The hexagons themselves are sound: evenly spaced centers, each home going to its nearest, give hexagonal catchments.
-3. **Money.** *In progress 2026-10-13: ADR-0007 made cost a derived ledger consequence (`docs/work/money/plan.md`, Phase 1); the brainstorm in `money.md` set the scope to everything in six layers, added lines 24 to 28, and sourced the unit costs.*
+3. **Money.** *Done 2026-10-13 (`docs/work/money/plan.md`, ADR-0007): cost is a derived ledger consequence in six layers with Land and Financing, every unit cost marked Yours, Sourced or Mine; the brainstorm in `money.md` set the scope and lines 24 to 28; the Site prices what stands, the Run records each year's spend, and the Board shows the layers beside the car city with every row's mark. The premises are placeholders until accepted; the Mine ones are listed in `money.md`.*
 
 ## Open Questions
 
@@ -253,5 +253,5 @@ Still unknown:
 - How fire and ambulance crews work with no vehicles on the surface.
 - People who cannot manage the walk to a stop.
 - Trips that leave the city, and the edge where the movers meet the outside world.
-- What any of it costs. *Being worked out: `money.md`, ADR-0007.*
+- What any of it costs. *Worked out at placeholder premises (`money.md`, ADR-0007): about 210 thousand dollars a person to build your city against 255 for the car city, and 10,400 against 14,900 a year to run. Open: the figures' acceptance, who pays, and the premises still marked Mine.*
 - A second ring, for a city past the ceiling.

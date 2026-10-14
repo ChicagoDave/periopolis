@@ -459,6 +459,7 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
           bike: car.bike,
           door: car.doorMin,
           places: car.fleet * rates.car.spacesPerVeh,
+          cost: car.cost,
         }
       : null,
   };

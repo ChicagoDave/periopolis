@@ -5,6 +5,7 @@
  * CarComparison, Score, Core.
  * Owner context: Site (domain).
  */
+import type { CostFigures } from '@city/ledger';
 import type { EdgeKey, TileKey } from './board.ts';
 import type { PlantKind, SchoolKind } from './rates.ts';
 import type { Seat } from './seating.ts';
@@ -186,6 +187,8 @@ export interface CarComparison {
   readonly bike: number;
   readonly door: number;
   readonly places: number;
+  /** What the car city costs to build and run, by layer (ADR-0007), for the Board to set beside this city's. */
+  readonly cost: CostFigures;
 }
 
 /** What has been built, how trips are made, and how the city compares with a car city of the same size. */

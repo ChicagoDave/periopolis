@@ -60,7 +60,7 @@ p { margin: 0; }
 .score .car { font: 400 .76rem/1.3 var(--display); color: var(--ink-2); display: block; overflow-wrap: anywhere; }
 
 /* the game: tray, board, rule book */
-.game { display: grid; grid-template-columns: 12.5rem minmax(0, 1fr) 21.5rem; grid-template-rows: auto 1fr; grid-template-areas: "tray stage side" "tray stretch side"; gap: 20px; align-items: start; }
+.game { display: grid; grid-template-columns: 12.5rem minmax(0, 1fr) 21.5rem; grid-template-rows: auto auto 1fr; grid-template-areas: "tray stage side" "tray stretch side" "tray money side"; gap: 20px; align-items: start; }
 .tray { grid-area: tray; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .tray .group { display: flex; flex-direction: column; gap: 4px; }
 .tray h2 { font: 600 .66rem/1.4 var(--display); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); }
@@ -198,6 +198,23 @@ p { margin: 0; }
 .tally { font: 400 .84rem/1.4 var(--display); color: var(--ink-2); }
 .tally b { color: var(--ink); font-weight: 600; }
 
+/* money: what stands priced by layer beside the car city, every row with its mark, and the run's spend */
+.money { grid-area: money; }
+.moneynow { font: 400 .9rem/1.45 var(--display); }
+.moneynow b { font-weight: 800; }
+.money table { border-collapse: collapse; width: 100%; font: 400 .84rem/1.35 var(--display); }
+.money th, .money td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+.money thead th { font: 600 .66rem/1.4 var(--display); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); border-bottom: 2px solid var(--ink); }
+.money tbody th { font-weight: 400; }
+.money td.num, .money th.num { text-align: right; font-family: var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.money td.at { color: var(--ink-2); }
+.money tr.total th, .money tr.total td { font-weight: 600; border-bottom: 1px solid var(--rule); }
+.money tr.layer th { font: 600 .74rem/1.6 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); padding-top: 10px; border-bottom: 1px solid var(--rule); }
+.money details summary { cursor: pointer; font: 600 .8rem/1.4 var(--display); }
+.chip.mark.yours { color: var(--new); border-color: var(--new); }
+.chip.mark.sourced { color: var(--ink); border-color: var(--ink-2); }
+.chip.mark.mine { color: var(--flag); border-color: var(--flag); background: var(--flag-bg); }
+
 /* the clock: the year, the twenty years as a strip, what is announced, and the work in hand */
 .clocknow { font: 400 .9rem/1.4 var(--display); }
 .clocknow b { font-weight: 800; }
@@ -234,7 +251,7 @@ p { margin: 0; }
 #dump { width: 100%; min-height: 10rem; font: 400 .78rem/1.4 var(--data); background: var(--field); color: var(--ink); border: 1px solid var(--rule); padding: 8px; }
 
 @media (max-width: 1180px) {
-  .game { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "tray" "stage" "side" "stretch"; }
+  .game { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "tray" "stage" "side" "stretch" "money"; }
   .tray { flex-direction: row; overflow-x: auto; gap: 14px; padding-bottom: 6px; align-items: flex-start; }
   .tray .group { flex: 0 0 auto; }
   .tray .group .tools { display: flex; gap: 4px; }
@@ -311,7 +328,7 @@ p { margin: 0; }
           <summary>The record, year by year</summary>
           <div class="tablescroll">
             <table id="record">
-              <thead><tr><th scope="col">Year</th><th scope="col">People</th><th scope="col">Broken</th><th scope="col">Opened</th></tr></thead>
+              <thead><tr><th scope="col">Year</th><th scope="col">People</th><th scope="col">Broken</th><th scope="col">Opened</th><th scope="col">Spent</th></tr></thead>
               <tbody id="recordrows"></tbody>
             </table>
           </div>
@@ -334,6 +351,34 @@ p { margin: 0; }
       <h2 id="h-tests">Does it stretch?</h2>
       <p class="quiet">Line 18. The same board with the city pushed to the edge of its 20% band, or with one stretch of its mover line closed. These four are everything the clock can deal.</p>
       <ul class="tests" id="tests"></ul>
+    </section>
+
+    <section class="panel money" id="money" aria-labelledby="h-money">
+      <h2 id="h-money">What it costs</h2>
+      <p class="quiet">Lines 24 to 28. Every tile and stretch priced at the ledger's unit costs, in six layers, beside a car city of the same size. Every unit cost is a placeholder: <span class="chip mark yours">Yours</span> from the lines, <span class="chip mark sourced">Sourced</span> with its source and year, or <span class="chip mark mine">Mine</span> until a source is found. Housing is paid for once, through Financing; who pays is a later question.</p>
+      <p class="moneynow" id="moneynow"></p>
+      <div class="tablescroll">
+        <table id="layers" aria-label="Cost by layer, this city against a car city of the same size">
+          <thead><tr><th scope="col">Layer</th><th scope="col" class="num">This city</th><th scope="col" class="num">A person</th><th scope="col" class="num">Car city, a person</th></tr></thead>
+          <tbody id="layerrows"></tbody>
+        </table>
+      </div>
+      <div id="spentbox" hidden>
+        <p class="moneynow" id="spentnow"></p>
+        <table id="spent" aria-label="Spent so far in the run, by layer">
+          <thead><tr><th scope="col">Spent by layer</th><th scope="col" class="num">So far</th></tr></thead>
+          <tbody id="spentrows"></tbody>
+        </table>
+      </div>
+      <details id="costbox">
+        <summary>Every row, with its premise and mark</summary>
+        <div class="tablescroll">
+          <table id="costs" aria-label="Every cost row: how many, at which unit cost, whose figure">
+            <thead><tr><th scope="col">Row</th><th scope="col">How many, at what</th><th scope="col" class="num">Cost</th><th scope="col">Mark</th></tr></thead>
+            <tbody id="costrows"></tbody>
+          </table>
+        </div>
+      </details>
     </section>
   </div>
 
@@ -367,10 +412,15 @@ p { margin: 0; }
       </ul>
     </section>
     <section>
+      <h2>How the money is made</h2>
+      <p>A cost row is one count times one unit cost. A neighborhood is one center's share of the ledger's city: its streets, floor, entries, pipe, lanes and dumbwaiters cost exactly what the ledger's column gives it. A ring building is one building's worth of the middle's floor; a plant is its modules or units; a stretch of line is a step of floor and track. Schools and fields are inside the floor and the parks, so they add nothing. The car city is the ledger's, at this city's population.</p>
+      <p>To build is paid as things finish, so a piece taken down comes off that year's spend. To run is paid every year for what stands. Year 0 spends nothing. Dollars are of each source's year, not escalated. Still mine, with no source found: the ground where vehicles wait, the sub level's widths, the mover track, stops and entries, the goods pipe, dumbwaiters, water and sewer rates, goods runs, porters, the per-person counts of electricity, water, sewage and waste, vehicle life, and the 30-year term.</p>
+    </section>
+    <section>
       <h2>Not in this version</h2>
       <ul>
         <li>How fast people would come. Homes fill the year they are finished. Irvine, incorporated in 1971, had 62,134 people in 1980 and 110,330 in 1990, <a href="https://www.fullerton.edu/cdr/_resources/pdf/progressreport/Irvine.pdf">by the census</a>.</li>
-        <li>Money. The board counts kilometers, buildings and crew-years, and puts no price on them.</li>
+        <li>Who pays: taxes, bonds, rent, fares and fees are a later decision. The board prices the city as a whole.</li>
         <li>Terrain, the world outside the site, and the paper and plastic rules of line 23.</li>
       </ul>
     </section>

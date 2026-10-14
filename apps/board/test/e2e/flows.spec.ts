@@ -50,6 +50,17 @@ test("the opening city holds 14 of 15 lines, and a stretch test can be shown", a
   await tile(page, '1,0').click();
   await expect(page.locator('#said')).toHaveText('Neighborhood with elementary school, middle school.');
   await expect(page.locator('#inspector h2')).toHaveText('Neighborhood');
+  // Money (ADR-0007): the city priced by layer beside the car city, every row with its mark, no spend without a clock.
+  await expect(page.locator('#moneynow')).toContainText('$14.0 B to build');
+  await expect(page.locator('#moneynow')).toContainText('$592 M a year to run');
+  await expect(page.locator('#layerrows tr')).toHaveCount(10);
+  await expect(page.locator('#layerrows tr').first().locator('th')).toHaveText('Groundworks');
+  await expect(page.locator('#layerrows tr.total').first().locator('td').nth(2)).toContainText('$');
+  await page.click('#costbox summary');
+  expect(await page.locator('#costrows .chip.mark.sourced').count()).toBeGreaterThan(5);
+  expect(await page.locator('#costrows .chip.mark.mine').count()).toBeGreaterThan(5);
+  await expect(page.locator('#costrows .chip.mark.mine').first()).toHaveAttribute('title', 'My placeholder. No public source found yet.');
+  await expect(page.locator('#spentbox')).toBeHidden();
 });
 
 test('two far neighborhoods with no line break three lines and are the only tiles marked', async ({ page }) => {
@@ -77,6 +88,8 @@ test('two far neighborhoods with no line break three lines and are the only tile
 test('founding a city from nothing: orders, three years, a building site and the work in hand', async ({ page }) => {
   await page.click('#found');
   await expect(page.locator('#said')).toHaveText('An empty site, year 0, 10 crews. Place your first orders, then press Next year. Undo brings the old city back.');
+  await expect(page.locator('#moneynow')).toHaveText('Nothing stands, so nothing costs anything yet.');
+  await expect(page.locator('#spentnow')).toHaveText('Nothing spent yet. Year 0 counts for nothing.');
   await place(page, 'power', ['3,-1', '3,-1']);
   await expect(page.locator('#said')).toHaveText('Ordered: reactor module. 1 year of work, starting now.');
   await place(page, 'water', ['3,-2']);
@@ -88,6 +101,10 @@ test('founding a city from nothing: orders, three years, a building site and the
   await expect(page.locator('#worknow')).toHaveText('9 of 10 crews working.');
   await page.click('#tick');
   await expect(page.locator('#said')).toHaveText('Year 1: 0 people. Nobody lives here yet. Opened: 3 stretches of mover line.');
+  // Groundworks first: the three stretches are paid in the year they open, and nothing else is.
+  await expect(page.locator('#spentnow')).toContainText('spent in one year');
+  await expect(page.locator('#spentrows tr').first().locator('td')).not.toHaveText('$0');
+  await expect(page.locator('#spentrows tr').nth(1).locator('td')).toHaveText('$0');
   await place(page, 'hood', ['1,0', '2,-1']);
   await place(page, 'elementary', ['1,0', '2,-1']);
   await place(page, 'middle', ['1,0']);
@@ -129,6 +146,13 @@ test("the ledger's city run to year 20 records every year, survives a reload and
   await expect(page.locator('.yr')).toHaveCount(20);
   await page.click('#recordbox summary');
   await expect(page.locator('#recordrows tr')).toHaveCount(21);
+  // The run's money: a Spent column on the record, and the twenty years summed by layer.
+  await expect(page.locator('#recordrows tr').first().locator('td')).toHaveCount(5);
+  await expect(page.locator('#recordrows tr').first().locator('td').nth(4)).toHaveText('–');
+  await expect(page.locator('#recordrows tr').last().locator('td').nth(4)).toContainText('$');
+  await expect(page.locator('#spentnow')).toContainText('spent in 20 years');
+  await expect(page.locator('#spentnow')).toContainText('The twenty years are up.');
+  await expect(page.locator('#spentrows tr')).toHaveCount(6);
   const strip = await page.locator('.yr .m').allTextContents();
   const broken = strip.filter((m) => m !== '✓').length;
   expect(broken).toBeGreaterThanOrEqual(2);
@@ -137,6 +161,8 @@ test("the ledger's city run to year 20 records every year, survives a reload and
   await expect(page.locator('#dump')).toBeVisible();
   expect(await page.inputValue('#dump')).toContain('CLOCK');
   expect(await page.inputValue('#dump')).toContain('Year 20 of 20.');
+  expect(await page.inputValue('#dump')).toContain('MONEY');
+  expect(await page.inputValue('#dump')).toContain('Spent so far, years 1 to 20:');
   await page.reload();
   await expect(page.locator('#said')).toHaveText('Your run is as you left it, in year 20.');
   await expect(page.locator('#clocknow')).toContainText('Year 20. The run is over.');
@@ -164,6 +190,8 @@ test('undo, clear and storage: tiles come and go, the board survives a reload, a
   await expect(page.locator('#said')).toHaveText('The site is clear. Undo brings the city back.');
   await expect(page.locator('#tally')).toHaveText('Nothing to check yet.');
   await expect(page.locator('#board .tile.hood')).toHaveCount(0);
+  await expect(page.locator('#moneynow')).toHaveText('Nothing stands, so nothing costs anything yet.');
+  await expect(page.locator('#layerrows tr').first().locator('td').first()).toHaveText('$0');
   await page.click('#undo');
   await expect(page.locator('#board .tile.hood')).toHaveCount(10);
   await page.evaluate(() => localStorage.setItem('future-city-builder-v1', '{not json'));

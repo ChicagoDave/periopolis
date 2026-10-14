@@ -5,9 +5,9 @@
  */
 import { RULES, cancelJob, putFirst } from '@city/run';
 import type { RecordRow } from '@city/run';
-import { edgeEnds } from '@city/site';
+import { LAYERS, edgeEnds } from '@city/site';
 import { button, byId, el } from '../dom.ts';
-import { cap, fmt, low, years } from '../format.ts';
+import { cap, fmt, low, money, years } from '../format.ts';
 import type { Page } from '../page.ts';
 import { PIECE_NAME, checkTitle, noticeText, openedSentence } from '../wording.ts';
 import { RATES } from '@city/site';
@@ -95,6 +95,7 @@ export function drawClock(page: Page): void {
       el('td', 'num', fmt(r.pop)),
       el('td', '', r.bad ? `${r.bad}: ${r.broken.map((id) => low(checkTitle(id))).join('; ')}` : r.pop ? 'none' : '–'),
       el('td', '', Object.keys(r.opened).length ? openedSentence(r.opened) : '–'),
+      el('td', 'num', r.year ? money(LAYERS.reduce((t, layer) => t + r.spend[layer], 0)) : '–'),
     );
     body.append(tr);
   }

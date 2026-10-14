@@ -1,15 +1,143 @@
 /**
  * @file Every sentence the page shows, worded from the domain's typed facts and events (ADR-0004). Nothing else in the
  * Board builds a sentence from rule state. The sketch's sentences are the oracle; test/wording.test.ts holds them to it.
- * Public interface: SITE_NAME, PIECE_NAME, PIECE_MANY, STATUS, LEVEL_NAME, PLACEHOLDER_TEXT, linesLabel, checkTitle,
- * checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText, openedSentence, planCaption, layerLines,
- * placeholderNote.
+ * Public interface: SITE_NAME, PIECE_NAME, PIECE_MANY, STATUS, LEVEL_NAME, PLACEHOLDER_TEXT, LAYER_NAME, COST_ROW_NAME,
+ * PREMISE_UNIT, linesLabel, checkTitle, checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText,
+ * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
-import type { ExtraKind, Facts, LineCheck, Outcome, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
+import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Outcome, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
+import type { Layer as MoneyLayer } from '@city/site';
 import type { Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
-import { cap, count, list, num, years } from './format.ts';
+import { cap, count, list, money, num, years } from './format.ts';
+
+/** The six layers of money (ADR-0007), named. */
+export const LAYER_NAME: Readonly<Record<MoneyLayer, string>> = {
+  groundworks: 'Groundworks',
+  buildings: 'Buildings',
+  fleet: 'Fleet',
+  upkeep: 'Upkeep',
+  civic: 'Civic services',
+  households: 'Households',
+};
+
+/** Each cost row, named. A row the Ledger or the Site adds and the Board has not named fails the type check. */
+export const COST_ROW_NAME: Readonly<Record<CostId, string>> = {
+  streets: 'Streets, paths and plazas',
+  waiting: 'Ground where vehicles wait',
+  parks: 'Parks',
+  walkwayFloor: 'Sub-level walkway, as floor',
+  moverLineFloor: 'Mover line floor',
+  moverTrack: 'Mover track and systems',
+  stations: 'Mover stops',
+  entries: 'Sub-level entries',
+  pipe: 'Goods pipe',
+  lanes: 'Bike lanes',
+  reactorModules: 'Reactor modules',
+  plantUnits: 'Water, sewage and waste units',
+  lowRiseFloor: 'Low-rise floor',
+  highRiseFloor: 'Ring floor',
+  dumbwaiters: 'Dumbwaiters',
+  vehicles: 'Vehicles',
+  upkeep: 'Upkeep of the structures',
+  schools: 'Schools',
+  police: 'Police',
+  fire: 'Fire',
+  health: 'Health',
+  library: 'Libraries',
+  electricity: 'Electricity',
+  water: 'Drinking water',
+  sewer: 'Sewage treatment',
+  waste: 'Waste',
+  goodsRuns: 'Goods runs',
+  porters: 'Porters',
+  vehicleKm: 'Vehicle-kilometers',
+  vehiclesRenewed: 'Vehicles worn out',
+};
+
+/** What each premise prices one of: "a m²", "each", "a pupil a year". A premise without a unit fails the type check. */
+export const PREMISE_UNIT: Readonly<Record<CostPremiseId, string>> = {
+  lowRiseM2: 'a m² of floor',
+  highRiseM2: 'a m² of floor',
+  dumbwaiterEach: 'each',
+  streetM2: 'a m²',
+  waitingM2: 'a m²',
+  parkM2: 'a m²',
+  walkwayWidthM: 'm wide',
+  moverLineWidthM: 'm wide',
+  moverTrackKm: 'a km',
+  stationEach: 'each',
+  entryEach: 'each',
+  pipeKm: 'a km',
+  laneKm: 'a km',
+  reactorModuleEach: 'a module',
+  plantUnitEach: 'a unit',
+  carEach: 'a car',
+  moverEach: 'a mover',
+  upkeepShare: 'of the structures a year',
+  // (upkeepShare and financeRate are shares; lineAt words them as percentages.)
+  pupilYear: 'a pupil a year',
+  policePerson: 'a person a year',
+  firePerson: 'a person a year',
+  healthPerson: 'a person a year',
+  libraryPerson: 'a person a year',
+  gridKwh: 'a kWh',
+  reactorMwh: 'a MWh',
+  waterKgal: 'a thousand gallons',
+  sewerKgal: 'a thousand gallons',
+  wasteTon: 'a ton',
+  goodsRun: 'a run',
+  porterYear: 'a porter a year',
+  kwhPerPersonYear: 'kWh a person a year',
+  waterGpdCar: 'gallons a person a day',
+  waterGpdWalking: 'gallons a person a day',
+  sewageGpd: 'gallons a person a day',
+  wasteTonsPerPersonYear: 'tons a person a year',
+  grades: 'school years',
+  carKm: 'a km',
+  moverKm: 'a km',
+  vehicleLifeYears: 'years',
+  landM2: 'a m² of land',
+  financeRate: 'a year',
+  financeYears: 'years',
+};
+
+/** Premises that are shares of money, not prices: worded as percentages. */
+const SHARE_PREMISES: readonly CostPremiseId[] = ['upkeepShare', 'financeRate'];
+
+/**
+ * "748,375 at $300 a m²", or for upkeep "$14.0 B of structures at 2% a year": how many of what, at which premise.
+ * @param line - a cost row or a gathered line: its count, premise and the premise's value
+ */
+export function lineAt(line: { readonly count: number; readonly premise: CostPremiseId; readonly unit: number }): string {
+  if (SHARE_PREMISES.includes(line.premise)) return `${money(line.count)} at ${num(100 * line.unit, 1)}% ${PREMISE_UNIT[line.premise]}`;
+  return `${num(line.count, line.count < 10 ? 1 : 0)} at ${money(line.unit)} ${PREMISE_UNIT[line.premise]}`;
+}
+
+/** A mark as a chip: "Yours", "Sourced 2024", "Mine". */
+export function markLabel(mark: Mark): string {
+  switch (mark.kind) {
+    case 'yours':
+      return 'Yours';
+    case 'mine':
+      return 'Mine';
+    case 'sourced':
+      return `Sourced ${mark.year}`;
+  }
+}
+
+/** A mark in words: whose figure it is, and for a sourced one, the source and its year. */
+export function markText(mark: Mark): string {
+  switch (mark.kind) {
+    case 'yours':
+      return 'Your figure, from the lines.';
+    case 'mine':
+      return 'My placeholder. No public source found yet.';
+    case 'sourced':
+      return `Sourced: ${mark.source} (${mark.year}). A placeholder until accepted.`;
+  }
+}
 
 /** What stands on a tile, named. */
 export const SITE_NAME: Readonly<Record<Tile['kind'] | ExtraKind, string>> = {

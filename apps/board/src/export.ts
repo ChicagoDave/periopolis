@@ -5,11 +5,12 @@
  * Owner context: Board (adapter).
  */
 import { RULES, stressAt } from '@city/run';
-import { EXTRAS, RATES, allTiles, assess } from '@city/site';
+import { EXTRAS, LAYERS, RATES, allTiles, assess, costOf } from '@city/site';
 import { yearLine } from './draw/clock.ts';
-import { cap, fmt, pct } from './format.ts';
+import { cap, fmt, money, pct } from './format.ts';
+import { linesOf, spentSoFar } from './money.ts';
 import type { Session } from './session.ts';
-import { PIECE_NAME, STATUS, checkDetail, checkTitle, linesLabel, noticeText, testLabel } from './wording.ts';
+import { COST_ROW_NAME, LAYER_NAME, PIECE_NAME, STATUS, checkDetail, checkTitle, lineAt, linesLabel, markLabel, noticeText, testLabel } from './wording.ts';
 
 export function asText(s: Session): string {
   const clock = s.game.clock;
@@ -36,6 +37,21 @@ export function asText(s: Session): string {
     for (const n of s.news) out.push(`${n.when === 'now' ? 'Now: ' : 'Announced: '}${noticeText(n, RATES.band, RULES)}`);
     for (const r of clock.record) out.push(yearLine(r));
     if (s.hand.list.length) out.push(`Work in hand: ${s.hand.list.map((j) => `${PIECE_NAME[j.what]} at ${j.at} (${j.status === 'working' ? `${j.left} yr` : j.status})`).join('; ')}`);
+  }
+  const cost = costOf(s.game.layout, today, RATES);
+  out.push('', 'MONEY (ADR-0007; every unit cost is a placeholder with its mark)');
+  if (!cost.rows.length) out.push('Nothing stands, so nothing costs anything yet.');
+  else {
+    out.push(`To build: ${money(cost.capitalTotal)} (${money(cost.capitalPerPerson)} a person). To run: ${money(cost.runningTotal)} a year (${money(cost.runningPerPerson)} a person). Land: ${money(cost.land.cost)}. Financing: ${money(cost.financing.yearly)} a year.`);
+    const car = sc.car?.cost;
+    if (car && cost.pop > 0) out.push(`Car city of the same size, a person: ${money(car.capitalTotal / cost.pop)} to build, ${money(car.runningTotal / cost.pop)} a year to run.`);
+    for (const layer of LAYERS) out.push(`${LAYER_NAME[layer]}: ${money(cost.layers[layer])}`);
+    for (const line of linesOf(cost)) out.push(`  ${COST_ROW_NAME[line.id]}: ${lineAt(line)} = ${money(line.cost)} [${markLabel(line.mark)}]`);
+    const spent = spentSoFar(clock);
+    if (spent && clock) {
+      out.push(`Spent so far, years 1 to ${clock.year}: ${money(spent.total)} (${money(spent.capital)} to build, ${money(spent.running)} to run).`);
+      out.push(`  By layer: ${LAYERS.map((layer) => `${LAYER_NAME[layer]} ${money(spent.byLayer[layer])}`).join('; ')}.`);
+    }
   }
   out.push('', 'TILES (east, down-right)');
   for (const k of allTiles(RATES.outline)) {

@@ -11,6 +11,7 @@ import { byId } from './dom.ts';
 import { describe, drawBoard } from './draw/board.ts';
 import { drawClock, drawWork, yearLine } from './draw/clock.ts';
 import { drawInspector } from './draw/inspector.ts';
+import { drawMoney } from './draw/money.ts';
 import { drawRules, drawTests } from './draw/rules.ts';
 import { drawScore } from './draw/score.ts';
 import { buildTray, drawTray } from './draw/tray.ts';
@@ -59,6 +60,7 @@ function start(data: { game?: unknown }): void {
       drawWork(page);
       drawRules(page);
       drawTests(page);
+      drawMoney(page);
       byId<HTMLButtonElement>('undo').disabled = s.history.length === 0;
     },
     apply: (tool, key) => page.commit(move(s.game, tool, key, null)),

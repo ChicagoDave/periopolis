@@ -1,6 +1,6 @@
 /**
  * @file Numbers and words as the page shows them.
- * Public interface: fmt, pct, num, count, list, cap, low, years.
+ * Public interface: fmt, pct, num, count, list, cap, low, years, money.
  * Owner context: Board (adapter).
  */
 
@@ -29,3 +29,17 @@ export const low = (text: string): string => text.charAt(0).toLowerCase() + text
 
 /** "1 year" or "3 years". */
 export const years = (n: number): string => `${n}${n === 1 ? ' year' : ' years'}`;
+
+/**
+ * Dollars as the page shows them: "$1,750" under a million, "$14.5 M" under a billion, "$14.0 B" above; a minus sign
+ * for what comes off; a dash when not finite; "$0" for nothing.
+ */
+export function money(x: number): string {
+  if (!Number.isFinite(x)) return '–';
+  const a = Math.abs(x);
+  // Less than half a dollar either way is nothing, not a minus sign on nothing.
+  const sign = x < -0.5 ? '−' : '';
+  if (a >= 1e9) return `${sign}$${(a / 1e9).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} B`;
+  if (a >= 1e6) return `${sign}$${fmt(a / 1e6, a < 1e7 ? 1 : 0)} M`;
+  return `${sign}$${fmt(a)}`;
+}
