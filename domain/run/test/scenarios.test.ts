@@ -315,10 +315,10 @@ function found(seed: number, react: boolean): { game: Game; crewYears: number } 
         };
         if (joined(plan.lines)) continue;
         let done = false;
-        for (const p of allTiles(RATES.board)) {
+        for (const p of allTiles(RATES.outline)) {
           if (done) break;
           if (!plan.tiles[p]) continue;
-          for (const q of neighbors(p, RATES.board)) {
+          for (const q of neighbors(p, RATES.outline)) {
             if (done || !plan.tiles[q] || p > q) continue;
             const e = `${p}|${q}`;
             if (plan.lines[e]) continue;

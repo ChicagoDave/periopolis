@@ -47,7 +47,7 @@ export function move(game: Game, tool: ToolId, key: TileKey, from: TileKey | nul
   const no = (said: string, nextFrom: TileKey | null): Move => ({ game, said, changed: false, from: nextFrom });
   if (tool === 'line') {
     if (!from || from === key) return no('Now click a neighboring tile to run the line to it.', key);
-    if (!adjacent(from, key, RATES.board)) return no('The line runs between neighboring tiles. Starting again from here.', key);
+    if (!adjacent(from, key, RATES.outline)) return no('The line runs between neighboring tiles. Starting again from here.', key);
   }
   const command = commandFor(tool, key, from);
   if (!command) return no('', null);

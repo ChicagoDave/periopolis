@@ -57,7 +57,7 @@ function withTile(layout: Layout, key: TileKey, tile: Tile): Layout {
 
 function offBoard(key: TileKey, rates: SiteRates): boolean {
   const [q, r] = tileAt(key);
-  return Number.isNaN(q) || Number.isNaN(r) || !onBoard(q, r, rates.board);
+  return Number.isNaN(q) || Number.isNaN(r) || !onBoard(q, r, rates.outline);
 }
 
 /**
@@ -132,7 +132,7 @@ export function layStretch(layout: Layout, from: TileKey, to: TileKey, rates: Si
   if (offBoard(from, rates)) return refuse({ reason: 'OffBoard', tile: from });
   if (offBoard(to, rates)) return refuse({ reason: 'OffBoard', tile: to });
   if (from === to) return refuse({ reason: 'SameTile', tile: to });
-  if (!adjacent(from, to, rates.board)) return refuse({ reason: 'NotAdjacent', from, to });
+  if (!adjacent(from, to, rates.outline)) return refuse({ reason: 'NotAdjacent', from, to });
   const e = edgeKey(from, to);
   const lines: Record<EdgeKey, true> = { ...layout.lines };
   if (lines[e]) {

@@ -144,11 +144,11 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
   const year = raw['year'];
   const seed = raw['seed'];
   if (!whole(year, 0, rules.years) || typeof seed !== 'number' || !Number.isFinite(seed)) return null;
-  const tiles = allTiles(rates.board);
+  const tiles = allTiles(rates.outline);
   const edgeOk = (e: unknown): e is string => {
     if (typeof e !== 'string' || e.indexOf('|') <= 0) return false;
     const [a, b] = edgeEnds(e);
-    return tiles.includes(a) && tiles.includes(b) && adjacent(a, b, rates.board);
+    return tiles.includes(a) && tiles.includes(b) && adjacent(a, b, rates.outline);
   };
   const jobs: Job[] = [];
   const rawJobs = raw['jobs'];

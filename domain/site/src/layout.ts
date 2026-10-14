@@ -102,7 +102,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * Rebuild a layout from anything, keeping only what the board allows. Anything loaded from storage comes through here.
  * @param raw - whatever was stored
- * @param rates - the board's size and limits
+ * @param rates - the site's outline and limits
  * @returns a layout, or null when the input is not even an object
  */
 export function restoreLayout(raw: unknown, rates: SiteRates): Layout | null {
@@ -111,7 +111,7 @@ export function restoreLayout(raw: unknown, rates: SiteRates): Layout | null {
   const lines: Record<EdgeKey, true> = {};
   const rawTiles = isRecord(raw['tiles']) ? raw['tiles'] : {};
   const rawLines = isRecord(raw['lines']) ? raw['lines'] : {};
-  const valid = allTiles(rates.board);
+  const valid = allTiles(rates.outline);
   for (const k of Object.keys(rawTiles)) {
     const t = rawTiles[k];
     if (!valid.includes(k) || !isRecord(t)) continue;
@@ -130,7 +130,7 @@ export function restoreLayout(raw: unknown, rates: SiteRates): Layout | null {
   for (const e of Object.keys(rawLines)) {
     if (e.indexOf('|') < 0) continue;
     const [a, b] = edgeEnds(e);
-    if (valid.includes(a) && valid.includes(b) && adjacent(a, b, rates.board)) lines[edgeKey(a, b)] = true;
+    if (valid.includes(a) && valid.includes(b) && adjacent(a, b, rates.outline)) lines[edgeKey(a, b)] = true;
   }
   return { tiles, lines };
 }

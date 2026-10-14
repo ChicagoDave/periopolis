@@ -130,7 +130,7 @@ function start(data: { game?: unknown }): void {
     const tries = steps[e.key];
     if (!tries) return;
     e.preventDefault();
-    const valid = allTiles(RATES.board);
+    const valid = allTiles(RATES.outline);
     for (const [dq, dr] of tries) {
       const to = tileKey(q + dq, r + dr);
       if (valid.includes(to)) {

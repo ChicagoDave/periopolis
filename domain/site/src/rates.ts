@@ -15,6 +15,8 @@ import {
   deriveWalkingCity,
 } from '@city/ledger';
 import type { CarCityPremises, Need, SharedPremises, WalkingCityLedger, WalkingCityPremises } from '@city/ledger';
+import { rectangle } from './board.ts';
+import type { Outline } from './board.ts';
 
 /** The three kinds of school a neighborhood may hold. */
 export type SchoolKind = 'elementary' | 'middle' | 'high';
@@ -52,8 +54,8 @@ export interface SiteRates {
   readonly walking: WalkingCityPremises;
   readonly car: CarCityPremises;
   readonly needs: readonly Need[];
-  /** Tiles from the middle of the site to its edge. */
-  readonly board: number;
+  /** The site's shape: which tiles are on it (ADR-0006). */
+  readonly outline: Outline;
   /** People in one neighborhood. */
   readonly hood: number;
   /** Middle of a tile to its corner, km. */
@@ -154,7 +156,7 @@ export function ratesFrom(
     walking,
     car,
     needs,
-    board: 5,
+    outline: rectangle(5, 5),
     hood,
     tileKm,
     stepKm: Math.sqrt(3) * tileKm,

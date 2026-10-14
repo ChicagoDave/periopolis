@@ -1,13 +1,13 @@
 /**
- * @file The Site. A board of hexagonal tiles where the city is laid out; commands that lay it out; the fifteen line
+ * @file The Site. A board of hexagonal tiles inside an outline, where the city is laid out; commands that lay it out; the fifteen line
  * checks and the four stretch tests against the layout.
  * Public interface: the layout and its commands, assess, the rates, the board geometry, seating and the line network.
  * Owner context: Site (domain). Depends on @city/ledger alone.
  */
 export { RATES, ratesFrom, SCHOOLS, EXTRAS, PLANTS } from './rates.ts';
 export type { SiteRates, TripShares, SchoolKind, ExtraKind, PlantKind } from './rates.ts';
-export { tileKey, tileAt, onBoard, allTiles, neighbors, adjacent, kmBetween, edgeKey, edgeEnds } from './board.ts';
-export type { TileKey, EdgeKey } from './board.ts';
+export { tileKey, tileAt, hexagon, rectangle, extent, onBoard, allTiles, neighbors, adjacent, kmBetween, edgeKey, edgeEnds } from './board.ts';
+export type { TileKey, EdgeKey, Outline } from './board.ts';
 export { emptyLayout, starterLayout, restoreLayout, isPlantKind } from './layout.ts';
 export type { Layout, Tile, Neighborhood, Ring, Plant } from './layout.ts';
 export { placeNeighborhood, addRingBuilding, toggleExtra, addPlantUnit, layStretch, erase } from './commands.ts';

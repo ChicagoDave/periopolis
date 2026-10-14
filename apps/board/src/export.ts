@@ -38,7 +38,7 @@ export function asText(s: Session): string {
     if (s.hand.list.length) out.push(`Work in hand: ${s.hand.list.map((j) => `${PIECE_NAME[j.what]} at ${j.at} (${j.status === 'working' ? `${j.left} yr` : j.status})`).join('; ')}`);
   }
   out.push('', 'TILES (east, down-right)');
-  for (const k of allTiles(RATES.board)) {
+  for (const k of allTiles(RATES.outline)) {
     const t = s.game.layout.tiles[k];
     if (!t) continue;
     const held = t.kind === 'hood' ? EXTRAS.filter((x) => t.has[x]) : [];

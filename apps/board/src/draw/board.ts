@@ -4,7 +4,7 @@
  * Public interface: drawBoard, describe, tileAtPixels.
  * Owner context: Board (adapter).
  */
-import { EXTRAS, RATES, allTiles, edgeEnds, tileAt } from '@city/site';
+import { EXTRAS, RATES, allTiles, edgeEnds, extent, tileAt } from '@city/site';
 import type { TileKey } from '@city/site';
 import { byId, svg } from '../dom.ts';
 import { fmt, years } from '../format.ts';
@@ -15,8 +15,9 @@ import { drawGround, drawViewBar } from './ground.ts';
 const SIZE = 30;
 const W3 = Math.sqrt(3);
 const PX_KM = SIZE / RATES.tileKm;
-const HALF_W = W3 * SIZE * (RATES.board + 0.5) + 12;
-const HALF_H = 1.5 * SIZE * RATES.board + SIZE + 12;
+const REACH = extent(RATES.outline);
+const HALF_W = W3 * SIZE * (REACH.halfWidth + 0.5) + 12;
+const HALF_H = 1.5 * SIZE * REACH.halfHeight + SIZE + 12;
 const LETTER: Readonly<Record<string, string>> = { elementary: 'E', middle: 'M', high: 'H', fields: 'F' };
 const PLANT_LABEL: Readonly<Record<string, string>> = { power: 'Power', water: 'Water', sewage: 'Sewage', waste: 'Waste' };
 const SITE_LABEL: Readonly<Record<string, string>> = { hood: 'Homes', ring: 'Ring', power: 'Power', water: 'Water', sewage: 'Sewage', waste: 'Waste' };
@@ -93,7 +94,7 @@ export function drawBoard(page: Page): void {
       stands.append(svg('circle', { cx: bx, cy: by, r: 5 }, `badge${kind}`), text(bx, by + 2.3, `badgetext${kind}`, LETTER[b.x] ?? ''));
     });
 
-  for (const k of allTiles(RATES.board)) {
+  for (const k of allTiles(RATES.outline)) {
     const t = tiles[k];
     const [cx, cy] = tileAtPixels(k);
     const info = s.ev.per[k];
@@ -184,7 +185,7 @@ export function drawBoard(page: Page): void {
   }
   // A scale, in the empty corner the hexagon leaves.
   const half = PX_KM / 2;
-  const sx = Number((-W3 * SIZE * (RATES.board / 2 + 0.5) - 10 - half).toFixed(1));
+  const sx = Number((-W3 * SIZE * (REACH.halfWidth / 2 + 0.5) - 10 - half).toFixed(1));
   const sy = HALF_H - 16;
   top.append(svg('path', { d: `M${sx} ${sy - 4} V${sy} H${(sx + half).toFixed(1)} V${sy - 4}` }, 'scalebar'));
   const scale = svg('text', { x: sx, y: sy - 8 }, 'scaletext');

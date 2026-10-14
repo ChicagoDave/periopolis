@@ -7,6 +7,8 @@ import { describe, expect, it } from 'vitest';
 import {
   RATES,
   addPlantUnit,
+  allTiles,
+  hexagon,
   addRingBuilding,
   assess,
   bridges,
@@ -188,7 +190,12 @@ describe('rates from the ledger', () => {
     differences(RATES.longKm, r['LONG_KM'] ?? 0, 'longKm', out);
     differences(RATES.ringServes, r['RING_SERVES'] ?? 0, 'ringServes', out);
     differences(RATES.band, r['BAND'] ?? 0, 'band', out);
-    differences(RATES.board, r['BOARD'] ?? 0, 'board', out);
+    // The sketch's board is a hexagon; the city's is a rectangle that holds it (ADR-0006). Parity on the outline is
+    // that the sketch's hexagon has the recorded tile count and every one of its tiles is inside the city's outline.
+    const sketch = allTiles(hexagon(Number(r['BOARD'] ?? 0)));
+    differences(sketch.length, r['tiles'] ?? 0, 'tiles', out);
+    const city = allTiles(RATES.outline);
+    for (const k of sketch) if (!city.includes(k)) out.push(`tile ${k} of the sketch's board is outside the city's outline`);
     differences(RATES.share, r['SHARE'] ?? {}, 'share', out);
     expect(out).toEqual([]);
   });
