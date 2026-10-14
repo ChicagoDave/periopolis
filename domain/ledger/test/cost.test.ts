@@ -240,6 +240,55 @@ describe('every premise carries a mark', () => {
     expect(COSTS.porterYear.value).toBe(54000);
     expect(COSTS.goodsRun.value).toBe(300);
   });
+  it('the civic layer carries the state’s share, accepted on 2026-10-14 (line 27)', () => {
+    const added = {
+      welfarePerson: 2597,
+      higherEducationPerson: 938,
+      administrationPerson: 443,
+      correctionsPerson: 262,
+      courtsPerson: 158,
+      streetRunM2: 2.41,
+      parkRunM2: 2.58,
+    } as const;
+    for (const [key, value] of Object.entries(added) as [keyof typeof added, number][]) {
+      const m = COSTS[key].mark;
+      expect(m.kind === 'sourced' && m.accepted).toBe(true);
+      expect(COSTS[key].value).toBe(value);
+    }
+  });
+});
+
+describe('the services a whole city carries (widen-civic-layer, 2026-10-14)', () => {
+  const perPerson = [
+    ['welfare', 'welfarePerson'],
+    ['higherEducation', 'higherEducationPerson'],
+    ['administration', 'administrationPerson'],
+    ['corrections', 'correctionsPerson'],
+    ['courts', 'courtsPerson'],
+  ] as const;
+  it('welfare, higher education, administration, corrections and courts are a person’s worth in both columns alike', () => {
+    for (const [id, premise] of perPerson) {
+      for (const c of [car.cost, yours.cost]) {
+        expect(row(c, id).layer).toBe('civic');
+        expect(row(c, id).count).toBe(SHARED.pop);
+        expect(row(c, id).cost).toBeCloseTo(SHARED.pop * COSTS[premise].value, 6);
+      }
+    }
+  });
+  it('running the streets and parks follows each column’s own ground, so the car city pays more', () => {
+    expect(row(car.cost, 'streetRunning').count).toBeCloseTo(SHARED.pop * car.streets, 6);
+    expect(row(yours.cost, 'streetRunning').count).toBeCloseTo(SHARED.pop * yours.streets, 6);
+    expect(row(car.cost, 'parkRunning').count).toBeCloseTo(SHARED.pop * car.parks, 6);
+    expect(row(yours.cost, 'parkRunning').count).toBeCloseTo(SHARED.pop * yours.parks, 6);
+    expect(Math.round(row(car.cost, 'streetRunning').cost / SHARED.pop)).toBe(274);
+    expect(Math.round(row(yours.cost, 'streetRunning').cost / SHARED.pop)).toBe(36);
+    expect(Math.round(row(car.cost, 'parkRunning').cost / SHARED.pop)).toBe(111);
+    expect(Math.round(row(yours.cost, 'parkRunning').cost / SHARED.pop)).toBe(26);
+  });
+  it('the left-out categories have no row: housing, air, natural resources, the remainder (money.md, Decided)', () => {
+    const civicIds = ids(car.cost).filter((id) => row(car.cost, id).layer === 'civic');
+    expect(civicIds).toHaveLength(17);
+  });
 });
 
 describe('both columns use the same arithmetic', () => {
@@ -303,11 +352,12 @@ describe('money adds rows and moves nothing', () => {
     });
     expect(after).toEqual(before);
   });
-  it('the published city with every premise accepted on 2026-10-14: a check on the premises, not truth', () => {
+  it('the published city with every premise accepted and the civic layer widened on 2026-10-14: a check on the premises, not truth', () => {
     expect(Math.round(car.cost.capitalPerPerson)).toBe(261845);
     expect(Math.round(yours.cost.capitalPerPerson)).toBe(198319);
-    expect(Math.round(car.cost.runningPerPerson)).toBe(15422);
-    expect(Math.round(yours.cost.runningPerPerson)).toBe(10029);
+    // Was 15,422 and 10,029 before the seven civic rows (welfare to park running) were added.
+    expect(Math.round(car.cost.runningPerPerson)).toBe(20205);
+    expect(Math.round(yours.cost.runningPerPerson)).toBe(14489);
     expect(Math.round(car.cost.financing.yearly / SHARED.pop)).toBe(13282);
     expect(Math.round(yours.cost.financing.yearly / SHARED.pop)).toBe(11884);
   });

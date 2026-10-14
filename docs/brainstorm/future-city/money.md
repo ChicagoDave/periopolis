@@ -312,7 +312,7 @@ The car column is checked against what America pays, the way the ledger's densit
 - **To build.** The US stock of structures is roughly 200,000 to 250,000 dollars a person (BEA fixed assets; the 2024 table was not fetched, the 2016 structures stock was 45.4 T). The car column at the old placeholders was 248,000.
 - **Schools.** 16,526 a pupil times the ledger's pupils is the Census figure by construction; the check is that pupils per person (line 15's 1.2% a grade over 13 grades, 15.6%) matches the US school-age share, about 16%.
 - **Getting around.** AAA's 11,577 a vehicle a year times 42,000 cars is 486 M, about 9,700 a person. The car column's running rows for vehicles (per km, renewal, insurance) should land near it.
-- **Civic.** Local direct spending less schools is about 5,000 to 7,000 a person a year (Urban Institute 2021, all levels 11,087). The civic layer's sum in the car column should land in that band.
+- **Civic.** Local direct spending less schools is about 5,000 to 7,000 a person a year (Urban Institute 2021, all levels 11,087). The civic layer's sum in the car column should land in that band. *Restated 2026-10-14 (David), because that band did not match its source ("Civic categories not yet counted", below):* the car column's government services, meaning the civic layer without schools, utility bills (grid electricity, water) and goods runs, are compared with state and local direct general spending less schools, about 8,760 a person (Urban Institute 2021, 11,087 less 21%). The rows David left out (housing and community development, air transportation, natural resources, the miscellaneous remainder) and interest on debt (in Financing) are the explained gap. The test's own band, the whole civic layer within 40% to 120% of 11,087, does not change.
 
 ### Rerun at the accepted premises, 2026-10-14
 
@@ -368,6 +368,26 @@ Police in the source page is 407 a person against the accepted 450 (4% of 11,087
 If every row proposed for counting is counted in both columns alike (welfare, higher education, administration, corrections, housing and community development, courts, parks, and road operations at about 274 a person), they add about 4,930 a person. Then the car column's civic layer is about 11,840, 107% of 11,087, inside the test's band. Its government services (without schools, utility bills and goods runs) are about 7,220, against the 8,760 the source measures; the rest is the "everything else" remainder and the police difference. Your city's figures depend on which rows differ by column.
 
 Two decisions sit above the rows: whether the band in "Vouching" is restated as state and local less schools, compared without utility bills (the test's own band, on the whole civic layer against 11,087, does not change); and whether the city carries the state's share (welfare, higher education, corrections), which line 27 suggests but no line says.
+
+### Decided
+
+Yours (2026-10-14): **the city carries the state's share.** Welfare, higher education, corrections and the other state-paid categories are the city's to count, since a whole city has no state above it (line 27).
+
+| Category | Decision | Premise |
+|---|---|---|
+| Public welfare | Counted, same in both columns. The Health row's "overstates a city's own line" note no longer holds, because welfare is now carried too | 2,597 a person a year, Sourced 2021 (Urban Institute), accepted |
+| Higher education | Counted gross, same in both columns. Tuition and charges (37%) are a who-pays question (line 27) | 938 a person a year, Sourced 2021 (Urban Institute), accepted |
+| Highways and roads, operations | Counted per m² of street, so the columns differ by their streets (car city 113.8 m² a person, yours 15). Construction (56%) is already groundworks and upkeep. Operations include some maintenance that upkeep also counts; the source does not split it, so the overlap is recorded, not guessed | 2.41 a m² of street a year: the US 274 a person (44% of 622) spread over the car city's street, as the watering depth was spread over its green ground. Sourced 2021 (Urban Institute, derived), accepted. About 274 a person in the car city, 36 in yours |
+| Financial administration and central staff | Counted, same in both columns | 443 a person a year (4% of 11,087), Sourced 2021 (Urban Institute, derived), accepted |
+| Corrections | Counted, same in both columns | 262 a person a year, Sourced 2021 (Urban Institute), accepted |
+| Courts | Counted, same in both columns | 158 a person a year, Sourced 2021 (Urban Institute), accepted |
+| Housing and community development | Left out. Most of the 196 a person is housing: rental help is rent, which line 28 counts once as Financing, and running public housing is upkeep; the planning part sits with central staff | No row |
+| Parks and recreation | Counted per m² of park, so the columns differ by their parks (car city 42.9 m² a person, yours 10). Parks are built in groundworks and repaired in upkeep; the source gives no capital split, so any overlap is recorded, not guessed | 2.58 a m² of park a year: the US 111 a person (1% of 11,087) spread over the car city's parks. Sourced 2021 (Urban Institute, derived), accepted. About 111 a person in the car city, 26 in yours |
+| Air transportation | Left out. David: "air travel would be external to the city" | No row |
+| Natural resources | Left out. David: "farms would be on the outside edge and any fisheries would be outside the edge or at a distance so flooding is not a concern" | No row |
+| Everything else | Left out. About 6 to 8% of 11,087 (665 to 890 a person) by the shares; the source calls it "mostly miscellaneous expenses not elsewhere classified", so there is no service to name and source (line 26) | No row |
+
+In the code (Phase 2): seven rows in `cost.ts` (`welfare`, `higherEducation`, `administration`, `corrections`, `courts`, `streetRunning`, `parkRunning`), priced the same way in the Site's neighborhoods. To run, a person a year: the car city 15,422 to 20,205, yours 10,029 to 14,489; civic layer 6,909 to 11,692 and 6,042 to 10,502. Building and financing do not move. The board's city costs 13.4 billion to build and 794 million a year to run (was 571).
 
 ## Lines
 

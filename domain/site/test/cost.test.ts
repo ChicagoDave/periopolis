@@ -53,7 +53,26 @@ describe("a finished tile costs the Ledger's per-tile share", () => {
   });
   it("a neighborhood's yearly services are the ledger's per-person civic rows over the centers", () => {
     const hood = starter.tiles['1,0'];
-    for (const id of ['schools', 'police', 'fire', 'health', 'library', 'electricity', 'water', 'sewer', 'waste', 'goodsRuns', 'porters'] as const) {
+    for (const id of [
+      'schools',
+      'police',
+      'fire',
+      'health',
+      'library',
+      'welfare',
+      'higherEducation',
+      'administration',
+      'corrections',
+      'courts',
+      'streetRunning',
+      'parkRunning',
+      'electricity',
+      'water',
+      'sewer',
+      'waste',
+      'goodsRuns',
+      'porters',
+    ] as const) {
       const ledgerRow = ledger.rows.find((r) => r.id === id);
       if (!ledgerRow) throw new Error(`the ledger has no ${id}`);
       expect(rowIn(hood, id).cost).toBeCloseTo(ledgerRow.cost / centers, 3);

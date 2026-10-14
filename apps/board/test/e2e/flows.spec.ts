@@ -52,7 +52,8 @@ test("the opening city holds 14 of 15 lines, and a stretch test can be shown", a
   await expect(page.locator('#inspector h2')).toHaveText('Neighborhood');
   // Money (ADR-0007): the city priced by layer beside the car city, every row with its mark, no spend without a clock.
   await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
-  await expect(page.locator('#moneynow')).toContainText('$571 M a year to run');
+  // Was $571 M before the civic layer was widened (widen-civic-layer, 2026-10-14).
+  await expect(page.locator('#moneynow')).toContainText('$794 M a year to run');
   await expect(page.locator('#layerrows tr')).toHaveCount(10);
   await expect(page.locator('#layerrows tr').first().locator('th')).toHaveText('Groundworks');
   await expect(page.locator('#layerrows tr.total').first().locator('td').nth(2)).toContainText('$');

@@ -112,6 +112,17 @@ export interface CostPremises {
   readonly firePerson: Marked;
   readonly healthPerson: Marked;
   readonly libraryPerson: Marked;
+  /** Public welfare, Medicaid among it: the city carries the state's share (line 27). */
+  readonly welfarePerson: Marked;
+  readonly higherEducationPerson: Marked;
+  /** Financial administration and central staff. */
+  readonly administrationPerson: Marked;
+  readonly correctionsPerson: Marked;
+  readonly courtsPerson: Marked;
+  /** Running the streets a year, per m² of street: snow, signals, traffic control, safety. Building them is groundworks. */
+  readonly streetRunM2: Marked;
+  /** Running the parks a year, per m² of park: staff, grounds and programs. Building them is groundworks. */
+  readonly parkRunM2: Marked;
   /** Electricity bought from the grid, per kWh. The car city. */
   readonly gridKwh: Marked;
   /** Electricity made at the city's own reactors, per MWh: operations and fuel. Your city. */
@@ -331,7 +342,7 @@ export const COSTS: CostPremises = {
   healthPerson: {
     value: 1100,
     mark: accept(sourced(
-      'Urban Institute, health and hospitals about 10% of 11,087 a person; much of it is state Medicaid',
+      'Urban Institute, health and hospitals about 10% of 11,087 a person',
       2021,
       'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
     )),
@@ -340,6 +351,62 @@ export const COSTS: CostPremises = {
     value: 45,
     mark: accept(sourced(
       'Urban Institute, libraries under 1% of 11,087 a person',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
+    )),
+  },
+  welfarePerson: {
+    value: 2597,
+    mark: accept(sourced(
+      'Urban Institute, state and local public welfare 2,597 a person; 81% medical vendor payments, mostly Medicaid',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/public-welfare-expenditures',
+    )),
+  },
+  higherEducationPerson: {
+    value: 938,
+    mark: accept(sourced(
+      'Urban Institute, state and local higher education 938 a person, gross of tuition and charges',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/higher-education-expenditures',
+    )),
+  },
+  administrationPerson: {
+    value: 443,
+    mark: accept(sourced(
+      'Urban Institute, financial administration and central staff about 4% of 11,087 a person',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
+    )),
+  },
+  correctionsPerson: {
+    value: 262,
+    mark: accept(sourced(
+      'Urban Institute, state and local corrections 262 a person',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/criminal-justice-police-corrections-courts-expenditures',
+    )),
+  },
+  courtsPerson: {
+    value: 158,
+    mark: accept(sourced(
+      'Urban Institute, state and local courts 158 a person',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/criminal-justice-police-corrections-courts-expenditures',
+    )),
+  },
+  streetRunM2: {
+    value: 2.41,
+    mark: accept(sourced(
+      'Urban Institute, highways and roads 622 a person, 44% operations (274), over the car city’s 113.8 m² of street a person',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/highway-and-road-expenditures',
+    )),
+  },
+  parkRunM2: {
+    value: 2.58,
+    mark: accept(sourced(
+      'Urban Institute, parks and recreation about 1% of 11,087 a person (111), over the car city’s 42.9 m² of park a person',
       2021,
       'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
     )),
@@ -542,6 +609,13 @@ export type CostId =
   | 'fire'
   | 'health'
   | 'library'
+  | 'welfare'
+  | 'higherEducation'
+  | 'administration'
+  | 'corrections'
+  | 'courts'
+  | 'streetRunning'
+  | 'parkRunning'
   | 'electricity'
   | 'water'
   | 'sewer'
@@ -720,6 +794,13 @@ function figures(
     { id: 'fire', layer: 'civic', count: s.pop, premise: 'firePerson' },
     { id: 'health', layer: 'civic', count: s.pop, premise: 'healthPerson' },
     { id: 'library', layer: 'civic', count: s.pop, premise: 'libraryPerson' },
+    { id: 'welfare', layer: 'civic', count: s.pop, premise: 'welfarePerson' },
+    { id: 'higherEducation', layer: 'civic', count: s.pop, premise: 'higherEducationPerson' },
+    { id: 'administration', layer: 'civic', count: s.pop, premise: 'administrationPerson' },
+    { id: 'corrections', layer: 'civic', count: s.pop, premise: 'correctionsPerson' },
+    { id: 'courts', layer: 'civic', count: s.pop, premise: 'courtsPerson' },
+    { id: 'streetRunning', layer: 'civic', count: s.pop * f.streets, premise: 'streetRunM2' },
+    { id: 'parkRunning', layer: 'civic', count: s.pop * f.parks, premise: 'parkRunM2' },
     { id: 'water', layer: 'civic', count: (s.pop * waterGpd(f.yards + f.parks, k) * DAYS) / 1000, premise: 'waterKgal' },
     { id: 'sewer', layer: 'civic', count: (s.pop * k.sewageGpd.value * DAYS) / 1000, premise: 'sewerKgal' },
     { id: 'waste', layer: 'civic', count: s.pop * k.wasteTonsPerPersonYear.value, premise: 'wasteTon' },
