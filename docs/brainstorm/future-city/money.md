@@ -192,6 +192,55 @@ Phase 1 of `docs/work/accept-money-premises/plan.md`. Every premise still marked
 
 Plan-review (2026-10-14) noticed that the `Mark` type has three shapes and only `sourced` carries a source and year. If accepting a Sourced figure rewrote its mark to `yours`, the Board would stop showing the citation line 26 requires. Phase 2 should settle, before the first figure is recorded, whether acceptance is a flag beside the mark (`accepted: true`, the mark unchanged) or a fourth shape; either is a type change the Board must word (ADR-0004) and a one-line amendment to ADR-0007 Decision 9. The flag reads better: "Sourced, accepted" says both who found it and that David owns it.
 
+## Accepted
+
+What David accepted, changed or kept, layer by layer, in `docs/work/accept-money-premises/plan.md`. An accepted Sourced figure keeps its source and is shown "Sourced, accepted"; an accepted Mine figure becomes Yours (ADR-0007 Decision 9, amended 2026-10-14). The figures are recorded in `domain/ledger/src/cost.ts`.
+
+### Groundworks, 2026-10-14
+
+Yours (2026-10-14): **the layer accepted as proposed**, and the accepted flag rather than a fourth mark.
+
+| Premise | Was | Now | Mark |
+|---|---|---|---|
+| Streets and paths, per m² | 300 | 300 | Sourced 2024, accepted |
+| Ground where vehicles wait, per m² | 150 | 250 | Sourced 2026, accepted |
+| Parks, per m² | 50 | 50 | Sourced 2026, accepted |
+| Walkway width, m | 3 | 3 | Sourced 2013 (NACTO), accepted |
+| Mover line floor width, m | 6 | 6 | Yours |
+| Mover track and systems, per km | 25 M | 12 M | Sourced 2005, accepted |
+| One stop | 10 M | 3 M | Sourced 2005, accepted |
+| One entry | 1 M | 300,000 | Sourced 2026, accepted |
+| Goods pipe, per km | 2 M | 1 M | Sourced 2023 (analog), accepted |
+| Bike lane, per km | 300,000 | 300,000 | Sourced 2024, accepted |
+| Reactor module, each | 1 B | 1 B | Sourced 2023, accepted |
+| Plant unit, each | 50 M | 50 M | Sourced 2025, accepted |
+
+What it moved, for the published city of 50,000, dollars a person:
+
+| | Car city | Your city |
+|---|---|---|
+| To build | 255,086 to 261,845 | 210,226 to 200,742 |
+| To run, a year | 14,869 to 15,004 | 10,394 to 10,204 |
+| Financing, a year | 12,876 to 13,282 | 12,575 to 12,007 |
+
+The car city rises on the dearer ground where vehicles wait; yours falls on the cheaper mover track, stops, entries and pipe. The board's city then cost 13.5 billion to build and 582 million a year to run.
+
+### Buildings and fleet, 2026-10-14
+
+Yours (2026-10-14): "at no point are commercial robotaxis necessary - the pods in periopolis could be maglev or simply wheeled golf cart level tech." The movers run on their own guideway on the sub level, so the track guides them and they carry none of a robotaxi's street-driving sensors. A mover is priced as a cart-class body with guidance, between a street-legal 4-seat lithium cart (14,999, [clubcar.com](https://clubcar.com/en-us/personal/street-legal-vehicles)) and ULTra's target of a pod at the price of a family car (the car premise, 48,000). On maglev the magnets and propulsion are mostly in the track, which the accepted track figure prices. Then **the layers accepted as proposed**.
+
+| Premise | Was | Now | Mark |
+|---|---|---|---|
+| Low-rise floor, per m² | 1,750 | 1,750 | Sourced 2024 (NAHB), accepted |
+| High-rise floor, per m² | 3,200 | 3,200 | Sourced 2025 (RSMeans), accepted |
+| One dumbwaiter | 15,000 | 10,000 | Sourced 2025 (Fixr), accepted |
+| One car | 48,000 | 48,000 | Sourced 2025 (AAA), accepted |
+| One mover | 150,000 | 30,000 | Sourced 2025, bracketed (cart to family car), accepted |
+
+Every premise of the three build layers is now accepted. Your city, a person: 198,319 to build, 10,131 a year to run, 11,884 a year to finance; the car city does not move (261,845, 15,004, 13,282). The fleet layer in your city falls from 477 to 95 a person. The board's city costs 13.4 billion to build and 578 million a year to run.
+
+The same robotaxi reading sits in **running a mover, per km** (0.60, from Waymo and Tesla, households layer). Phase 3 re-sources it for a cart-class pod on a guideway.
+
 ## Vouching
 
 The car column is checked against what America pays, the way the ledger's density and fleet were:

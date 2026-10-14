@@ -29,9 +29,14 @@ describe('marks, worded', () => {
   it('a chip names whose figure it is and a sourced one its year; the text carries the source', () => {
     expect(markLabel({ kind: 'yours' })).toBe('Yours');
     expect(markLabel({ kind: 'mine' })).toBe('Mine');
-    expect(markLabel(COSTS.lowRiseM2.mark)).toBe('Sourced 2024');
-    expect(markText(COSTS.lowRiseM2.mark)).toContain('NAHB');
+    expect(markLabel(COSTS.pupilYear.mark)).toBe('Sourced 2023');
+    expect(markText(COSTS.pupilYear.mark)).toContain('Census Bureau');
     expect(markText({ kind: 'mine' })).toContain('placeholder');
+    expect(markLabel(COSTS.pipeKm.mark)).toBe('Sourced 2023, accepted');
+    expect(markText(COSTS.pipeKm.mark)).toContain('Envac');
+    expect(markText(COSTS.pipeKm.mark)).toContain('Accepted.');
+    expect(markText(COSTS.pupilYear.mark)).toContain('A placeholder until accepted.');
+    expect(markLabel(COSTS.lowRiseM2.mark)).toBe('Sourced 2024, accepted');
   });
   it('a line says how many at what; a share premise reads as a percentage of dollars, not a price', () => {
     expect(lineAt({ count: 748375, premise: 'streetM2', unit: 300 })).toBe('748,375 at $300 a m²');

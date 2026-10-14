@@ -213,6 +213,7 @@ p { margin: 0; }
 .money details summary { cursor: pointer; font: 600 .8rem/1.4 var(--display); }
 .chip.mark.yours { color: var(--new); border-color: var(--new); }
 .chip.mark.sourced { color: var(--ink); border-color: var(--ink-2); }
+.chip.mark.sourced.accepted { color: var(--new); border-color: var(--new); }
 .chip.mark.mine { color: var(--flag); border-color: var(--flag); background: var(--flag-bg); }
 
 /* the clock: the year, the twenty years as a strip, what is announced, and the work in hand */
@@ -355,7 +356,7 @@ p { margin: 0; }
 
     <section class="panel money" id="money" aria-labelledby="h-money">
       <h2 id="h-money">What it costs</h2>
-      <p class="quiet">Lines 24 to 28. Every tile and stretch priced at the ledger's unit costs, in six layers, beside a car city of the same size. Every unit cost is a placeholder: <span class="chip mark yours">Yours</span> from the lines, <span class="chip mark sourced">Sourced</span> with its source and year, or <span class="chip mark mine">Mine</span> until a source is found. Housing is paid for once, through Financing; who pays is a later question.</p>
+      <p class="quiet">Lines 24 to 28. Every tile and stretch priced at the ledger's unit costs, in six layers, beside a car city of the same size. Every unit cost carries a mark: <span class="chip mark yours">Yours</span> from the lines, <span class="chip mark sourced accepted">Sourced, accepted</span> with its source and year, <span class="chip mark sourced">Sourced</span> and a placeholder until accepted, or <span class="chip mark mine">Mine</span> until a source is found. Housing is paid for once, through Financing; who pays is a later question.</p>
       <p class="moneynow" id="moneynow"></p>
       <div class="tablescroll">
         <table id="layers" aria-label="Cost by layer, this city against a car city of the same size">

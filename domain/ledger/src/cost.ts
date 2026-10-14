@@ -2,7 +2,7 @@
  * @file What the city costs, in six layers: groundworks, buildings and fleet to build; upkeep, civic services and
  * households to run; with Land and Financing as their own lines (ADR-0007, lines 24 to 28). Every premise carries a
  * mark: Yours, Sourced (with its source and year) or Mine. Nothing here is tuned; a Sourced figure is still a
- * placeholder until David accepts it.
+ * placeholder until David accepts it, and an accepted one keeps its source and says so (Decision 9 as amended).
  * Public interface: Layer, LAYERS, Kind, kindOf, Mark, Marked, CostPremises, CostPremiseId, COSTS, CostId, Counted,
  * CostRow, LandLine, FinancingLine, CostFigures, priceCounts, levelPayment, tallyCost, carCost, walkingCost.
  * Owner context: Ledger (domain).
@@ -34,11 +34,15 @@ export function kindOf(layer: Layer): Kind {
   return layer === 'groundworks' || layer === 'buildings' || layer === 'fleet' ? 'capital' : 'running';
 }
 
-/** Whose figure a premise is (line 26). A Sourced mark names its source and year; the Board words the mark. */
+/**
+ * Whose figure a premise is (line 26). A Sourced mark names its source and year, and whether David has accepted it:
+ * an accepted Sourced figure is his and still cites its source. A Mine figure he accepts becomes Yours, so only a
+ * Sourced mark carries the flag. The Board words the mark.
+ */
 export type Mark =
   | { readonly kind: 'yours' }
   | { readonly kind: 'mine' }
-  | { readonly kind: 'sourced'; readonly source: string; readonly year: number; readonly url: string };
+  | { readonly kind: 'sourced'; readonly source: string; readonly year: number; readonly url: string; readonly accepted: boolean };
 
 /** A premise with its mark. */
 export interface Marked {
@@ -49,7 +53,12 @@ export interface Marked {
 const YOURS: Mark = { kind: 'yours' };
 const MINE: Mark = { kind: 'mine' };
 function sourced(source: string, year: number, url: string): Mark {
-  return { kind: 'sourced', source, year, url };
+  return { kind: 'sourced', source, year, url, accepted: false };
+}
+/** David accepted this Sourced figure. Accepting a Mine figure makes it Yours instead, so anything else is refused. */
+function accept(mark: Mark): Mark {
+  if (mark.kind !== 'sourced') throw new Error(`only a sourced mark is accepted, not ${mark.kind}; an accepted Mine figure is Yours`);
+  return { ...mark, accepted: true };
 }
 
 /**
@@ -150,66 +159,141 @@ export interface CostPremises {
 /** Which premise a row is priced at. */
 export type CostPremiseId = keyof CostPremises;
 
-/** The premises as found on 2026-10-13 (`docs/brainstorm/future-city/money.md`, "Sources for the unit costs"). */
+/**
+ * The premises as found on 2026-10-13 and 2026-10-14 (`docs/brainstorm/future-city/money.md`, "Sources for the unit
+ * costs" and "Sources found 2026-10-14"). Groundworks, buildings and fleet accepted 2026-10-14
+ * (`docs/work/accept-money-premises/plan.md`).
+ */
 export const COSTS: CostPremises = {
   lowRiseM2: {
     value: 1750,
-    mark: sourced(
-      'NAHB construction cost survey, 428,215 dollars for 2,647 ft2',
-      2024,
-      'https://eyeonhousing.org/2024/09/economies-of-scale-in-single-family-home-construction/',
+    mark: accept(
+      sourced(
+        'NAHB construction cost survey, 428,215 dollars for 2,647 ft2',
+        2024,
+        'https://eyeonhousing.org/2024/09/economies-of-scale-in-single-family-home-construction/',
+      ),
     ),
   },
   highRiseM2: {
     value: 3200,
-    mark: sourced('RSMeans, office 11 to 20 stories, 202 to 395 a ft2', 2025, 'https://www.rsmeans.com/resources/cost-to-build-an-office'),
+    mark: accept(sourced('RSMeans, office 11 to 20 stories, 202 to 395 a ft2', 2025, 'https://www.rsmeans.com/resources/cost-to-build-an-office')),
   },
-  dumbwaiterEach: { value: 15000, mark: MINE },
+  dumbwaiterEach: {
+    value: 10000,
+    mark: accept(
+      sourced('Fixr, residential dumbwaiter 8,000 to 12,000 installed, national average 10,000', 2025, 'https://www.fixr.com/costs/dumbwaiter-installation'),
+    ),
+  },
   streetM2: {
     value: 300,
-    mark: sourced('FDOT cost per mile, new two-lane urban arterial about 9.1 M a mile', 2024, 'https://www.fdot.gov/fpo/fpc/reports/costpermile'),
+    mark: accept(sourced('FDOT cost per mile, new two-lane urban arterial about 9.1 M a mile', 2024, 'https://www.fdot.gov/fpo/fpc/reports/costpermile')),
   },
-  waitingM2: { value: 150, mark: MINE },
+  waitingM2: {
+    value: 250,
+    mark: accept(
+      sourced(
+        'Between pavement alone, 2 to 4.50 a ft2 (HomeAdvisor 2025), and a finished surface lot at 18,947 a space (UCF E-1, January 2026)',
+        2026,
+        'https://fp.ucf.edu/wp-content/uploads/projects/costs/2026/24134001%20Creation%20of%20E-1%20Surface%20Parking%20Lot.pdf',
+      ),
+    ),
+  },
   parkM2: {
     value: 50,
-    mark: sourced('Neighborhood park about 180,000 an acre with basic amenities', 2026, 'https://LittleRock.gov/!userfiles/editor/docs/parks/appendixe.pdf'),
+    mark: accept(
+      sourced('Neighborhood park about 180,000 an acre with basic amenities', 2026, 'https://LittleRock.gov/!userfiles/editor/docs/parks/appendixe.pdf'),
+    ),
   },
-  walkwayWidthM: { value: 3, mark: MINE },
-  moverLineWidthM: { value: 6, mark: MINE },
-  moverTrackKm: { value: 25e6, mark: MINE },
-  stationEach: { value: 10e6, mark: MINE },
-  entryEach: { value: 1e6, mark: MINE },
-  pipeKm: { value: 2e6, mark: MINE },
+  walkwayWidthM: {
+    value: 3,
+    mark: accept(
+      sourced(
+        'NACTO Urban Street Design Guide, pedestrian through zone 8 to 12 ft downtown',
+        2013,
+        'https://nacto.org/publication/urban-street-design-guide/street-design-elements/sidewalks/sidewalk-zones/',
+      ),
+    ),
+  },
+  moverLineWidthM: { value: 6, mark: YOURS },
+  moverTrackKm: {
+    value: 12e6,
+    mark: accept(
+      sourced(
+        'Airport people movers 24 to 75 M a mile with civil works 50 to 70% of it (Kerr 2005); Heathrow ULTra 30 M pounds for 3.8 km (2011)',
+        2005,
+        'https://rosap.ntl.bts.gov/view/dot/17794/dot_17794_DS1.pdf',
+      ),
+    ),
+  },
+  stationEach: {
+    value: 3e6,
+    mark: accept(
+      sourced(
+        'ULTra city study, a PRT station 0.48 M pounds; Miami Metromover about 18 M a station with its guideway',
+        2005,
+        'https://en.wikipedia.org/wiki/Ultra_(personal_rapid_transit)',
+      ),
+    ),
+  },
+  entryEach: {
+    value: 300000,
+    mark: accept(
+      sourced(
+        'A new two-stop commercial elevator 120,000 to 290,000 installed, from cost guides; stairs on top',
+        2026,
+        'https://new.risingsunartscentre.org/news/commercial-elevator-cost-for-two-story-building-2026.html',
+      ),
+    ),
+  },
+  pipeKm: {
+    value: 1e6,
+    mark: accept(
+      sourced(
+        'Analog: Envac vacuum waste network at Konza, 8 M euros for 15 km with inlets and station; a goods pipe at twice that',
+        2023,
+        'https://capitalfm.africa/envac-deploys-8mn-smart-waste-system-at-konza/',
+      ),
+    ),
+  },
   laneKm: {
     value: 300000,
-    mark: sourced('Protected bike lanes 133,000 to 537,000 a mile', 2024, 'https://earth911.com/business-policy/are-bike-lanes-worth-the-cost/'),
+    mark: accept(sourced('Protected bike lanes 133,000 to 537,000 a mile', 2024, 'https://earth911.com/business-policy/are-bike-lanes-worth-the-cost/')),
   },
   reactorModuleEach: {
     value: 1e9,
-    mark: sourced(
-      'Between NuScale 2020 at 2,850 a kW (220 M a module) and UAMPS 2023 at about 20,000 a kW (1.5 B)',
-      2023,
-      'https://world-nuclear-news.org/articles/nuscale-announces-smr-power-uprate',
+    mark: accept(
+      sourced(
+        'Between NuScale 2020 at 2,850 a kW (220 M a module) and UAMPS 2023 at about 20,000 a kW (1.5 B)',
+        2023,
+        'https://world-nuclear-news.org/articles/nuscale-announces-smr-power-uprate',
+      ),
     ),
   },
   plantUnitEach: {
     value: 50e6,
-    mark: sourced(
-      'Secondary wastewater 5 to 7 M a MGD; one unit of 60,000 people is about 7 MGD',
-      2025,
-      'https://www.waterandwastewater.com/how-much-does-a-wastewater-treatment-plant-cost/',
+    mark: accept(
+      sourced(
+        'Secondary wastewater 5 to 7 M a MGD; one unit of 60,000 people is about 7 MGD',
+        2025,
+        'https://www.waterandwastewater.com/how-much-does-a-wastewater-treatment-plant-cost/',
+      ),
     ),
   },
   carEach: {
     value: 48000,
-    mark: sourced('AAA Your Driving Costs, depreciation 4,334 a year over five years', 2025, 'https://mwg.aaa.com/news/press-release/september-16-2025'),
+    mark: accept(
+      sourced('AAA Your Driving Costs, depreciation 4,334 a year over five years', 2025, 'https://mwg.aaa.com/news/press-release/september-16-2025'),
+    ),
   },
   moverEach: {
-    value: 150000,
-    mark: sourced(
-      'Waymo robotaxi 130,000 to 200,000 each',
-      2025,
-      'https://thenightly.com.au/business/the-economist-the-trillion-dollar-robotaxi-race-waymo-tesla-battle-for-control-of-self-driving-transport-c-20786315',
+    value: 30000,
+    mark: accept(
+      sourced(
+        'Between a street-legal 4-seat lithium cart at 14,999 (Club Car) and a guided pod at the price of a family car (ULTra); a cart body on a guideway, not a robotaxi',
+        2025,
+        'https://clubcar.com/en-us/personal/street-legal-vehicles',
+      ),
     ),
   },
   upkeepShare: {

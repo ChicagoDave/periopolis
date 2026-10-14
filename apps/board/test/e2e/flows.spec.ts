@@ -51,15 +51,23 @@ test("the opening city holds 14 of 15 lines, and a stretch test can be shown", a
   await expect(page.locator('#said')).toHaveText('Neighborhood with elementary school, middle school.');
   await expect(page.locator('#inspector h2')).toHaveText('Neighborhood');
   // Money (ADR-0007): the city priced by layer beside the car city, every row with its mark, no spend without a clock.
-  await expect(page.locator('#moneynow')).toContainText('$14.0 B to build');
-  await expect(page.locator('#moneynow')).toContainText('$592 M a year to run');
+  await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
+  await expect(page.locator('#moneynow')).toContainText('$578 M a year to run');
   await expect(page.locator('#layerrows tr')).toHaveCount(10);
   await expect(page.locator('#layerrows tr').first().locator('th')).toHaveText('Groundworks');
   await expect(page.locator('#layerrows tr.total').first().locator('td').nth(2)).toContainText('$');
   await page.click('#costbox summary');
-  expect(await page.locator('#costrows .chip.mark.sourced').count()).toBeGreaterThan(5);
-  expect(await page.locator('#costrows .chip.mark.mine').count()).toBeGreaterThan(5);
+  // Every row shows one mark, Yours, Sourced or Mine; how many of each moves as David accepts premises.
+  const chipCount = await page.locator('#costrows .chip.mark').count();
+  const yoursChips = await page.locator('#costrows .chip.mark.yours').count();
+  const sourcedChips = await page.locator('#costrows .chip.mark.sourced').count();
+  const mineChips = await page.locator('#costrows .chip.mark.mine').count();
+  expect(chipCount).toBeGreaterThan(20);
+  expect(yoursChips + sourcedChips + mineChips).toBe(chipCount);
+  expect(mineChips).toBeGreaterThan(0);
   await expect(page.locator('#costrows .chip.mark.mine').first()).toHaveAttribute('title', 'My placeholder. No public source found yet.');
+  expect(await page.locator('#costrows .chip.mark.sourced.accepted').count()).toBeGreaterThan(5);
+  await expect(page.locator('#costrows .chip.mark.sourced.accepted').first()).toContainText(', accepted');
   await expect(page.locator('#spentbox')).toBeHidden();
 });
 

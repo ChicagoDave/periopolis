@@ -115,7 +115,7 @@ export function lineAt(line: { readonly count: number; readonly premise: CostPre
   return `${num(line.count, line.count < 10 ? 1 : 0)} at ${money(line.unit)} ${PREMISE_UNIT[line.premise]}`;
 }
 
-/** A mark as a chip: "Yours", "Sourced 2024", "Mine". */
+/** A mark as a chip: "Yours", "Sourced 2024", "Sourced 2024, accepted", "Mine". */
 export function markLabel(mark: Mark): string {
   switch (mark.kind) {
     case 'yours':
@@ -123,11 +123,11 @@ export function markLabel(mark: Mark): string {
     case 'mine':
       return 'Mine';
     case 'sourced':
-      return `Sourced ${mark.year}`;
+      return mark.accepted ? `Sourced ${mark.year}, accepted` : `Sourced ${mark.year}`;
   }
 }
 
-/** A mark in words: whose figure it is, and for a sourced one, the source and its year. */
+/** A mark in words: whose figure it is, and for a sourced one, the source, its year and whether it is accepted. */
 export function markText(mark: Mark): string {
   switch (mark.kind) {
     case 'yours':
@@ -135,7 +135,9 @@ export function markText(mark: Mark): string {
     case 'mine':
       return 'My placeholder. No public source found yet.';
     case 'sourced':
-      return `Sourced: ${mark.source} (${mark.year}). A placeholder until accepted.`;
+      return mark.accepted
+        ? `Sourced: ${mark.source} (${mark.year}). Accepted.`
+        : `Sourced: ${mark.source} (${mark.year}). A placeholder until accepted.`;
   }
 }
 

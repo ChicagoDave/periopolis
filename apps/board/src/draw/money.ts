@@ -71,7 +71,8 @@ export function drawMoney(page: Page): void {
       last = line.layer;
     }
     const tr = el('tr');
-    const chip = el('span', `chip mark ${line.mark.kind}`, markLabel(line.mark));
+    const accepted = line.mark.kind === 'sourced' && line.mark.accepted ? ' accepted' : '';
+    const chip = el('span', `chip mark ${line.mark.kind}${accepted}`, markLabel(line.mark));
     chip.title = markText(line.mark);
     const markCell = el('td');
     markCell.append(chip);

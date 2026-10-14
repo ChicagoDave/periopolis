@@ -143,10 +143,50 @@ describe('every premise carries a mark', () => {
       }
     }
   });
-  it('the grades are Yours (line 15), the per-pupil cost is Sourced, the pipe is Mine', () => {
+  it('the grades are Yours (line 15), the per-pupil cost is Sourced, the porter is Mine', () => {
     expect(COSTS.grades.mark.kind).toBe('yours');
     expect(COSTS.pupilYear.mark.kind).toBe('sourced');
-    expect(COSTS.pipeKm.mark.kind).toBe('mine');
+    expect(COSTS.porterYear.mark.kind).toBe('mine');
+  });
+  it('an accepted Sourced figure keeps its source; an unaccepted one is still a placeholder', () => {
+    const pipe = COSTS.pipeKm.mark;
+    expect(pipe.kind === 'sourced' && pipe.accepted).toBe(true);
+    expect(pipe.kind === 'sourced' && pipe.source.startsWith('Analog: Envac')).toBe(true);
+    const pupil = COSTS.pupilYear.mark;
+    expect(pupil.kind === 'sourced' && pupil.accepted).toBe(false);
+  });
+  it('every premise of the three build layers was accepted on 2026-10-14: each is Yours or an accepted Sourced figure', () => {
+    const built: CostPremiseId[] = [
+      'lowRiseM2',
+      'highRiseM2',
+      'dumbwaiterEach',
+      'carEach',
+      'moverEach',
+      'streetM2',
+      'waitingM2',
+      'parkM2',
+      'walkwayWidthM',
+      'moverLineWidthM',
+      'moverTrackKm',
+      'stationEach',
+      'entryEach',
+      'pipeKm',
+      'laneKm',
+      'reactorModuleEach',
+      'plantUnitEach',
+    ];
+    for (const key of built) {
+      const m = COSTS[key].mark;
+      expect(m.kind === 'yours' || (m.kind === 'sourced' && m.accepted)).toBe(true);
+    }
+    expect(COSTS.moverLineWidthM.mark.kind).toBe('yours');
+    expect(COSTS.waitingM2.value).toBe(250);
+    expect(COSTS.moverTrackKm.value).toBe(12e6);
+    expect(COSTS.stationEach.value).toBe(3e6);
+    expect(COSTS.entryEach.value).toBe(300000);
+    expect(COSTS.pipeKm.value).toBe(1e6);
+    expect(COSTS.dumbwaiterEach.value).toBe(10000);
+    expect(COSTS.moverEach.value).toBe(30000);
   });
 });
 
@@ -204,13 +244,13 @@ describe('money adds rows and moves nothing', () => {
     });
     expect(after).toEqual(before);
   });
-  it('the published city at the premises of 2026-10-13: a check on the premises, not truth', () => {
-    expect(Math.round(car.cost.capitalPerPerson)).toBe(255086);
-    expect(Math.round(yours.cost.capitalPerPerson)).toBe(210226);
-    expect(Math.round(car.cost.runningPerPerson)).toBe(14869);
-    expect(Math.round(yours.cost.runningPerPerson)).toBe(10394);
-    expect(Math.round(car.cost.financing.yearly / SHARED.pop)).toBe(12876);
-    expect(Math.round(yours.cost.financing.yearly / SHARED.pop)).toBe(12575);
+  it('the published city with the build layers accepted on 2026-10-14: a check on the premises, not truth', () => {
+    expect(Math.round(car.cost.capitalPerPerson)).toBe(261845);
+    expect(Math.round(yours.cost.capitalPerPerson)).toBe(198319);
+    expect(Math.round(car.cost.runningPerPerson)).toBe(15004);
+    expect(Math.round(yours.cost.runningPerPerson)).toBe(10131);
+    expect(Math.round(car.cost.financing.yearly / SHARED.pop)).toBe(13282);
+    expect(Math.round(yours.cost.financing.yearly / SHARED.pop)).toBe(11884);
   });
   it('refuses a city with nobody to count per person', () => {
     expect(() => deriveCarCity({ ...SHARED, pop: 0 }, CAR_CITY)).toThrow(RangeError);
