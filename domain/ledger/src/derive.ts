@@ -4,11 +4,14 @@
  * Owner context: Ledger (domain).
  *
  * The nine steps are the ledger's own: built form and land; centers; needs placed; trips; vehicles; where vehicles
- * wait; goods; paths and lanes; stretch. Both columns walk the same steps, and differ where their premises do.
+ * wait; goods; paths and lanes; stretch. A tenth, cost, prices what the nine counted. Both columns walk the same
+ * steps, and differ where their premises do.
  */
 import { CLASSES, CLASS_NAMES, CYCLIST_KG, HEX, PARTIES, SHOPPING, TINY, WALK_M_PER_MIN, WORK } from './constants.ts';
 import type { VehicleClassName } from './constants.ts';
 import type { CarCityLedger, WalkingCityLedger } from './consequences.ts';
+import { COSTS, carCost, walkingCost } from './cost.ts';
+import type { CostPremises } from './cost.ts';
 import { cellBins, cityBins, cornerKm, farWalkMin, roundKm } from './geometry.ts';
 import type { DistanceBin } from './geometry.ts';
 import { lotsLand, townhouseLand } from './land.ts';
@@ -111,9 +114,10 @@ function evenWalk(rideKmh: number): (accessMin: number) => number {
  * The car city: a supermarket's worth of people inside a drive, a vehicle in every household, parking everywhere.
  * @param s - the shared premises
  * @param c - the car city's premises
+ * @param k - the unit costs; the placeholders when left out
  * @returns every figure of the car column
  */
-export function deriveCarCity(s: SharedPremises, c: CarCityPremises): CarCityLedger {
+export function deriveCarCity(s: SharedPremises, c: CarCityPremises, k: CostPremises = COSTS): CarCityLedger {
   const band = 0;
 
   // 1. Built form, and the density it gives.
@@ -156,7 +160,7 @@ export function deriveCarCity(s: SharedPremises, c: CarCityPremises): CarCityLed
   // 7. Goods: van and truck, to the curb.
   const goodsRuns = (s.pop * s.parcelsPerYear) / 365 / c.parcelsPerRun + (s.pop * s.goodsKg) / c.payloadKg;
 
-  return {
+  const figures: Omit<CarCityLedger, 'cost'> = {
     kind: 'car',
     band,
     ...land,
@@ -202,6 +206,9 @@ export function deriveCarCity(s: SharedPremises, c: CarCityPremises): CarCityLed
     goodsRuns,
     goodsShare: goodsRuns / (goodsRuns + vehTrips),
   };
+
+  // 10. Cost: what the nine steps counted, priced.
+  return { ...figures, cost: carCost(s, c, figures, k) };
 }
 
 /**
@@ -209,12 +216,14 @@ export function deriveCarCity(s: SharedPremises, c: CarCityPremises): CarCityLed
  * @param s - the shared premises
  * @param c - your city's premises
  * @param needs - the needs list
+ * @param k - the unit costs; the placeholders when left out
  * @returns every figure of your column
  */
 export function deriveWalkingCity(
   s: SharedPremises,
   c: WalkingCityPremises,
   needs: readonly Need[],
+  k: CostPremises = COSTS,
 ): WalkingCityLedger {
   const band = c.band > 0 ? Math.min(c.band, 0.95) : 0;
 
@@ -354,7 +363,7 @@ export function deriveWalkingCity(
     }
   }
 
-  return {
+  const figures: Omit<WalkingCityLedger, 'cost'> = {
     kind: 'walking',
     band,
     ...land,
@@ -429,4 +438,7 @@ export function deriveWalkingCity(
     shrinkPeopleId: foundShrink ? foundShrink.id : null,
     shortIds,
   };
+
+  // 10. Cost: what the nine steps counted, priced.
+  return { ...figures, cost: walkingCost(s, c, figures, k) };
 }

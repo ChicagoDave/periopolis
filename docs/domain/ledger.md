@@ -2,7 +2,7 @@
 
 **Purpose.** Premises in, consequences out. One derivation, run once per column, so that the car city and your city are worked out by the same arithmetic and the car column, which was never tuned, vouches for the other.
 
-**Package.** `@city/ledger` (`domain/ledger`). Pure and deterministic; imports nothing outside itself. Public interface: `deriveCarCity`, `deriveWalkingCity`, the premise and consequence types, the Revision 3 defaults (`SHARED`, `CAR_CITY`, `WALKING_CITY`, `NEEDS`), and the constants and geometry the Site and Run contexts build on.
+**Package.** `@city/ledger` (`domain/ledger`). Pure and deterministic; imports nothing outside itself. Public interface: `deriveCarCity`, `deriveWalkingCity`, the premise and consequence types, the Revision 3 defaults (`SHARED`, `CAR_CITY`, `WALKING_CITY`, `NEEDS`), the cost placeholders (`COSTS`), and the constants and geometry the Site and Run contexts build on.
 
 **Consumers.** Site takes the tile (5,000 people on 93 acres) and the rates from the walking column of 50,000; the Board shows both columns row by row.
 
@@ -26,6 +26,10 @@
 | Kind of trip | One destination's trips: its share of all trips, its spread of lengths, its walking limit, and the walks a ride of it needs. | Mine |
 | Long walk | The 30-minute walk to school or work. | Yours (line 16) |
 | Ceiling | People the city holds before the rim is past the long walk from the one middle. | Mine |
+| Unit cost | What one of something costs: a square meter of floor, a kilometer of line, a mover, a porter for a year. A premise, every one a placeholder (ADR-0007). | Mine |
+| Cost row | One unit cost times one ledger count. A column carries only the rows it has something of. | Mine |
+| Capital | What the city costs to build: every row of what stands, totalled, per city and per person. | Mine |
+| Running cost | What the city costs for a year: upkeep as a share of what was built, vehicle-kilometers, vehicles worn out, goods runs and porters. | Mine |
 
 ## The two columns
 
@@ -51,6 +55,7 @@ The car city is a comparison column and nothing more. There is no car city in th
 7. **Goods.** Runs for goods; the dumbwaiters, the pipe, totes and porters.
 8. **Paths and lanes.** Bike lanes and the speed at which a bike is under the harm line.
 9. **Stretch.** How far children can grow before a school is full, how far people can fall before a need runs short, how far the ring can fill, and the ceiling.
+10. **Cost.** What the nine steps counted, priced: floor by the square meter (low rise, and the ring's high rise), streets, the ground where vehicles wait, parks, the vehicles themselves, and in your city the walkway, the mover line, the stops, the entries, the pipe, the dumbwaiters and the lanes. Then a year's running cost. Both columns through one function (ADR-0007). Plants are not ledger counts; their unit costs live here and the Site prices the ones that stand.
 
 ## Rules worth knowing
 
@@ -59,7 +64,8 @@ The car city is a comparison column and nothing more. There is no car city in th
 - A ride shorter than the walk to a stop has nothing to ride: whoever wanted one goes on foot and is counted as having no ride.
 - Ties for the need nearest running short go to the need that wants more people.
 - The band is clamped to 0.95; a band of 0 or less is none.
+- Money adds rows and moves nothing: every figure of the nine steps is the same with or without a unit cost, and the parity suite compares the old rows only. Floor is priced once; needs and schools are inside it and are not priced again by count.
 
 ## Acceptance
 
-Revision 3 for 50,000 people is the oracle (`docs/work/archive/port-city-builder/sketch/ledger/copied.txt`). Among its figures: 2,110 against 13,249 people per km²; 10 centers of 5,000; 9 elementary schools of 400, 3 middle of 600, 2 high of 1,200; 8 ring buildings 272 m across; 76.4% of trips on foot; 159 movers against 42,000 cars; 45 km of sub level; a ceiling of 166,492 people. `domain/ledger/test/published.test.ts` asserts them; `parity.test.ts` asserts every figure of 19 recorded cases against the sketch's model.
+Revision 3 for 50,000 people is the oracle (`docs/work/archive/port-city-builder/sketch/ledger/copied.txt`). Among its figures: 2,110 against 13,249 people per km²; 10 centers of 5,000; 9 elementary schools of 400, 3 middle of 600, 2 high of 1,200; 8 ring buildings 272 m across; 76.4% of trips on foot; 159 movers against 42,000 cars; 45 km of sub level; a ceiling of 166,492 people. `domain/ledger/test/published.test.ts` asserts them; `parity.test.ts` asserts every figure of 19 recorded cases against the sketch's model. `cost.test.ts` asserts that every cost row is its count times its unit, that the floor is priced once, that a changed placeholder moves only its rows, and that the nine steps' figures do not move; at the placeholders the published city costs about 248 against 247 thousand dollars a person to build and about 5,900 against 3,200 a year to run.

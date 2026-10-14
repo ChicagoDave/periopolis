@@ -7,6 +7,7 @@
  * shares are fractions from 0 to 1.
  */
 import type { VehicleClassName } from './constants.ts';
+import type { CostFigures } from './cost.ts';
 import type { LandFigures, RingFigures } from './land.ts';
 import type { PlacedNeed } from './needs.ts';
 
@@ -109,6 +110,8 @@ export interface LedgerCore extends LandFigures {
   readonly goodsRuns: number;
   /** Goods runs among all vehicle trips. */
   readonly goodsShare: number;
+  /** What the city costs to build and to run each year. The tenth step. */
+  readonly cost: CostFigures;
 }
 
 /** The car city derived. */
