@@ -53,5 +53,5 @@ Status: implemented. Domains come from code and manifests; the notation lives in
 
 - Parity oracle: `docs/work/archive/port-city-builder/sketch/` (ledger/model.js, builder/engine.js, clock.js, check scripts, `ledger/copied.txt`). Each ported package's `record-fixtures.mjs` reads it; the sketch is read-only.
 - `domain/*` must not import DOM or storage; each context depends only on the inward ones named above. Ground's output is projection-neutral (plan view in metres plus story counts) and tags placements the Ledger leaves open as `placeholders`.
-- The active plan is `docs/work/physical-city/plan.md` (Ground Phases 1-2 and Board Phase 3 landed; ADR-0005 added Ground 2026-10-13).
+- No active plan. The last plan, the physical city, is complete and archived at `docs/work/archive/physical-city/plan.md` (ADR-0005 added Ground 2026-10-13).
 - Playwright flows are not run by `pnpm -r test`; the Board's `test` script covers only `test/**/*.test.ts`.

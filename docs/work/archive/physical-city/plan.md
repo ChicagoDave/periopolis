@@ -1,7 +1,7 @@
 # Session Plan: The physical city (plan view, zoom into the tile map, surface/sub-level switch)
 
 **Created**: 2026-10-13
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Draw the ground of one neighborhood and of the ring from figures the Ledger already derives, as a plan view you zoom into on the existing tile map, with a switch between surface and sub level. The tile map stays as the zoomed-out view.
 **Bounded contexts touched**: Ledger (read only, no change), new Ground (`domain/ground`, pure), Board (adapter)
 **Key domain language**: neighborhood, center, ring, plaza, sub level, entry, frontage, tile
