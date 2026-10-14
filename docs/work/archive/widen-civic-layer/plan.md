@@ -1,7 +1,7 @@
 # Session Plan: Widen the civic layer to the local direct spending it omits
 
 **Created**: 2026-10-14
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Close open item I-2. The civic layer in `domain/ledger/src/cost.ts` counts schools, police, fire, health, libraries, utilities and goods; US local direct spending also carries general government, welfare and social services, roads and parks operations, corrections and more. Source each missing category in `money.md`, have David decide per row (both columns alike, or differing), add the rows and premises, then rerun the vouching and refresh the Board's record. The finding (civic less schools 4,331 a person under the 5,000 to 7,000 band) is closed by adding services, never by loosening or tuning a test.
 **Bounded contexts touched**: Ledger (`@city/ledger`, the cost module, rows and premises); Board (wording for new rows and the recorded figures in `docs/domain/board.md`, `wording.ts`, e2e pins); Site (`domain/site/src/cost.ts` prices civic rows, re-tested and edited only if a new row needs a count); Run re-tested.
 **Key domain language**: Premise, Mark (Yours, Sourced with `accepted`, Mine), Layer (civic), Row, Vouching, Band, Column (car city, yours)

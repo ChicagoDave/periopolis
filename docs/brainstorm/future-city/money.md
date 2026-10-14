@@ -329,7 +329,7 @@ The shortfall in civic is in both columns alike: what the ledger does not count,
 
 ### Rerun with the civic layer widened, 2026-10-14
 
-Phase 3 of `docs/work/widen-civic-layer/plan.md`. Structures, pupils and a car's year do not move (221,525; 15.6%; 4,860). The civic checks, the car column a person:
+Phase 3 of `docs/work/archive/widen-civic-layer/plan.md`. Structures, pupils and a car's year do not move (221,525; 15.6%; 4,860). The civic checks, the car column a person:
 
 | Check | America | Car column | Reading |
 |---|---|---|---|
@@ -341,7 +341,7 @@ The 4,331 finding of the previous rerun has its successor: the services are coun
 
 ## Civic categories not yet counted
 
-Phase 1 of `docs/work/widen-civic-layer/plan.md`, looked up 2026-10-14. Nothing here is in `cost.ts` yet; each row waits for David.
+Phase 1 of `docs/work/archive/widen-civic-layer/plan.md`, looked up 2026-10-14. Nothing here is in `cost.ts` yet; each row waits for David.
 
 ### What the band measures
 
