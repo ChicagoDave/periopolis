@@ -40,7 +40,7 @@ None is decided, and none is blocked by starting here.
 
 ## Rendering
 
-- **The tile map** is SVG today: 91 tiles, a few hundred shapes. It stays the zoomed-out view.
+- **The tile map** is SVG today: 115 tiles since ADR-0006 (91 in the sketch), a few hundred shapes. It stays the zoomed-out view.
 - **The physical plan** (next plan) wants a canvas with level of detail: rows of townhouses when far, single homes when near.
 - **An angled view with heights**, if it is wanted, is extruded footprints under a tilted camera, which WebGL map renderers already do.
 

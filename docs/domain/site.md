@@ -10,7 +10,8 @@
 
 | Term | Meaning | Whose word |
 |---|---|---|
-| Site | The ground the city is laid out on: a hexagon of hexagons, five tiles from middle to edge, 91 tiles. | Mine |
+| Site | The ground the city is laid out on: a rectangle of hexagonal tiles inside an outline, five tile steps across and five rows down from the middle, 115 tiles (ADR-0006). The sketch's board was a hexagon of 91 tiles, which the rectangle holds. | Mine |
+| Outline | The site's shape: which tiles are on it. A hexagon of a given radius, or a rectangle of a given half width and half height, both centred on `0,0`. | Mine |
 | Tile | One hexagon of the site, named `q,r`: the catchment of one center. 5,000 people on 93.3 acres; a 9.9-minute walk from one middle to the next. | Mine |
 | Layout | What stands on each tile and where the mover line runs. A value: commands make new ones and never change the one they were given. | Mine |
 | Neighborhood | A tile of 5,000 people with its daily list built in. It may hold an elementary, middle or high school, and playing fields. | Mine |

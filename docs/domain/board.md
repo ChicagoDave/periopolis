@@ -31,7 +31,7 @@ Six flows run in Chromium against the built page (`pnpm --filter @city/board tes
 3. Founding from nothing: orders for plants, a ring and a line; year 1 opens three stretches; homes and schools ordered on building sites; a waiting job put first; the inspector on a building site; year 3 with homes for 10,000; the clock stopped.
 4. The ledger's city run to year 20: a closure announced and shown; 20 years in the strip and 21 rows in the record; the export carries the clock; the run survives a reload.
 5. Undo, clear and storage: a placed tile goes on undo and the button disables; the board survives a reload without a clock; clear then undo brings the city back; a corrupt save falls back to the ledger's city.
-6. A tile's ground: zoomed into the neighborhood at 1,0, the rows drawn add up to the Ground's 2,041 homes; the sub level shows its 33 entries (adding up to the same homes), 32 walkways, the pipes and the stop, and nothing from the surface; back on the map, 91 tiles and 14 of 15 lines; the ring shows 8 buildings of 25 stories; removing them one by one returns the view to the map when the tile is bare; a reload opens on the map.
+6. A tile's ground: zoomed into the neighborhood at 1,0, the rows drawn add up to the Ground's 2,041 homes; the sub level shows its 33 entries (adding up to the same homes), 32 walkways, the pipes and the stop, and nothing from the surface; back on the map, 115 tiles inside one drawn outline and 14 of 15 lines; the ring shows 8 buildings of 25 stories; removing them one by one returns the view to the map when the tile is bare; a reload opens on the map.
 
 ## Acceptance
 

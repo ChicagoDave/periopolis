@@ -49,5 +49,5 @@
 - **Deliverable**: Every doc that states "a hexagon of hexagons", "91 tiles" or the five-tiles radius is corrected or says why it stays (the sketch's own record). No stale mention left.
 - **Exit state**: A search for "hexagon of hexagons", "91" and "five tiles from middle to edge" across `docs/` (excluding the archive and the sketch) finds only intended mentions; suites still green.
 - **Demonstration**: Run the search and show each hit is either updated or a deliberate historical mention; run `pnpm -r test` once more.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: Search for "hexagon of hexagons", "91" and "five tiles from" across docs/domain, docs/brainstorm, the profile and the ADRs (archive and sketch excluded) finds four hits, each deliberate: site.md and techstack.md name the sketch's 91 beside the new 115; overview item 2 keeps its own text under a Done marker; ADR-0005 is a record. site.md gains the Outline term; board.md flow 6 reads 115 tiles inside one outline; profile names the active plan and ADR-0006; ADR-0003 Decision 4 notes where the non-hexagon site landed. `pnpm -r test` 41/80/27/123/101 after the edits.
+- **Status**: DONE
