@@ -241,6 +241,70 @@ Every premise of the three build layers is now accepted. Your city, a person: 19
 
 The same robotaxi reading sits in **running a mover, per km** (0.60, from Waymo and Tesla, households layer). Phase 3 re-sources it for a cart-class pod on a guideway.
 
+### Upkeep and households, 2026-10-14
+
+The mover's running cost was rebuilt from its parts for a cart-class pod running about 51,000 km a year: energy about 0.02 a km (a 4-seat lithium LSV uses 0.08 to 0.16 kWh a km, [Club Car Onward specs](https://www.clubcar.com/en/personal/street-legal-vehicles/onward-4-passenger/specifications), at 0.17 a kWh), maintenance about 0.05 (under a car's 10 cents a mile, no engine or transmission), battery wear about 0.02 (a 2,000 to 3,000 pack over about three years), cleaning and control about 0.01 (no operator publishes one; Heathrow's ULTra operating cost is "yet to be disclosed", [Greater Wellington review](https://concessions.gw.govt.nz/assets/Documents/2022/06/3AppendixC1InternationalReviewofPTSystemsReportFinal.pdf)). Proposed 0.10, bracket 0.05 to 0.20.
+
+Yours (2026-10-14): **accepted** — upkeep 2% (National Academies), vehicle life 17 years for cars and movers alike (Greene and Leard), running a car 0.21 a km (AAA), running a mover 0.10 a km.
+
+Accepting a 17-year life broke the car column's getting-around check (a car's year under 30% of AAA's 11,577). The cause was insurance: AAA's 1,694 a car a year was folded into the per-km rate at AAA's 15,000 miles, and the ledger's cars drive about 2,444 km a year, so the car city paid about a tenth of a year's insurance. The shorter life had hidden it.
+
+Yours (2026-10-14): "the city indemnifies all citizens - no insurance is carried by an individual." Recorded as line 29 (`overview.md`). The indemnity is Periopolis's: it moves who pays for harm, which line 27 leaves to later, and your city has nothing that harms near pedestrians (line 5) and no row for insurance. The car column stands for what America pays, where each driver insures a car, so insurance there became its own row: **1,694 a car a year** (AAA 2025, accepted), and **running a car 0.21 became 0.14 a km**, fuel and maintenance only. A car's year in the car city is now 4,860, 42% of AAA's, inside the check.
+
+| Premise | Was | Now | Mark |
+|---|---|---|---|
+| Upkeep, share of what was built a year | 2% | 2% | Sourced 1998, accepted |
+| Vehicle life, years | 12 | 17 | Sourced 2024, accepted |
+| Running a car, per km | 0.21 | 0.14 | Sourced 2025 (AAA, fuel and maintenance), accepted |
+| Insuring a car, a year (car city only) | in the per-km rate | 1,694 | Sourced 2025 (AAA), accepted |
+| Running a mover, per km | 0.60 | 0.10 | Sourced 2025, derived, accepted |
+
+To run, a person a year: the car city 15,004 to 15,295, yours 10,131 to 10,048. Households layer: car 3,791 to 4,082, yours 105 to 22. The board's city costs 572 million a year to run.
+
+### Civic services, 2026-10-14
+
+David asked whether porters could be citizens using city tools. In the ledger that would drop about 33 porters' wages (about 36 dollars a person a year of your city's 10,048) and add a small fleet of city carts (about 5 dollars a person to build); the citizens' own hours stay unpriced, as the car city's are. The real change would be to line 7, and most porter hours are house moves.
+
+Yours (2026-10-14): **keep porters; accept the civic group.** The goods run, which had no public source, becomes Yours at 300.
+
+| Premise | Was | Now | Mark |
+|---|---|---|---|
+| One pupil, a year | 16,526 | 16,526 | Sourced 2023 (Census Bureau), accepted |
+| Police, a person a year | 450 | 450 | Sourced 2021 (Urban Institute), accepted |
+| Fire, a person a year | 220 | 220 | Sourced 2021, accepted |
+| Health, a person a year | 1,100 | 1,100 | Sourced 2021, accepted; overstates a city's own line (state Medicaid), equally in both columns |
+| Library, a person a year | 45 | 45 | Sourced 2021, accepted |
+| Grid electricity, per kWh (car city) | 0.17 | 0.17 | Sourced 2025, accepted |
+| Own reactors, per MWh (your city) | 32 | 32 | Sourced 2023 (NEI), accepted |
+| Water, per 1,000 gallons | 7 | 6 | Sourced 2022 (AWWA, derived), accepted |
+| Sewer, per 1,000 gallons | 10 | 9 | Sourced 2024 (Bluefield, derived), accepted |
+| Waste, per ton | 160 | 160 | Sourced 2024, accepted |
+| One goods run | 300 | 300 | Yours |
+| One porter, a year | 60,000 | 54,000 | Sourced 2024 (BLS, with benefits), accepted |
+
+To run, a person a year: the car city 15,295 to 15,208, yours 10,048 to 9,966; civic layer 6,782 to 6,695 and 6,062 to 5,980. The board's city costs 567 million a year to run. No row on the board is priced at a Mine premise any more; the Mine premises left are the per-person counts.
+
+### Counts, land and financing, 2026-10-14
+
+David (2026-10-14): "water would also be impacted by green space (trees, bushes, grass, flowers)." Outdoor watering is about 30% of US household water ([EPA WaterSense](https://19january2021snapshot.epa.gov/watersense/outdoors_.html)), about 25 of the 82 gallons a person uses at home (USGS 2015). Spread over the car city's green ground (185.6 m² of yards and 42.9 of parks a person) that is about 150 mm a year on each square meter. Applied to your city's 19.9 m² of yards and 10 of parks it is about 3 gallons a day. With a base of 113 (USGS's 138 less the 25), the car city lands on 138 and yours on 116: the overview's figures, now explained by the lawns.
+
+Yours (2026-10-14): **accept all as proposed.** Water is now a consequence: `waterGpd` in `cost.ts` is the base plus the watering depth times yards and parks a person, the same arithmetic for both columns and the Site, so more parks drink more water. Two premises replace the two fixed figures.
+
+| Premise | Was | Now | Mark |
+|---|---|---|---|
+| Electricity, kWh a person a year | 7,500 (Mine) | 8,600 | Sourced 2024 (EIA), accepted |
+| Water a person a day | 138 and 116 (Mine) | 113 base plus watering | Sourced 2015 (USGS less EPA), accepted |
+| Watering green ground, mm a year | none | 150 | Sourced 2021 (EPA WaterSense, derived), accepted |
+| Sewage, gallons a person a day | 100 (Mine) | 100 | Sourced (design standard), accepted |
+| Waste, tons a person a year | 0.72 (Mine) | 0.89, both cities | Sourced 2018 (EPA), accepted |
+| Land, per m² | 126 | 126 | Sourced 2010, old, accepted |
+| Financing rate | 4.3% | 4.3% | Sourced 2025, accepted |
+| Financing term, years | 30 (Mine) | 30 | Sourced (statutory 20 to 40), accepted |
+
+Climate is not a premise, so 150 mm is a national average; a dry site waters far more. Green ground is yards and parks only; planting along paths and plazas would need an area of its own before it could be watered.
+
+**Every premise now carries a mark David chose, and none is Mine.** To run, a person a year: the car city 15,208 to 15,422, yours 9,966 to 10,029; civic layer 6,909 and 6,042. Building and financing do not move. The board's city costs 13.4 billion to build and 571 million a year to run.
+
 ## Vouching
 
 The car column is checked against what America pays, the way the ledger's density and fleet were:
@@ -278,8 +342,8 @@ Yours (2026-10-13): proceed. ADR-0007 is amended in this session and the plan re
 
 ## Open Questions
 
-- The mover line's price as a built floor with track and systems: a bracket was found on 2026-10-14 (above, 4.5 to 23 M a km); David accepts or changes it in Phase 2 of `docs/work/accept-money-premises/plan.md`.
-- Water and sewer have no national figure per thousand gallons; derived from the AWWA bill and Bluefield's sewer share (above), for Phase 3.
-- The citations the overview owes for electricity, water, sewage and waste per person (lines 20 to 22): found above (EIA, USGS, the design standard, EPA); Phase 3 writes them into `overview.md` once accepted.
 - How many sub levels, and what stands on each: a physical-city question (ADR-0005's Ground), not money's.
-- How an accepted Sourced figure keeps its source (the Phase 2 question above).
+- Whether porters stay paid city staff or become citizens with city carts (line 7). Kept as porters on 2026-10-14; the money is small (about 36 dollars a person a year).
+- Climate: the watering depth is a national average until the city has a site with a climate.
+- Planting beyond yards and parks (trees and beds along paths and plazas) has no area in the ledger, so it is not watered.
+- Closed 2026-10-14: the mover line's price (accepted, 12 M a km), water and sewer prices (derived and accepted), the citations owed for lines 20 to 22 (written into `overview.md`), and how an accepted Sourced figure keeps its source (the accepted flag, ADR-0007 Decision 9).

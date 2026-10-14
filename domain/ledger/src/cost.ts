@@ -4,7 +4,7 @@
  * mark: Yours, Sourced (with its source and year) or Mine. Nothing here is tuned; a Sourced figure is still a
  * placeholder until David accepts it, and an accepted one keeps its source and says so (Decision 9 as amended).
  * Public interface: Layer, LAYERS, Kind, kindOf, Mark, Marked, CostPremises, CostPremiseId, COSTS, CostId, Counted,
- * CostRow, LandLine, FinancingLine, CostFigures, priceCounts, levelPayment, tallyCost, carCost, walkingCost.
+ * CostRow, LandLine, FinancingLine, CostFigures, priceCounts, levelPayment, tallyCost, waterGpd, carCost, walkingCost.
  * Owner context: Ledger (domain).
  *
  * Money is in dollars of the source's year, not escalated. A row is one premise times one ledger count, and both
@@ -51,7 +51,6 @@ export interface Marked {
 }
 
 const YOURS: Mark = { kind: 'yours' };
-const MINE: Mark = { kind: 'mine' };
 function sourced(source: string, year: number, url: string): Mark {
   return { kind: 'sourced', source, year, url, accepted: false };
 }
@@ -130,10 +129,10 @@ export interface CostPremises {
   // Civic services: counts the nine steps do not give (lines 20 to 22)
   /** Electricity a person uses in a year, kWh. */
   readonly kwhPerPersonYear: Marked;
-  /** Drinking water a person uses in a day, gallons, in the car city. */
-  readonly waterGpdCar: Marked;
-  /** Drinking water a person uses in a day, gallons, in your city. */
-  readonly waterGpdWalking: Marked;
+  /** Water a person uses in a day before any green ground is watered, gallons: indoors, commerce, institutions, leaks. */
+  readonly waterBaseGpd: Marked;
+  /** Water given to green ground (yards and parks) in a year, mm: liters on each square meter. */
+  readonly wateringMm: Marked;
   /** Sewage a person makes in a day, gallons. */
   readonly sewageGpd: Marked;
   /** Waste a person makes in a year, tons. */
@@ -141,8 +140,13 @@ export interface CostPremises {
   /** School years, kindergarten to twelfth grade. */
   readonly grades: Marked;
   // Households
-  /** Running a car one km: fuel, maintenance and insurance, not depreciation or finance. */
+  /** Running a car one km: fuel and maintenance; not insurance, depreciation or finance. */
   readonly carKm: Marked;
+  /**
+   * Insuring one car for a year, the car city only. Priced per car, not per km, because the ledger's cars drive far
+   * less than AAA's 15,000 miles. Your city has no row: the city indemnifies its citizens (line 29).
+   */
+  readonly carInsuranceYear: Marked;
   /** Running a mover one km, depreciation aside. */
   readonly moverKm: Marked;
   /** Years a vehicle lasts before it is replaced. */
@@ -161,7 +165,7 @@ export type CostPremiseId = keyof CostPremises;
 
 /**
  * The premises as found on 2026-10-13 and 2026-10-14 (`docs/brainstorm/future-city/money.md`, "Sources for the unit
- * costs" and "Sources found 2026-10-14"). Groundworks, buildings and fleet accepted 2026-10-14
+ * costs" and "Sources found 2026-10-14"). Every premise accepted 2026-10-14
  * (`docs/work/accept-money-premises/plan.md`).
  */
 export const COSTS: CostPremises = {
@@ -298,108 +302,212 @@ export const COSTS: CostPremises = {
   },
   upkeepShare: {
     value: 0.02,
-    mark: sourced('National Academies, 2 to 4% of replacement value a year', 1998, 'https://nap.nationalacademies.org/read/9807/chapter/4'),
+    mark: accept(sourced('National Academies, 2 to 4% of replacement value a year', 1998, 'https://nap.nationalacademies.org/read/9807/chapter/4')),
   },
   pupilYear: {
     value: 16526,
-    mark: sourced(
+    mark: accept(sourced(
       'Census Bureau, Annual Survey of School System Finances, FY2023 current spending a pupil',
       2023,
       'https://www.census.gov/newsroom/press-releases/2025/2023-annual-survey-of-school-system-finances.html',
-    ),
+    )),
   },
   policePerson: {
     value: 450,
-    mark: sourced(
+    mark: accept(sourced(
       'Urban Institute, state and local direct spending 11,087 a person, police about 4%',
       2021,
       'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
-    ),
+    )),
   },
   firePerson: {
     value: 220,
-    mark: sourced(
+    mark: accept(sourced(
       'Urban Institute, fire protection about 2% of 11,087 a person',
       2021,
       'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
-    ),
+    )),
   },
   healthPerson: {
     value: 1100,
-    mark: sourced(
+    mark: accept(sourced(
       'Urban Institute, health and hospitals about 10% of 11,087 a person; much of it is state Medicaid',
       2021,
       'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
-    ),
+    )),
   },
   libraryPerson: {
     value: 45,
-    mark: sourced(
+    mark: accept(sourced(
       'Urban Institute, libraries under 1% of 11,087 a person',
       2021,
       'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
-    ),
+    )),
   },
   gridKwh: {
     value: 0.17,
-    mark: sourced('US residential average 17.2 to 17.8 cents a kWh', 2025, 'https://www.energysage.com/local-data/electricity-cost/'),
+    mark: accept(sourced('US residential average 17.2 to 17.8 cents a kWh', 2025, 'https://www.energysage.com/local-data/electricity-cost/')),
   },
   reactorMwh: {
     value: 32,
-    mark: sourced(
+    mark: accept(sourced(
       'NEI Nuclear Costs in Context, total generating cost 31.76 a MWh in 2023',
       2023,
       'https://www.nei.org/getContentAsset/47fa8caa-9b0d-4029-932c-07f902e82f4f/8d8ff8d6-b2ae-401b-a63c-f6b108e809d2/2024-Costs-in-Context-final.pdf',
+    )),
+  },
+  waterKgal: {
+    value: 6,
+    mark: accept(
+      sourced(
+        'AWWA and Raftelis rate survey: average residential water bill 45.09 a month at 7,500 gallons, about 6.00 a thousand gallons',
+        2022,
+        'https://www.awwa.org/AWWA-Articles/awwa-launches-online-platform-for-waterwastewater-rate-information',
+      ),
     ),
   },
-  waterKgal: { value: 7, mark: MINE },
-  sewerKgal: { value: 10, mark: MINE },
+  sewerKgal: {
+    value: 9,
+    mark: accept(
+      sourced(
+        'Bluefield Research: sewer about 59% of the combined bill, 19.33 a month more than water; against the AWWA bill about 8.60 a thousand gallons',
+        2024,
+        'https://www.bluefieldresearch.com/ns/u-s-water-and-sewer-bill-has-increased-24-in-five-years-raising-affordability-concerns/',
+      ),
+    ),
+  },
   wasteTon: {
     value: 160,
-    mark: sourced('Landfill tipping 62.28 a ton in 2024, collection about 100 more', 2024, 'https://css.umich.edu/sites/default/files/2025-09/CSS04-15.pdf'),
+    mark: accept(sourced('Landfill tipping 62.28 a ton in 2024, collection about 100 more', 2024, 'https://css.umich.edu/sites/default/files/2025-09/CSS04-15.pdf')),
   },
-  goodsRun: { value: 300, mark: MINE },
-  porterYear: { value: 60000, mark: MINE },
-  kwhPerPersonYear: { value: 7500, mark: MINE },
-  waterGpdCar: { value: 138, mark: MINE },
-  waterGpdWalking: { value: 116, mark: MINE },
-  sewageGpd: { value: 100, mark: MINE },
-  wasteTonsPerPersonYear: { value: 0.72, mark: MINE },
+  goodsRun: { value: 300, mark: YOURS },
+  porterYear: {
+    value: 54000,
+    mark: accept(
+      sourced(
+        'BLS: hand laborers and material movers, median 37,680 a year (May 2024); wages are 70.1% of compensation (ECEC, December 2025)',
+        2024,
+        'https://www.bls.gov/ooh/transportation-and-material-moving/hand-laborers-and-material-movers.htm',
+      ),
+    ),
+  },
+  kwhPerPersonYear: {
+    value: 8600,
+    mark: accept(
+      sourced(
+        'EIA retail sales 2024: residential 1,483 and commercial 1,451 billion kWh, over a population past 340 million',
+        2024,
+        'https://www.eia.gov/electricity/annual/html/epa_02_05.html',
+      ),
+    ),
+  },
+  waterBaseGpd: {
+    value: 113,
+    mark: accept(
+      sourced(
+        'USGS 2015: public supply 39,000 Mgal a day for 283 million people, 138 a person; less EPA WaterSense outdoor use, 30% of 82 gallons domestic',
+        2015,
+        'https://www.usgs.gov/mission-areas/water-resources/science/public-supply-water-use',
+      ),
+    ),
+  },
+  wateringMm: {
+    value: 150,
+    mark: accept(
+      sourced(
+        'EPA WaterSense: outdoor use about 30% of household water, about 25 gallons a person a day, over the car city’s 228.5 m² of yards and parks a person',
+        2021,
+        'https://19january2021snapshot.epa.gov/watersense/outdoors_.html',
+      ),
+    ),
+  },
+  sewageGpd: {
+    value: 100,
+    mark: accept(
+      sourced(
+        'Design standard: 100 gallons a person a day of residential and commercial flow (Iowa DNR, Ten States Standards)',
+        2021,
+        'https://iowadnr.gov/media/5656/download',
+      ),
+    ),
+  },
+  wasteTonsPerPersonYear: {
+    value: 0.89,
+    mark: accept(
+      sourced(
+        'EPA Facts and Figures: 292.4 million tons of municipal solid waste in 2018, 4.9 pounds a person a day',
+        2018,
+        'https://www.epa.gov/facts-and-figures-about-materials-waste-and-recycling/national-overview-facts-and-figures-materials',
+      ),
+    ),
+  },
   grades: { value: 13, mark: YOURS },
   carKm: {
-    value: 0.21,
-    mark: sourced(
-      'AAA Your Driving Costs: fuel 13 cents a mile, insurance 1,694 a year, maintenance about 10 cents a mile',
-      2025,
-      'https://newsroom.aaa.com/wp-content/uploads/2025/09/UPDATE-AAA-Fact-Sheet-Your-Driving-Cost-9.2025-1.pdf',
+    value: 0.14,
+    mark: accept(
+      sourced(
+        'AAA Your Driving Costs: fuel 13 cents a mile and maintenance about 10 cents a mile',
+        2025,
+        'https://newsroom.aaa.com/wp-content/uploads/2025/09/UPDATE-AAA-Fact-Sheet-Your-Driving-Cost-9.2025-1.pdf',
+      ),
+    ),
+  },
+  carInsuranceYear: {
+    value: 1694,
+    mark: accept(
+      sourced(
+        'AAA Your Driving Costs: full-coverage insurance 1,694 a year',
+        2025,
+        'https://newsroom.aaa.com/wp-content/uploads/2025/09/UPDATE-AAA-Fact-Sheet-Your-Driving-Cost-9.2025-1.pdf',
+      ),
     ),
   },
   moverKm: {
-    value: 0.6,
-    mark: sourced(
-      'Morgan Stanley: Waymo about 1.36 a mile and Tesla 0.74, depreciation included',
-      2025,
-      'https://sherwood.news/tech/robotaxis-are-the-new-millennial-lifestyle-subsidy/',
+    value: 0.1,
+    mark: accept(
+      sourced(
+        'Derived for a cart-class pod on a guideway: energy 0.08 to 0.16 kWh a km (Club Car Onward), maintenance under a car, battery wear, cleaning and control; 0.05 to 0.20 a km',
+        2025,
+        'https://www.clubcar.com/en/personal/street-legal-vehicles/onward-4-passenger/specifications',
+      ),
     ),
   },
-  vehicleLifeYears: { value: 12, mark: MINE },
+  vehicleLifeYears: {
+    value: 17,
+    mark: accept(
+      sourced(
+        'Greene and Leard, median expected life of a US passenger car about 17 years (2002 to 2020); a mover on a guideway at the same',
+        2024,
+        'https://ideas.repec.org/a/eee/transa/v180y2024ics0965856424000302.html',
+      ),
+    ),
+  },
   landM2: {
     value: 126,
-    mark: sourced(
+    mark: accept(sourced(
       'Albouy, Ehrlich and Shin, average US urban land 511,000 an acre',
       2010,
       'https://www.6sqft.com/study-shows-huge-disparity-in-u-s-urban-land-value-with-nyc-making-up-10/',
-    ),
+    )),
   },
   financeRate: {
     value: 0.043,
-    mark: sourced(
+    mark: accept(sourced(
       '30-year AAA municipal yield 4.2 to 4.5% through 2025',
       2025,
       'https://www.parametricportfolio.com/-/media/files/insights-and-research/municipal-bond-market-insight/positioned-for-performance_july-2025.pdf',
+    )),
+  },
+  financeYears: {
+    value: 30,
+    mark: accept(
+      sourced(
+        'Statutory maxima 20 to 40 years by what is built: Ohio allows 40 for water and sewer works, 30 for recreation and land',
+        2025,
+        'https://codes.ohio.gov/ohio-revised-code/section-133.20',
+      ),
     ),
   },
-  financeYears: { value: 30, mark: MINE },
 };
 
 /**
@@ -442,7 +550,8 @@ export type CostId =
   | 'porters'
   // households
   | 'vehicleKm'
-  | 'vehiclesRenewed';
+  | 'vehiclesRenewed'
+  | 'insurance';
 
 /** One row of cost: so many of something, priced at one premise, is this much. */
 export interface CostRow {
@@ -496,6 +605,20 @@ export interface Counted {
 }
 
 const DAYS = 365;
+const LITERS_A_GALLON = 3.785411784;
+
+/**
+ * Water a person uses in a day: the base, and the watering of green ground, which is where a city of lawns differs
+ * from a city of townhouses. A millimeter of water on a square meter is a liter. Both columns and the Site use it.
+ * @param greenM2 - yards and parks a person, m²
+ * @param k - the premises of money
+ * @returns gallons a person a day
+ * @throws RangeError when the green ground is negative or not a number
+ */
+export function waterGpd(greenM2: number, k: CostPremises): number {
+  if (!(greenM2 >= 0)) throw new RangeError(`green ground must be zero or more, not ${greenM2}`);
+  return k.waterBaseGpd.value + (k.wateringMm.value * greenM2) / LITERS_A_GALLON / DAYS;
+}
 const KM = 1000;
 
 /**
@@ -560,6 +683,10 @@ export function tallyCost(rows: readonly CostRow[], pop: number, areaM2: number,
 /** The figures the two columns share, whichever column. */
 interface Shared {
   readonly areaKm2: number;
+  /** Yards a person, m². Green ground, watered. */
+  readonly yards: number;
+  /** Parks a person, m². Green ground, watered. */
+  readonly parks: number;
   readonly fleet: number;
   readonly vehTrips: number;
   readonly rideKm: number;
@@ -573,7 +700,6 @@ interface Shared {
  * @param s - the shared premises, for the people and the per-person civic rows
  * @param f - the column's shared figures
  * @param counted - the column's rows, less upkeep and the civic per-person rows, which are added here
- * @param waterGpd - which water premise the column drinks by
  * @param k - the premises
  * @returns the column's money
  */
@@ -581,7 +707,6 @@ function figures(
   s: SharedPremises,
   f: Shared,
   counted: readonly Counted[],
-  waterGpd: 'waterGpdCar' | 'waterGpdWalking',
   k: CostPremises,
 ): CostFigures {
   if (!(s.pop > 0)) throw new RangeError('cost needs people to be counted per person');
@@ -595,7 +720,7 @@ function figures(
     { id: 'fire', layer: 'civic', count: s.pop, premise: 'firePerson' },
     { id: 'health', layer: 'civic', count: s.pop, premise: 'healthPerson' },
     { id: 'library', layer: 'civic', count: s.pop, premise: 'libraryPerson' },
-    { id: 'water', layer: 'civic', count: (s.pop * k[waterGpd].value * DAYS) / 1000, premise: 'waterKgal' },
+    { id: 'water', layer: 'civic', count: (s.pop * waterGpd(f.yards + f.parks, k) * DAYS) / 1000, premise: 'waterKgal' },
     { id: 'sewer', layer: 'civic', count: (s.pop * k.sewageGpd.value * DAYS) / 1000, premise: 'sewerKgal' },
     { id: 'waste', layer: 'civic', count: s.pop * k.wasteTonsPerPersonYear.value, premise: 'wasteTon' },
     { id: 'goodsRuns', layer: 'civic', count: f.goodsRuns * DAYS, premise: 'goodsRun' },
@@ -639,8 +764,9 @@ export function carCost(
     { id: 'vehicles', layer: 'fleet', count: f.fleet, premise: 'carEach' },
     { id: 'electricity', layer: 'civic', count: s.pop * k.kwhPerPersonYear.value, premise: 'gridKwh' },
     ...gettingAround(f, c.emptyRunning, 'carKm', 'carEach', k),
+    { id: 'insurance', layer: 'households', count: f.fleet, premise: 'carInsuranceYear' },
   ];
-  return figures(s, f, counted, 'waterGpdCar', k);
+  return figures(s, f, counted, k);
 }
 
 /**
@@ -678,5 +804,5 @@ export function walkingCost(
     { id: 'porters', layer: 'civic', count: f.porters, premise: 'porterYear' },
     ...gettingAround(f, c.emptyRunning, 'moverKm', 'moverEach', k),
   ];
-  return figures(s, f, counted, 'waterGpdWalking', k);
+  return figures(s, f, counted, k);
 }

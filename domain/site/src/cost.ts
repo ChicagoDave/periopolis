@@ -13,7 +13,7 @@
  * Schools and fields are inside the floor and the parks, so they add no row (Decision 5). Capital rows count the
  * homes as built; the per-person running rows count the people living in them this year, stress included.
  */
-import { COSTS, priceCounts, tallyCost } from '@city/ledger';
+import { COSTS, priceCounts, tallyCost, waterGpd } from '@city/ledger';
 import type { CostFigures, CostPremises, CostRow, Counted } from '@city/ledger';
 import { edgeEnds } from './board.ts';
 import type { EdgeKey, TileKey } from './board.ts';
@@ -84,7 +84,7 @@ export function costOf(layout: Layout, core: Pick<Core, 'score' | 'pop1'>, rates
         { id: 'health', layer: 'civic', count: pop1, premise: 'healthPerson' },
         { id: 'library', layer: 'civic', count: pop1, premise: 'libraryPerson' },
         { id: 'electricity', layer: 'civic', count: (pop1 * k.kwhPerPersonYear.value) / 1000, premise: 'reactorMwh' },
-        { id: 'water', layer: 'civic', count: (pop1 * k.waterGpdWalking.value * DAYS) / 1000, premise: 'waterKgal' },
+        { id: 'water', layer: 'civic', count: (pop1 * waterGpd(base.yards + base.parks, k) * DAYS) / 1000, premise: 'waterKgal' },
         { id: 'sewer', layer: 'civic', count: (pop1 * k.sewageGpd.value * DAYS) / 1000, premise: 'sewerKgal' },
         { id: 'waste', layer: 'civic', count: pop1 * k.wasteTonsPerPersonYear.value, premise: 'wasteTon' },
         { id: 'goodsRuns', layer: 'civic', count: perCenter(base.goodsRuns) * DAYS, premise: 'goodsRun' },

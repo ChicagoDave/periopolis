@@ -52,7 +52,7 @@ test("the opening city holds 14 of 15 lines, and a stretch test can be shown", a
   await expect(page.locator('#inspector h2')).toHaveText('Neighborhood');
   // Money (ADR-0007): the city priced by layer beside the car city, every row with its mark, no spend without a clock.
   await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
-  await expect(page.locator('#moneynow')).toContainText('$578 M a year to run');
+  await expect(page.locator('#moneynow')).toContainText('$571 M a year to run');
   await expect(page.locator('#layerrows tr')).toHaveCount(10);
   await expect(page.locator('#layerrows tr').first().locator('th')).toHaveText('Groundworks');
   await expect(page.locator('#layerrows tr.total').first().locator('td').nth(2)).toContainText('$');
@@ -64,8 +64,8 @@ test("the opening city holds 14 of 15 lines, and a stretch test can be shown", a
   const mineChips = await page.locator('#costrows .chip.mark.mine').count();
   expect(chipCount).toBeGreaterThan(20);
   expect(yoursChips + sourcedChips + mineChips).toBe(chipCount);
-  expect(mineChips).toBeGreaterThan(0);
-  await expect(page.locator('#costrows .chip.mark.mine').first()).toHaveAttribute('title', 'My placeholder. No public source found yet.');
+  expect(yoursChips).toBeGreaterThan(0);
+  await expect(page.locator('#costrows .chip.mark.yours').first()).toHaveAttribute('title', 'Your figure, from the lines.');
   expect(await page.locator('#costrows .chip.mark.sourced.accepted').count()).toBeGreaterThan(5);
   await expect(page.locator('#costrows .chip.mark.sourced.accepted').first()).toContainText(', accepted');
   await expect(page.locator('#spentbox')).toBeHidden();

@@ -14,7 +14,7 @@ export type {
   WalkingCityLedger,
 } from './consequences.ts';
 export type { LandFigures, RingFigures } from './land.ts';
-export { COSTS, LAYERS, kindOf, levelPayment, priceCounts, tallyCost } from './cost.ts';
+export { COSTS, LAYERS, kindOf, levelPayment, priceCounts, tallyCost, waterGpd } from './cost.ts';
 export type {
   CostFigures,
   CostId,

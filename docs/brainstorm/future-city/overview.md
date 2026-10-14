@@ -71,6 +71,10 @@ Lines 24 to 28 were added on 2026-10-13 in the money brainstorm (`money.md`). Da
 27. "The ledger reports what the city costs as a whole. Who pays is a later question."
 28. "A home is paid for once. Rent and mortgages are financing, not a second price."
 
+Line 29 was added on 2026-10-14 while accepting the money premises (`money.md`, "Accepted"), in David's words.
+
+29. "The city indemnifies all citizens - no insurance is carried by an individual."
+
 A proposal to add moving sidewalks was made and withdrawn ("Okay belts are bad").
 
 ## Core concepts
@@ -122,6 +126,8 @@ The car column was built only from its own premises and compared with US data af
 ## Power, water and waste (lines 20 to 23)
 
 These were worked out in conversation and are **not in the ledger yet**. The sources were looked up at the time and are not recorded here, so each figure needs its citation before it goes in.
+
+*Cited 2026-10-14* (`money.md`, "Accepted"; `docs/work/accept-money-premises/plan.md`, Phase 3). The money layer now carries the per-person counts, each with a source and accepted by David: electricity 8,600 kWh a person a year (EIA 2024 home and commercial retail sales, which makes 430 GWh for 50,000 rather than 375); water as a base of 113 gallons a person a day plus 150 mm a year on every square meter of yards and parks (USGS 2015 public supply less EPA WaterSense outdoor use), which gives the car city 138 and yours 116, so 6.9 and 5.8 million gallons a day stand, now explained by the car city's lawns; sewage 100 gallons a person a day (the US design standard), so 5 million gallons a day stands; waste 0.89 tons a person a year (EPA 2018, 4.9 pounds a day), which makes about 122 tons a day rather than 99. The module figures, the recovery rate and the paper, plastic, mail and bottle figures below are still uncited.
 
 - Electricity for 50,000 people: about 375 GWh a year, 43 MW on average, about 75 MW at peak (1.5 kW a person). The movers draw about 106 kW on average.
 - One NuScale module makes 77 MW of electricity. Two cover 50,000 people with one down for fuel, three cover the band, five the ceiling.

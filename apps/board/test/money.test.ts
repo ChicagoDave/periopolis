@@ -29,13 +29,14 @@ describe('marks, worded', () => {
   it('a chip names whose figure it is and a sourced one its year; the text carries the source', () => {
     expect(markLabel({ kind: 'yours' })).toBe('Yours');
     expect(markLabel({ kind: 'mine' })).toBe('Mine');
-    expect(markLabel(COSTS.pupilYear.mark)).toBe('Sourced 2023');
-    expect(markText(COSTS.pupilYear.mark)).toContain('Census Bureau');
+    const placeholder = { kind: 'sourced', source: 'A survey', year: 2020, url: 'https://example.org', accepted: false } as const;
+    expect(markLabel(placeholder)).toBe('Sourced 2020');
+    expect(markText(placeholder)).toContain('A survey (2020)');
     expect(markText({ kind: 'mine' })).toContain('placeholder');
     expect(markLabel(COSTS.pipeKm.mark)).toBe('Sourced 2023, accepted');
     expect(markText(COSTS.pipeKm.mark)).toContain('Envac');
     expect(markText(COSTS.pipeKm.mark)).toContain('Accepted.');
-    expect(markText(COSTS.pupilYear.mark)).toContain('A placeholder until accepted.');
+    expect(markText(placeholder)).toContain('A placeholder until accepted.');
     expect(markLabel(COSTS.lowRiseM2.mark)).toBe('Sourced 2024, accepted');
   });
   it('a line says how many at what; a share premise reads as a percentage of dollars, not a price', () => {

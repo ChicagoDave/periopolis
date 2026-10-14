@@ -54,6 +54,7 @@ export const COST_ROW_NAME: Readonly<Record<CostId, string>> = {
   porters: 'Porters',
   vehicleKm: 'Vehicle-kilometers',
   vehiclesRenewed: 'Vehicles worn out',
+  insurance: 'Car insurance',
 };
 
 /** What each premise prices one of: "a m²", "each", "a pupil a year". A premise without a unit fails the type check. */
@@ -90,12 +91,13 @@ export const PREMISE_UNIT: Readonly<Record<CostPremiseId, string>> = {
   goodsRun: 'a run',
   porterYear: 'a porter a year',
   kwhPerPersonYear: 'kWh a person a year',
-  waterGpdCar: 'gallons a person a day',
-  waterGpdWalking: 'gallons a person a day',
+  waterBaseGpd: 'gallons a person a day',
+  wateringMm: 'mm a year on green ground',
   sewageGpd: 'gallons a person a day',
   wasteTonsPerPersonYear: 'tons a person a year',
   grades: 'school years',
   carKm: 'a km',
+  carInsuranceYear: 'a car a year',
   moverKm: 'a km',
   vehicleLifeYears: 'years',
   landM2: 'a m² of land',

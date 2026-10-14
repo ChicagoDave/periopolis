@@ -15,6 +15,7 @@ import {
   deriveCarCity,
   deriveWalkingCity,
   kindOf,
+  waterGpd,
 } from '../src/index.ts';
 import type { CostFigures, CostId, CostPremiseId, CostPremises, CostRow } from '../src/index.ts';
 
@@ -65,8 +66,8 @@ describe('every row is a premise times a count', () => {
     expect(row(yours.cost, 'schools').count).toBeCloseTo(pupils, 6);
     expect(pupils).toBeCloseTo(7800, 6);
     expect(row(car.cost, 'police').count).toBe(SHARED.pop);
-    expect(row(car.cost, 'water').count).toBeCloseTo((SHARED.pop * COSTS.waterGpdCar.value * 365) / 1000, 6);
-    expect(row(yours.cost, 'water').count).toBeCloseTo((SHARED.pop * COSTS.waterGpdWalking.value * 365) / 1000, 6);
+    expect(row(car.cost, 'water').count).toBeCloseTo((SHARED.pop * waterGpd(car.yards + car.parks, COSTS) * 365) / 1000, 6);
+    expect(row(yours.cost, 'water').count).toBeCloseTo((SHARED.pop * waterGpd(yours.yards + yours.parks, COSTS) * 365) / 1000, 6);
     expect(row(yours.cost, 'sewer').count).toBeCloseTo((SHARED.pop * COSTS.sewageGpd.value * 365) / 1000, 6);
     expect(row(car.cost, 'electricity').count).toBeCloseTo(SHARED.pop * COSTS.kwhPerPersonYear.value, 6);
     expect(row(yours.cost, 'electricity').count).toBeCloseTo((SHARED.pop * COSTS.kwhPerPersonYear.value) / 1000, 6);
@@ -81,6 +82,23 @@ describe('every row is a premise times a count', () => {
   it('the sub level is built floor, not tunnel: walkway and mover line floors are priced at the low-rise rate', () => {
     expect(row(yours.cost, 'walkwayFloor').premise).toBe('lowRiseM2');
     expect(row(yours.cost, 'moverLineFloor').premise).toBe('lowRiseM2');
+  });
+});
+
+describe('water follows the green ground', () => {
+  it('a person’s water is the base plus the watering of yards and parks; the car city lands on USGS’s 138, yours on 116', () => {
+    expect(waterGpd(0, COSTS)).toBe(COSTS.waterBaseGpd.value);
+    expect(waterGpd(car.yards + car.parks, COSTS)).toBeCloseTo(138, 0);
+    expect(waterGpd(yours.yards + yours.parks, COSTS)).toBeCloseTo(116, 0);
+  });
+  it('more parks drink more water; the sewage, which is not watering, does not move', () => {
+    const greener = deriveWalkingCity(SHARED, { ...WALKING_CITY, parks: WALKING_CITY.parks * 2 }, NEEDS);
+    expect(row(greener.cost, 'water').count).toBeGreaterThan(row(yours.cost, 'water').count);
+    expect(row(greener.cost, 'sewer').count).toBe(row(yours.cost, 'sewer').count);
+  });
+  it('refuses green ground below zero or not a number', () => {
+    expect(() => waterGpd(-1, COSTS)).toThrow(RangeError);
+    expect(() => waterGpd(Number.NaN, COSTS)).toThrow(RangeError);
   });
 });
 
@@ -143,17 +161,18 @@ describe('every premise carries a mark', () => {
       }
     }
   });
-  it('the grades are Yours (line 15), the per-pupil cost is Sourced, the porter is Mine', () => {
+  it('every premise was accepted by 2026-10-14: each is Yours or an accepted Sourced figure, and none is Mine', () => {
+    for (const key of Object.keys(COSTS) as CostPremiseId[]) {
+      const m = COSTS[key].mark;
+      expect(m.kind === 'yours' || (m.kind === 'sourced' && m.accepted)).toBe(true);
+    }
     expect(COSTS.grades.mark.kind).toBe('yours');
-    expect(COSTS.pupilYear.mark.kind).toBe('sourced');
-    expect(COSTS.porterYear.mark.kind).toBe('mine');
+    expect(COSTS.goodsRun.mark.kind).toBe('yours');
   });
-  it('an accepted Sourced figure keeps its source; an unaccepted one is still a placeholder', () => {
+  it('an accepted Sourced figure keeps its source', () => {
     const pipe = COSTS.pipeKm.mark;
     expect(pipe.kind === 'sourced' && pipe.accepted).toBe(true);
     expect(pipe.kind === 'sourced' && pipe.source.startsWith('Analog: Envac')).toBe(true);
-    const pupil = COSTS.pupilYear.mark;
-    expect(pupil.kind === 'sourced' && pupil.accepted).toBe(false);
   });
   it('every premise of the three build layers was accepted on 2026-10-14: each is Yours or an accepted Sourced figure', () => {
     const built: CostPremiseId[] = [
@@ -188,6 +207,39 @@ describe('every premise carries a mark', () => {
     expect(COSTS.dumbwaiterEach.value).toBe(10000);
     expect(COSTS.moverEach.value).toBe(30000);
   });
+  it('upkeep and households were accepted on 2026-10-14, the mover priced as a cart-class pod, not a robotaxi', () => {
+    for (const key of ['upkeepShare', 'vehicleLifeYears', 'carKm', 'carInsuranceYear', 'moverKm'] as const) {
+      const m = COSTS[key].mark;
+      expect(m.kind === 'sourced' && m.accepted).toBe(true);
+    }
+    expect(COSTS.vehicleLifeYears.value).toBe(17);
+    expect(COSTS.carKm.value).toBe(0.14);
+    expect(COSTS.carInsuranceYear.value).toBe(1694);
+    expect(COSTS.moverKm.value).toBe(0.1);
+  });
+  it('the civic services were accepted on 2026-10-14; the porter stays a paid city job (line 7)', () => {
+    const civic = [
+      'pupilYear',
+      'policePerson',
+      'firePerson',
+      'healthPerson',
+      'libraryPerson',
+      'gridKwh',
+      'reactorMwh',
+      'waterKgal',
+      'sewerKgal',
+      'wasteTon',
+      'porterYear',
+    ] as const;
+    for (const key of civic) {
+      const m = COSTS[key].mark;
+      expect(m.kind === 'sourced' && m.accepted).toBe(true);
+    }
+    expect(COSTS.waterKgal.value).toBe(6);
+    expect(COSTS.sewerKgal.value).toBe(9);
+    expect(COSTS.porterYear.value).toBe(54000);
+    expect(COSTS.goodsRun.value).toBe(300);
+  });
 });
 
 describe('both columns use the same arithmetic', () => {
@@ -199,6 +251,13 @@ describe('both columns use the same arithmetic', () => {
     );
     expect(row(car.cost, 'vehicleKm').premise).toBe('carKm');
     expect(row(yours.cost, 'vehicleKm').premise).toBe('moverKm');
+  });
+  it('insurance is priced per car in the car city; yours has none, because the city indemnifies its citizens (line 29)', () => {
+    expect(row(car.cost, 'insurance').count).toBe(car.fleet);
+    expect(row(car.cost, 'insurance').premise).toBe('carInsuranceYear');
+    expect(row(car.cost, 'insurance').layer).toBe('households');
+    expect(row(car.cost, 'insurance').cost).toBeCloseTo(car.fleet * 1694, 6);
+    expect(ids(yours.cost)).not.toContain('insurance');
   });
   it('a column carries only the rows it has something of', () => {
     const carIds = ids(car.cost);
@@ -244,11 +303,11 @@ describe('money adds rows and moves nothing', () => {
     });
     expect(after).toEqual(before);
   });
-  it('the published city with the build layers accepted on 2026-10-14: a check on the premises, not truth', () => {
+  it('the published city with every premise accepted on 2026-10-14: a check on the premises, not truth', () => {
     expect(Math.round(car.cost.capitalPerPerson)).toBe(261845);
     expect(Math.round(yours.cost.capitalPerPerson)).toBe(198319);
-    expect(Math.round(car.cost.runningPerPerson)).toBe(15004);
-    expect(Math.round(yours.cost.runningPerPerson)).toBe(10131);
+    expect(Math.round(car.cost.runningPerPerson)).toBe(15422);
+    expect(Math.round(yours.cost.runningPerPerson)).toBe(10029);
     expect(Math.round(car.cost.financing.yearly / SHARED.pop)).toBe(13282);
     expect(Math.round(yours.cost.financing.yearly / SHARED.pop)).toBe(11884);
   });
@@ -269,7 +328,7 @@ describe('the car column is vouched against what America pays (loose by design)'
     expect(share).toBeLessThan(0.19);
   });
   it('getting around: a car’s year costs less than AAA’s 11,577, because the ledger’s city is a 10-minute drive across', () => {
-    const perCar = (row(car.cost, 'vehicleKm').cost + row(car.cost, 'vehiclesRenewed').cost) / car.fleet;
+    const perCar = (row(car.cost, 'vehicleKm').cost + row(car.cost, 'vehiclesRenewed').cost + row(car.cost, 'insurance').cost) / car.fleet;
     const kmPerCar = row(car.cost, 'vehicleKm').count / car.fleet;
     expect(kmPerCar).toBeLessThan(24000);
     expect(perCar).toBeGreaterThan(11577 * 0.3);
