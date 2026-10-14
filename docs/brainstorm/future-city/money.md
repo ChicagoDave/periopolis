@@ -327,6 +327,48 @@ Phase 4 of `docs/work/archive/accept-money-premises/plan.md`. The car column, a 
 
 The shortfall in civic is in both columns alike: what the ledger does not count, it does not count for either city. It is recorded here, not tuned away; a fuller civic layer would add the missing services as rows with their own premises.
 
+## Civic categories not yet counted
+
+Phase 1 of `docs/work/widen-civic-layer/plan.md`, looked up 2026-10-14. Nothing here is in `cost.ts` yet; each row waits for David.
+
+### What the band measures
+
+The band above does not match its own source. The Urban Institute's 11,087 a person (2021) is **state and local** direct general spending, 3.7 trillion. Local governments alone spent 1.9 trillion, about 5,700 a person, 39% of it on schools, so local spending less schools is about 3,500, not 5,000 to 7,000. State and local less schools (21%) is about 8,760. ([urban.org](https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures))
+
+The civic premises already accepted (police, fire, health, library) were derived from state-and-local shares, which fits line 27: the ledger reports the city as a whole, and a whole city has no state above it to pay the rest. So state and local is the consistent measure.
+
+General spending also leaves out utility bills. The car column's civic layer of 6,909 a person holds about 1,460 of grid electricity and 300 of water, which households and utilities pay, not a general budget; sewerage (330) and solid waste (140) are inside general spending. Without schools, electricity, water and goods runs, the car column counts about 2,290 a person of what the 8,760 measures. The rows below are the difference.
+
+### The categories
+
+State and local direct general spending, 2021, a person, Urban Institute (dollar figures from its backgrounder pages where one was found, else the category's share of 11,087, marked "share"). "Local" is the local governments' part of that spending.
+
+| Category | A person | Local | Already counted? | Proposed | Question for David |
+|---|---|---|---|---|---|
+| Public welfare | 2,597 | 8% | No. 81% is medical vendor payments, mostly Medicaid; most of the rest is services and administration, about 3% cash assistance | 2,597 a person, both columns | Does a whole city carry Medicaid and welfare? If yes, the Health row's note ("overstates a city's own line") stops being an overstatement. Same in both columns, or does yours differ? |
+| Higher education | about 890 (8%, share) | about 2% of local | No | 890 a person, both columns | Does the city run a college? Per person, or per student once the ledger counts students? |
+| Highways and roads | 622: capital 56% (348), operations 44% (274) | 41% | Capital, yes: streets in groundworks, and the 2% upkeep covers repair. Operations (snow, signals, traffic control, safety) partly not | Operations only, per km of street: 274 × 332 M people ÷ about 6.7 M km of US public road ≈ 13,500 a km a year (derived) | Count operations per km of street (so the car city pays far more), or per person in both? Does any of it apply to your walkway and mover line, or is their running in upkeep and the mover km already? Upkeep overlaps the repair half, so the row may be smaller |
+| Financial administration and central staff | about 440 (4%, share) | n/a | No | 440 a person, both columns | Same in both? |
+| Corrections | 262 | 36% | No | 262 a person, both columns | Same in both, or does yours differ? |
+| Housing and community development | 196 | 3% of local budgets; two-thirds federally funded | No; housing itself is financed once (line 28) | 196 a person, both columns, or leave out | Is this a second price for housing that line 28 rules out, or a service (planning, code enforcement, assistance) the city runs? |
+| Courts | 158 | 51% (2020) | No | 158 a person, both columns | Same in both? |
+| Parks and recreation | about 110 (1%, share); no per-person page found | n/a | Parks are built in groundworks and repaired in upkeep; staff and programs are not | 110 a person, or per m² of park if a source turns up (Mine until then) | Per person in both, or per m² of park so the car city's 42.9 m² a person costs more than your 10? |
+| Interest on debt | about 330 (3%, share) | n/a | **Yes**: the Financing line | Leave out | None; counting it would price borrowing twice |
+| Sewerage and solid waste (sanitation) | about 330 (3%, share) | n/a | **Yes**: the sewer and waste rows | Leave out | None |
+| Libraries | under 1% | n/a | **Yes**: the library row | Leave out | None |
+| Air transportation | about 110 (1%, share) | n/a | No | Leave out | Does the city have an airport? Nothing in the lines says so |
+| Natural resources | about 110 (1%, share) | mostly state | No | Leave out | Agriculture, forestry and fish and game; does the city carry any of it? |
+| Public buildings, water transportation | under 1% each | n/a | Public buildings are floor in the buildings layer | Leave out | None |
+| Everything else | about 8%, about 890 (remainder) | n/a | No | No row: the source calls it "mostly miscellaneous" and gives no breakdown | Count as one "other general government" row at about 890, or leave out? Mine if counted |
+
+Police in the source page is 407 a person against the accepted 450 (4% of 11,087); recorded, not changed.
+
+### What the rows would do
+
+If every row proposed for counting is counted in both columns alike (welfare, higher education, administration, corrections, housing and community development, courts, parks, and road operations at about 274 a person), they add about 4,930 a person. Then the car column's civic layer is about 11,840, 107% of 11,087, inside the test's band. Its government services (without schools, utility bills and goods runs) are about 7,220, against the 8,760 the source measures; the rest is the "everything else" remainder and the police difference. Your city's figures depend on which rows differ by column.
+
+Two decisions sit above the rows: whether the band in "Vouching" is restated as state and local less schools, compared without utility bills (the test's own band, on the whole civic layer against 11,087, does not change); and whether the city carries the state's share (welfare, higher education, corrections), which line 27 suggests but no line says.
+
 ## Lines
 
 Yours (2026-10-13), taken as drafted and recorded in `overview.md`:
