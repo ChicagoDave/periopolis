@@ -14,8 +14,20 @@ export type {
   WalkingCityLedger,
 } from './consequences.ts';
 export type { LandFigures, RingFigures } from './land.ts';
-export { COSTS } from './cost.ts';
-export type { CapitalId, CostFigures, CostPremises, CostRow, RunningId } from './cost.ts';
+export { COSTS, LAYERS, kindOf } from './cost.ts';
+export type {
+  CostFigures,
+  CostId,
+  CostPremiseId,
+  CostPremises,
+  CostRow,
+  FinancingLine,
+  Kind,
+  LandLine,
+  Layer,
+  Mark,
+  Marked,
+} from './cost.ts';
 export { CAR_CITY, SHARED, WALKING_CITY } from './premises.ts';
 export type { CarCityPremises, ColumnPremises, SharedPremises, WalkingCityPremises } from './premises.ts';
 export { NEEDS, placeNeeds } from './needs.ts';

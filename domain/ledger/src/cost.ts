@@ -1,196 +1,519 @@
 /**
- * @file What the city costs: capital to build it and the yearly cost to run it, derived from the ledger's counts
- * and a list of unit costs. Every unit cost is a placeholder (Mine) that David can change; nothing here is tuned.
- * Public interface: CostPremises, COSTS, CapitalId, RunningId, CostRow, CostFigures, carCost, walkingCost.
+ * @file What the city costs, in six layers: groundworks, buildings and fleet to build; upkeep, civic services and
+ * households to run; with Land and Financing as their own lines (ADR-0007, lines 24 to 28). Every premise carries a
+ * mark: Yours, Sourced (with its source and year) or Mine. Nothing here is tuned; a Sourced figure is still a
+ * placeholder until David accepts it.
+ * Public interface: Layer, LAYERS, Kind, kindOf, Mark, Marked, CostPremises, CostPremiseId, COSTS, CostId, CostRow,
+ * CostFigures, carCost, walkingCost.
  * Owner context: Ledger (domain).
  *
- * Money is in dollars. A row is one premise times one ledger count, and both columns are priced by the same
- * function, so a difference between the columns is a difference in what they build and run, never in the arithmetic.
+ * Money is in dollars of the source's year, not escalated. A row is one premise times one ledger count, and both
+ * columns are priced by the same function, so a difference between the columns is a difference in what they build
+ * and run, never in the arithmetic. The Ledger is the only place a unit cost lives: the Site and the Run price what
+ * stands from these premises and their own counts (Decision 6).
  */
 import type { CarCityLedger, WalkingCityLedger } from './consequences.ts';
 import type { CarCityPremises, SharedPremises, WalkingCityPremises } from './premises.ts';
 
-/** Unit costs. To build: per square meter, per kilometer or per piece. To run: per year. All Mine. */
-export interface CostPremises {
-  /** Floor in a house, a townhouse, a shop or a school, per m² built. */
-  readonly lowRiseM2: number;
-  /** Floor in a ring building, per m² built. */
-  readonly highRiseM2: number;
-  /** Streets, paths and plazas, per m² of ground given to movement. */
-  readonly streetM2: number;
-  /** Ground where vehicles wait: parking or a depot, per m². */
-  readonly waitingM2: number;
-  /** Parks, per m². */
-  readonly parkM2: number;
-  /** One car. */
-  readonly carEach: number;
-  /** One mover, of whatever size. */
-  readonly moverEach: number;
-  /** Sub-level walkway, per km. */
-  readonly walkwayKm: number;
-  /** Mover line on the sub level, per km. */
-  readonly moverLineKm: number;
-  /** One mover stop, with its berths. */
-  readonly stationEach: number;
-  /** One sub-level entry. */
-  readonly entryEach: number;
-  /** Goods pipe, per km. */
-  readonly pipeKm: number;
-  /** One dumbwaiter. */
-  readonly dumbwaiterEach: number;
-  /** Bike lane, per km. */
-  readonly laneKm: number;
-  /** Reactor module, each. Not a ledger count; the Site prices the modules that stand. */
-  readonly reactorModuleEach: number;
-  /** Water, sewage or waste plant unit, each. Not a ledger count; the Site prices the units that stand. */
-  readonly plantUnitEach: number;
-  /** Upkeep a year, as a share of what was built, vehicles aside. */
-  readonly upkeepShare: number;
-  /** Running a vehicle one kilometer. */
-  readonly vehicleKm: number;
-  /** Years a vehicle lasts before it is replaced. */
-  readonly vehicleLifeYears: number;
-  /** One goods run by van or truck. */
-  readonly goodsRun: number;
-  /** One porter for a year. */
-  readonly porterYear: number;
+/** The six layers of line 25. The first three are built once; the last three are paid every year. */
+export type Layer = 'groundworks' | 'buildings' | 'fleet' | 'upkeep' | 'civic' | 'households';
+
+/** The layers in the order they are built and paid. */
+export const LAYERS: readonly Layer[] = ['groundworks', 'buildings', 'fleet', 'upkeep', 'civic', 'households'];
+
+/** Capital is paid once; running cost is paid each year. */
+export type Kind = 'capital' | 'running';
+
+/**
+ * Which kind of money a layer is.
+ * @param layer - one of the six
+ * @returns capital for the three built layers, running for the three yearly ones
+ */
+export function kindOf(layer: Layer): Kind {
+  return layer === 'groundworks' || layer === 'buildings' || layer === 'fleet' ? 'capital' : 'running';
 }
 
-/** Placeholders, 2026 dollars, round. Every one is Mine. */
+/** Whose figure a premise is (line 26). A Sourced mark names its source and year; the Board words the mark. */
+export type Mark =
+  | { readonly kind: 'yours' }
+  | { readonly kind: 'mine' }
+  | { readonly kind: 'sourced'; readonly source: string; readonly year: number; readonly url: string };
+
+/** A premise with its mark. */
+export interface Marked {
+  readonly value: number;
+  readonly mark: Mark;
+}
+
+const YOURS: Mark = { kind: 'yours' };
+const MINE: Mark = { kind: 'mine' };
+function sourced(source: string, year: number, url: string): Mark {
+  return { kind: 'sourced', source, year, url };
+}
+
+/**
+ * The premises money is built from: unit costs, and the per-person counts the civic layer needs that the nine steps
+ * do not give. To build: per m², per km or per piece. To run: per year, per km, per unit.
+ */
+export interface CostPremises {
+  // Buildings
+  /** Floor in a house, a townhouse, a shop, a school or the sub level, per m² built. */
+  readonly lowRiseM2: Marked;
+  /** Floor in a ring building, per m² built. */
+  readonly highRiseM2: Marked;
+  /** One dumbwaiter. */
+  readonly dumbwaiterEach: Marked;
+  // Groundworks
+  /** Streets, paths and plazas, per m² of ground given to movement. */
+  readonly streetM2: Marked;
+  /** Ground where vehicles wait, surface parking or a depot, per m². */
+  readonly waitingM2: Marked;
+  /** Parks, per m². */
+  readonly parkM2: Marked;
+  /** Width of the sub-level walkway, m. It is built floor, priced at lowRiseM2. */
+  readonly walkwayWidthM: Marked;
+  /** Width of the mover line's floor, m. Built floor, priced at lowRiseM2. */
+  readonly moverLineWidthM: Marked;
+  /** The mover line's track and systems on that floor, per km, civil works aside. */
+  readonly moverTrackKm: Marked;
+  /** One mover stop with its berths. */
+  readonly stationEach: Marked;
+  /** One sub-level entry: stairs and a lift in the built floor. */
+  readonly entryEach: Marked;
+  /** Goods pipe as a duct in the sub level, per km. */
+  readonly pipeKm: Marked;
+  /** Bike lane, per km. */
+  readonly laneKm: Marked;
+  /** Reactor module, each. Not a ledger count; the Site prices the modules that stand. */
+  readonly reactorModuleEach: Marked;
+  /** Water, sewage or waste plant unit, each. Not a ledger count; the Site prices the units that stand. */
+  readonly plantUnitEach: Marked;
+  // Fleet
+  /** One car. */
+  readonly carEach: Marked;
+  /** One mover, of whatever size. */
+  readonly moverEach: Marked;
+  // Upkeep
+  /** Upkeep a year, as a share of the groundworks and buildings. */
+  readonly upkeepShare: Marked;
+  // Civic services: unit costs
+  /** One pupil for a year of school. */
+  readonly pupilYear: Marked;
+  readonly policePerson: Marked;
+  readonly firePerson: Marked;
+  readonly healthPerson: Marked;
+  readonly libraryPerson: Marked;
+  /** Electricity bought from the grid, per kWh. The car city. */
+  readonly gridKwh: Marked;
+  /** Electricity made at the city's own reactors, per MWh: operations and fuel. Your city. */
+  readonly reactorMwh: Marked;
+  /** Drinking water, per 1,000 gallons. */
+  readonly waterKgal: Marked;
+  /** Sewage treated, per 1,000 gallons. */
+  readonly sewerKgal: Marked;
+  /** Waste collected and disposed of, per ton. */
+  readonly wasteTon: Marked;
+  /** One goods run by van or truck. */
+  readonly goodsRun: Marked;
+  /** One porter for a year. */
+  readonly porterYear: Marked;
+  // Civic services: counts the nine steps do not give (lines 20 to 22)
+  /** Electricity a person uses in a year, kWh. */
+  readonly kwhPerPersonYear: Marked;
+  /** Drinking water a person uses in a day, gallons, in the car city. */
+  readonly waterGpdCar: Marked;
+  /** Drinking water a person uses in a day, gallons, in your city. */
+  readonly waterGpdWalking: Marked;
+  /** Sewage a person makes in a day, gallons. */
+  readonly sewageGpd: Marked;
+  /** Waste a person makes in a year, tons. */
+  readonly wasteTonsPerPersonYear: Marked;
+  /** School years, kindergarten to twelfth grade. */
+  readonly grades: Marked;
+  // Households
+  /** Running a car one km: fuel, maintenance and insurance, not depreciation or finance. */
+  readonly carKm: Marked;
+  /** Running a mover one km, depreciation aside. */
+  readonly moverKm: Marked;
+  /** Years a vehicle lasts before it is replaced. */
+  readonly vehicleLifeYears: Marked;
+  // Land and financing
+  /** Urban land, per m². */
+  readonly landM2: Marked;
+  /** Interest on the capital, a year. */
+  readonly financeRate: Marked;
+  /** Years the capital is paid off over. */
+  readonly financeYears: Marked;
+}
+
+/** Which premise a row is priced at. */
+export type CostPremiseId = keyof CostPremises;
+
+/** The premises as found on 2026-10-13 (`docs/brainstorm/future-city/money.md`, "Sources for the unit costs"). */
 export const COSTS: CostPremises = {
-  lowRiseM2: 2000,
-  highRiseM2: 4000,
-  streetM2: 150,
-  waitingM2: 100,
-  parkM2: 50,
-  carEach: 35000,
-  moverEach: 150000,
-  walkwayKm: 15e6,
-  moverLineKm: 60e6,
-  stationEach: 10e6,
-  entryEach: 1e6,
-  pipeKm: 2e6,
-  dumbwaiterEach: 15000,
-  laneKm: 1e6,
-  reactorModuleEach: 1e9,
-  plantUnitEach: 100e6,
-  upkeepShare: 0.01,
-  vehicleKm: 0.5,
-  vehicleLifeYears: 12,
-  goodsRun: 300,
-  porterYear: 60000,
+  lowRiseM2: {
+    value: 1750,
+    mark: sourced(
+      'NAHB construction cost survey, 428,215 dollars for 2,647 ft2',
+      2024,
+      'https://eyeonhousing.org/2024/09/economies-of-scale-in-single-family-home-construction/',
+    ),
+  },
+  highRiseM2: {
+    value: 3200,
+    mark: sourced('RSMeans, office 11 to 20 stories, 202 to 395 a ft2', 2025, 'https://www.rsmeans.com/resources/cost-to-build-an-office'),
+  },
+  dumbwaiterEach: { value: 15000, mark: MINE },
+  streetM2: {
+    value: 300,
+    mark: sourced('FDOT cost per mile, new two-lane urban arterial about 9.1 M a mile', 2024, 'https://www.fdot.gov/fpo/fpc/reports/costpermile'),
+  },
+  waitingM2: { value: 150, mark: MINE },
+  parkM2: {
+    value: 50,
+    mark: sourced('Neighborhood park about 180,000 an acre with basic amenities', 2026, 'https://LittleRock.gov/!userfiles/editor/docs/parks/appendixe.pdf'),
+  },
+  walkwayWidthM: { value: 3, mark: MINE },
+  moverLineWidthM: { value: 6, mark: MINE },
+  moverTrackKm: { value: 25e6, mark: MINE },
+  stationEach: { value: 10e6, mark: MINE },
+  entryEach: { value: 1e6, mark: MINE },
+  pipeKm: { value: 2e6, mark: MINE },
+  laneKm: {
+    value: 300000,
+    mark: sourced('Protected bike lanes 133,000 to 537,000 a mile', 2024, 'https://earth911.com/business-policy/are-bike-lanes-worth-the-cost/'),
+  },
+  reactorModuleEach: {
+    value: 1e9,
+    mark: sourced(
+      'Between NuScale 2020 at 2,850 a kW (220 M a module) and UAMPS 2023 at about 20,000 a kW (1.5 B)',
+      2023,
+      'https://world-nuclear-news.org/articles/nuscale-announces-smr-power-uprate',
+    ),
+  },
+  plantUnitEach: {
+    value: 50e6,
+    mark: sourced(
+      'Secondary wastewater 5 to 7 M a MGD; one unit of 60,000 people is about 7 MGD',
+      2025,
+      'https://www.waterandwastewater.com/how-much-does-a-wastewater-treatment-plant-cost/',
+    ),
+  },
+  carEach: {
+    value: 48000,
+    mark: sourced('AAA Your Driving Costs, depreciation 4,334 a year over five years', 2025, 'https://mwg.aaa.com/news/press-release/september-16-2025'),
+  },
+  moverEach: {
+    value: 150000,
+    mark: sourced(
+      'Waymo robotaxi 130,000 to 200,000 each',
+      2025,
+      'https://thenightly.com.au/business/the-economist-the-trillion-dollar-robotaxi-race-waymo-tesla-battle-for-control-of-self-driving-transport-c-20786315',
+    ),
+  },
+  upkeepShare: {
+    value: 0.02,
+    mark: sourced('National Academies, 2 to 4% of replacement value a year', 1998, 'https://nap.nationalacademies.org/read/9807/chapter/4'),
+  },
+  pupilYear: {
+    value: 16526,
+    mark: sourced(
+      'Census Bureau, Annual Survey of School System Finances, FY2023 current spending a pupil',
+      2023,
+      'https://www.census.gov/newsroom/press-releases/2025/2023-annual-survey-of-school-system-finances.html',
+    ),
+  },
+  policePerson: {
+    value: 450,
+    mark: sourced(
+      'Urban Institute, state and local direct spending 11,087 a person, police about 4%',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
+    ),
+  },
+  firePerson: {
+    value: 220,
+    mark: sourced(
+      'Urban Institute, fire protection about 2% of 11,087 a person',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
+    ),
+  },
+  healthPerson: {
+    value: 1100,
+    mark: sourced(
+      'Urban Institute, health and hospitals about 10% of 11,087 a person; much of it is state Medicaid',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
+    ),
+  },
+  libraryPerson: {
+    value: 45,
+    mark: sourced(
+      'Urban Institute, libraries under 1% of 11,087 a person',
+      2021,
+      'https://www.urban.org/policy-centers/cross-center-initiatives/state-and-local-finance-initiative/state-and-local-backgrounders/state-and-local-expenditures',
+    ),
+  },
+  gridKwh: {
+    value: 0.17,
+    mark: sourced('US residential average 17.2 to 17.8 cents a kWh', 2025, 'https://www.energysage.com/local-data/electricity-cost/'),
+  },
+  reactorMwh: {
+    value: 32,
+    mark: sourced(
+      'NEI Nuclear Costs in Context, total generating cost 31.76 a MWh in 2023',
+      2023,
+      'https://www.nei.org/getContentAsset/47fa8caa-9b0d-4029-932c-07f902e82f4f/8d8ff8d6-b2ae-401b-a63c-f6b108e809d2/2024-Costs-in-Context-final.pdf',
+    ),
+  },
+  waterKgal: { value: 7, mark: MINE },
+  sewerKgal: { value: 10, mark: MINE },
+  wasteTon: {
+    value: 160,
+    mark: sourced('Landfill tipping 62.28 a ton in 2024, collection about 100 more', 2024, 'https://css.umich.edu/sites/default/files/2025-09/CSS04-15.pdf'),
+  },
+  goodsRun: { value: 300, mark: MINE },
+  porterYear: { value: 60000, mark: MINE },
+  kwhPerPersonYear: { value: 7500, mark: MINE },
+  waterGpdCar: { value: 138, mark: MINE },
+  waterGpdWalking: { value: 116, mark: MINE },
+  sewageGpd: { value: 100, mark: MINE },
+  wasteTonsPerPersonYear: { value: 0.72, mark: MINE },
+  grades: { value: 13, mark: YOURS },
+  carKm: {
+    value: 0.21,
+    mark: sourced(
+      'AAA Your Driving Costs: fuel 13 cents a mile, insurance 1,694 a year, maintenance about 10 cents a mile',
+      2025,
+      'https://newsroom.aaa.com/wp-content/uploads/2025/09/UPDATE-AAA-Fact-Sheet-Your-Driving-Cost-9.2025-1.pdf',
+    ),
+  },
+  moverKm: {
+    value: 0.6,
+    mark: sourced(
+      'Morgan Stanley: Waymo about 1.36 a mile and Tesla 0.74, depreciation included',
+      2025,
+      'https://sherwood.news/tech/robotaxis-are-the-new-millennial-lifestyle-subsidy/',
+    ),
+  },
+  vehicleLifeYears: { value: 12, mark: MINE },
+  landM2: {
+    value: 126,
+    mark: sourced(
+      'Albouy, Ehrlich and Shin, average US urban land 511,000 an acre',
+      2010,
+      'https://www.6sqft.com/study-shows-huge-disparity-in-u-s-urban-land-value-with-nyc-making-up-10/',
+    ),
+  },
+  financeRate: {
+    value: 0.043,
+    mark: sourced(
+      '30-year AAA municipal yield 4.2 to 4.5% through 2025',
+      2025,
+      'https://www.parametricportfolio.com/-/media/files/insights-and-research/municipal-bond-market-insight/positioned-for-performance_july-2025.pdf',
+    ),
+  },
+  financeYears: { value: 30, mark: MINE },
 };
 
-/** What is built. A column carries only the rows it has something of. */
-export type CapitalId =
-  | 'lowRiseFloor'
-  | 'highRiseFloor'
+/** The rows. A column carries only the rows it has something of. */
+export type CostId =
+  // groundworks
   | 'streets'
   | 'waiting'
   | 'parks'
-  | 'vehicles'
-  | 'walkway'
-  | 'moverLine'
+  | 'walkwayFloor'
+  | 'moverLineFloor'
+  | 'moverTrack'
   | 'stations'
   | 'entries'
   | 'pipe'
+  | 'lanes'
+  // buildings
+  | 'lowRiseFloor'
+  | 'highRiseFloor'
   | 'dumbwaiters'
-  | 'lanes';
+  // fleet
+  | 'vehicles'
+  // upkeep
+  | 'upkeep'
+  // civic
+  | 'schools'
+  | 'police'
+  | 'fire'
+  | 'health'
+  | 'library'
+  | 'electricity'
+  | 'water'
+  | 'sewer'
+  | 'waste'
+  | 'goodsRuns'
+  | 'porters'
+  // households
+  | 'vehicleKm'
+  | 'vehiclesRenewed';
 
-/** What it takes to run for a year. */
-export type RunningId = 'upkeep' | 'vehicleKm' | 'vehiclesRenewed' | 'goodsRuns' | 'porters';
-
-/** One row of cost: so many of something, at a unit cost, is this much. */
-export interface CostRow<Id extends string> {
-  readonly id: Id;
-  /** How many: m², km, pieces, vehicle-km a year, or dollars built for the upkeep row. */
+/** One row of cost: so many of something, priced at one premise, is this much. */
+export interface CostRow {
+  readonly id: CostId;
+  readonly layer: Layer;
+  /** How many: m², km, pieces, pupils, kWh, vehicle-km a year, or dollars of structures for the upkeep row. */
   readonly count: number;
-  /** The premise the count is priced at. */
+  /** The premise the count is priced at; its mark is on the premise. */
+  readonly premise: CostPremiseId;
+  /** The premise's value. */
   readonly unit: number;
   /** count times unit. */
   readonly cost: number;
 }
 
-/** A column's money: what it costs to build, and what it costs to run each year. */
+/** The Land line: the city's ground at the land price. Outside the six layers. */
+export interface LandLine {
+  readonly areaM2: number;
+  readonly unit: number;
+  readonly cost: number;
+}
+
+/** The Financing line: the structures' capital paid off level over the term at the rate. Outside the six layers. */
+export interface FinancingLine {
+  /** What is financed: groundworks and buildings. The fleet is renewed, not financed. */
+  readonly capital: number;
+  readonly rate: number;
+  readonly years: number;
+  /** The level payment a year. */
+  readonly yearly: number;
+}
+
+/** A column's money: the rows in their layers, the layer totals, the two kinds, and the two lines outside them. */
 export interface CostFigures {
-  readonly capital: readonly CostRow<CapitalId>[];
+  readonly rows: readonly CostRow[];
+  readonly layers: Readonly<Record<Layer, number>>;
   readonly capitalTotal: number;
   readonly capitalPerPerson: number;
-  readonly running: readonly CostRow<RunningId>[];
   readonly runningTotal: number;
   readonly runningPerPerson: number;
+  readonly land: LandLine;
+  readonly financing: FinancingLine;
 }
 
 /** A count waiting to be priced. */
-interface Counted<Id extends string> {
-  readonly id: Id;
+interface Counted {
+  readonly id: CostId;
+  readonly layer: Layer;
   readonly count: number;
-  readonly unit: number;
+  readonly premise: CostPremiseId;
 }
 
 const DAYS = 365;
+const KM = 1000;
 
-function price<Id extends string>(rows: readonly Counted<Id>[]): CostRow<Id>[] {
-  return rows.map((r) => ({ id: r.id, count: r.count, unit: r.unit, cost: r.count * r.unit }));
+function price(rows: readonly Counted[], k: CostPremises): CostRow[] {
+  return rows.map((r) => {
+    const unit = k[r.premise].value;
+    return { id: r.id, layer: r.layer, count: r.count, premise: r.premise, unit, cost: r.count * unit };
+  });
 }
 
-function sum<Id extends string>(rows: readonly CostRow<Id>[]): number {
+function sum(rows: readonly CostRow[]): number {
   return rows.reduce((t, r) => t + r.cost, 0);
 }
 
-/** The figures the running rows are built from, whichever column. */
-interface Traffic {
+/**
+ * The level yearly payment that pays off a capital sum over so many years at a rate. A rate of 0 divides evenly.
+ */
+function levelPayment(capital: number, rate: number, years: number): number {
+  if (!(years > 0)) throw new RangeError('financing needs a term of at least a year');
+  if (rate <= 0) return capital / years;
+  return (capital * rate) / (1 - (1 + rate) ** -years);
+}
+
+/** The figures the two columns share, whichever column. */
+interface Shared {
+  readonly areaKm2: number;
   readonly fleet: number;
   readonly vehTrips: number;
   readonly rideKm: number;
   readonly goodsRuns: number;
+  readonly streets: number;
 }
 
 /**
- * Prices both lists and totals them. The one arithmetic both columns share.
- * @param pop - people, for the per-person figures
- * @param capital - what is built, counted
- * @param running - what it takes to run, counted, less upkeep, which is derived here from the capital rows
- * @param k - the unit costs
+ * Prices the counted rows and totals them by layer and kind, then adds the Land and Financing lines. The one
+ * arithmetic both columns share (Decision 3).
+ * @param s - the shared premises, for the people and the per-person civic rows
+ * @param f - the column's shared figures
+ * @param counted - the column's rows, less upkeep and the civic per-person rows, which are added here
+ * @param waterGpd - which water premise the column drinks by
+ * @param k - the premises
  * @returns the column's money
  */
 function figures(
-  pop: number,
-  capital: readonly Counted<CapitalId>[],
-  running: readonly Counted<RunningId>[],
+  s: SharedPremises,
+  f: Shared,
+  counted: readonly Counted[],
+  waterGpd: 'waterGpdCar' | 'waterGpdWalking',
   k: CostPremises,
 ): CostFigures {
-  if (!(pop > 0)) throw new RangeError('cost needs people to be counted per person');
-  const built = price(capital);
-  const structures = sum(built.filter((r) => r.id !== 'vehicles'));
-  const run = price([{ id: 'upkeep', count: structures, unit: k.upkeepShare }, ...running]);
-  const capitalTotal = sum(built);
-  const runningTotal = sum(run);
+  if (!(s.pop > 0)) throw new RangeError('cost needs people to be counted per person');
+  const built = price(counted, k);
+  const structures = sum(built.filter((r) => r.layer === 'groundworks' || r.layer === 'buildings'));
+  const pupils = s.pop * s.gradeShare * k.grades.value;
+  const civic: Counted[] = [
+    { id: 'upkeep', layer: 'upkeep', count: structures, premise: 'upkeepShare' },
+    { id: 'schools', layer: 'civic', count: pupils, premise: 'pupilYear' },
+    { id: 'police', layer: 'civic', count: s.pop, premise: 'policePerson' },
+    { id: 'fire', layer: 'civic', count: s.pop, premise: 'firePerson' },
+    { id: 'health', layer: 'civic', count: s.pop, premise: 'healthPerson' },
+    { id: 'library', layer: 'civic', count: s.pop, premise: 'libraryPerson' },
+    { id: 'water', layer: 'civic', count: (s.pop * k[waterGpd].value * DAYS) / 1000, premise: 'waterKgal' },
+    { id: 'sewer', layer: 'civic', count: (s.pop * k.sewageGpd.value * DAYS) / 1000, premise: 'sewerKgal' },
+    { id: 'waste', layer: 'civic', count: s.pop * k.wasteTonsPerPersonYear.value, premise: 'wasteTon' },
+    { id: 'goodsRuns', layer: 'civic', count: f.goodsRuns * DAYS, premise: 'goodsRun' },
+  ];
+  const rows = [...built, ...price(civic, k)];
+  const layers = {} as Record<Layer, number>;
+  for (const layer of LAYERS) layers[layer] = sum(rows.filter((r) => r.layer === layer));
+  const capitalTotal = layers.groundworks + layers.buildings + layers.fleet;
+  const runningTotal = layers.upkeep + layers.civic + layers.households;
+  const areaM2 = f.areaKm2 * 1e6;
   return {
-    capital: built,
+    rows,
+    layers,
     capitalTotal,
-    capitalPerPerson: capitalTotal / pop,
-    running: run,
+    capitalPerPerson: capitalTotal / s.pop,
     runningTotal,
-    runningPerPerson: runningTotal / pop,
+    runningPerPerson: runningTotal / s.pop,
+    land: { areaM2, unit: k.landM2.value, cost: areaM2 * k.landM2.value },
+    financing: {
+      capital: structures,
+      rate: k.financeRate.value,
+      years: k.financeYears.value,
+      yearly: levelPayment(structures, k.financeRate.value, k.financeYears.value),
+    },
   };
 }
 
-/** The rows every column runs: vehicles driven, vehicles worn out, goods carried. */
-function traffic(t: Traffic, emptyRunning: number, each: number, k: CostPremises): Counted<RunningId>[] {
+/** The household rows every column has: vehicles driven and vehicles worn out. */
+function gettingAround(
+  f: Shared,
+  emptyRunning: number,
+  perKm: 'carKm' | 'moverKm',
+  each: 'carEach' | 'moverEach',
+  k: CostPremises,
+): Counted[] {
   return [
-    { id: 'vehicleKm', count: t.vehTrips * t.rideKm * (1 + emptyRunning) * DAYS, unit: k.vehicleKm },
-    { id: 'vehiclesRenewed', count: t.fleet / k.vehicleLifeYears, unit: each },
-    { id: 'goodsRuns', count: t.goodsRuns * DAYS, unit: k.goodsRun },
+    { id: 'vehicleKm', layer: 'households', count: f.vehTrips * f.rideKm * (1 + emptyRunning) * DAYS, premise: perKm },
+    { id: 'vehiclesRenewed', layer: 'households', count: f.fleet / k.vehicleLifeYears.value, premise: each },
   ];
 }
 
 /**
- * The car city's money: houses and shops, streets, parking, parks, and a car for most people.
+ * The car city's money: houses and shops, streets, parking, parks, a car for most people, grid power.
  * @param s - the shared premises
  * @param c - the car city's premises
  * @param f - the car column's figures, before cost
- * @param k - the unit costs
+ * @param k - the premises of money
  * @returns what the car city costs to build and to run
  */
 export function carCost(
@@ -199,22 +522,25 @@ export function carCost(
   f: Omit<CarCityLedger, 'cost'>,
   k: CostPremises,
 ): CostFigures {
-  const capital: Counted<CapitalId>[] = [
-    { id: 'lowRiseFloor', count: s.pop * (s.homeFloor + s.otherFloor), unit: k.lowRiseM2 },
-    { id: 'streets', count: s.pop * f.streets, unit: k.streetM2 },
-    { id: 'waiting', count: s.pop * f.parkingGround, unit: k.waitingM2 },
-    { id: 'parks', count: s.pop * c.parks, unit: k.parkM2 },
-    { id: 'vehicles', count: f.fleet, unit: k.carEach },
+  const counted: Counted[] = [
+    { id: 'streets', layer: 'groundworks', count: s.pop * f.streets, premise: 'streetM2' },
+    { id: 'waiting', layer: 'groundworks', count: s.pop * f.parkingGround, premise: 'waitingM2' },
+    { id: 'parks', layer: 'groundworks', count: s.pop * c.parks, premise: 'parkM2' },
+    { id: 'lowRiseFloor', layer: 'buildings', count: s.pop * (s.homeFloor + s.otherFloor), premise: 'lowRiseM2' },
+    { id: 'vehicles', layer: 'fleet', count: f.fleet, premise: 'carEach' },
+    { id: 'electricity', layer: 'civic', count: s.pop * k.kwhPerPersonYear.value, premise: 'gridKwh' },
+    ...gettingAround(f, c.emptyRunning, 'carKm', 'carEach', k),
   ];
-  return figures(s.pop, capital, traffic(f, c.emptyRunning, k.carEach, k), k);
+  return figures(s, f, counted, 'waterGpdCar', k);
 }
 
 /**
- * Your city's money: townhouses and the ring, paths, parks, the sub level and its movers, the pipe and the lanes.
+ * Your city's money: townhouses and the ring, paths, parks, the built sub level and its movers, the pipe, the
+ * lanes, power from the city's own reactors, porters.
  * @param s - the shared premises
  * @param c - your city's premises
  * @param f - your column's figures, before cost
- * @param k - the unit costs
+ * @param k - the premises of money
  * @returns what your city costs to build and to run
  */
 export function walkingCost(
@@ -224,24 +550,24 @@ export function walkingCost(
   k: CostPremises,
 ): CostFigures {
   const floor = s.pop * (s.homeFloor + s.otherFloor);
-  const capital: Counted<CapitalId>[] = [
-    { id: 'lowRiseFloor', count: Math.max(0, floor - f.middleFloorM2), unit: k.lowRiseM2 },
-    { id: 'highRiseFloor', count: f.middleFloorM2, unit: k.highRiseM2 },
-    { id: 'streets', count: s.pop * f.streets, unit: k.streetM2 },
-    { id: 'waiting', count: f.storageM2, unit: k.waitingM2 },
-    { id: 'parks', count: s.pop * c.parks, unit: k.parkM2 },
-    { id: 'vehicles', count: f.fleet, unit: k.moverEach },
-    { id: 'walkway', count: f.walkwayKm, unit: k.walkwayKm },
-    { id: 'moverLine', count: f.moverKm, unit: k.moverLineKm },
-    { id: 'stations', count: f.stations, unit: k.stationEach },
-    { id: 'entries', count: f.entries, unit: k.entryEach },
-    { id: 'pipe', count: f.pipeKm, unit: k.pipeKm },
-    { id: 'dumbwaiters', count: f.dumbwaiters, unit: k.dumbwaiterEach },
-    { id: 'lanes', count: f.laneKm, unit: k.laneKm },
+  const counted: Counted[] = [
+    { id: 'streets', layer: 'groundworks', count: s.pop * f.streets, premise: 'streetM2' },
+    { id: 'waiting', layer: 'groundworks', count: f.storageM2, premise: 'waitingM2' },
+    { id: 'parks', layer: 'groundworks', count: s.pop * c.parks, premise: 'parkM2' },
+    { id: 'walkwayFloor', layer: 'groundworks', count: f.walkwayKm * KM * k.walkwayWidthM.value, premise: 'lowRiseM2' },
+    { id: 'moverLineFloor', layer: 'groundworks', count: f.moverKm * KM * k.moverLineWidthM.value, premise: 'lowRiseM2' },
+    { id: 'moverTrack', layer: 'groundworks', count: f.moverKm, premise: 'moverTrackKm' },
+    { id: 'stations', layer: 'groundworks', count: f.stations, premise: 'stationEach' },
+    { id: 'entries', layer: 'groundworks', count: f.entries, premise: 'entryEach' },
+    { id: 'pipe', layer: 'groundworks', count: f.pipeKm, premise: 'pipeKm' },
+    { id: 'lanes', layer: 'groundworks', count: f.laneKm, premise: 'laneKm' },
+    { id: 'lowRiseFloor', layer: 'buildings', count: Math.max(0, floor - f.middleFloorM2), premise: 'lowRiseM2' },
+    { id: 'highRiseFloor', layer: 'buildings', count: f.middleFloorM2, premise: 'highRiseM2' },
+    { id: 'dumbwaiters', layer: 'buildings', count: f.dumbwaiters, premise: 'dumbwaiterEach' },
+    { id: 'vehicles', layer: 'fleet', count: f.fleet, premise: 'moverEach' },
+    { id: 'electricity', layer: 'civic', count: (s.pop * k.kwhPerPersonYear.value) / 1000, premise: 'reactorMwh' },
+    { id: 'porters', layer: 'civic', count: f.porters, premise: 'porterYear' },
+    ...gettingAround(f, c.emptyRunning, 'moverKm', 'moverEach', k),
   ];
-  const running: Counted<RunningId>[] = [
-    ...traffic(f, c.emptyRunning, k.moverEach, k),
-    { id: 'porters', count: f.porters, unit: k.porterYear },
-  ];
-  return figures(s.pop, capital, running, k);
+  return figures(s, f, counted, 'waterGpdWalking', k);
 }

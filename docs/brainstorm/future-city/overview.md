@@ -63,6 +63,14 @@ A line is one numbered premise. Lines 1 to 19 are worded as published in the led
 22. "Waste has to have recycling systems, water treatment."
 23. "City has restrictions on paper and plastic. People are required to use personal drinking containers." No commercial mail: "Commercial mail only. Political mail has to flow as does personal mail." "No water bottles. I'd look for ways to reduce other liquid plastic bottles, but some is just efficient."
 
+Lines 24 to 28 were added on 2026-10-13 in the money brainstorm (`money.md`). David took them as drafted.
+
+24. "The city pays for what it builds and for what it runs. Nothing it counts is free."
+25. "Money comes in six layers: groundworks, buildings and fleet to build; upkeep, services and households to run. Land and financing are their own lines."
+26. "Every unit cost has a public source, or is marked mine until it does."
+27. "The ledger reports what the city costs as a whole. Who pays is a later question."
+28. "A home is paid for once. Rent and mortgages are financing, not a second price."
+
 A proposal to add moving sidewalks was made and withdrawn ("Okay belts are bad").
 
 ## Core concepts
@@ -224,7 +232,7 @@ Next, in the order discussed:
 
 1. **The physical city.** *Done in plan view, 2026-10-13 (`docs/work/archive/physical-city/plan.md`, ADR-0005): `@city/ground` plans a neighborhood and the ring from the ledger, and the Board zooms into a tile with a surface/sub-level switch. The angled view remains open.* David likes the tile map as the zoomed-out view and wants the physical city shown as well. The ledger already fixes most of what is on the ground, so the view can be drawn from it. One neighborhood is 2,041 townhouses, each 6 m wide and three stories, in rows adding up to 12 km of frontage; a center beside a 12-acre park with courts; 33 sub-level entries shared by about 62 homes each; 1.1 km of bike lane; and underneath, 3.7 km of walkway, 6.1 km of goods pipe and the mover stop. The ring is eight 25-story buildings around a 6.5-acre plaza, 272 m across. Proposed and not yet agreed: a plan you zoom into on the same map, with a switch between the surface and the sub level.
 2. **The site's outline.** *Done 2026-10-13 (`docs/work/archive/rectangular-site-outline/plan.md`, ADR-0006): the site is a rectangle of 115 hexagonal tiles holding the sketch's 91, drawn as one plain outline with fainter tile lines.* The hexagon of hexagons reads as Catan. A plain rectangular site and fainter tile lines would remove that. The hexagons themselves are sound: evenly spaced centers, each home going to its nearest, give hexagonal catchments.
-3. **Money.**
+3. **Money.** *In progress 2026-10-13: ADR-0007 made cost a derived ledger consequence (`docs/work/money/plan.md`, Phase 1); the brainstorm in `money.md` set the scope to everything in six layers, added lines 24 to 28, and sourced the unit costs.*
 
 ## Open Questions
 
@@ -245,5 +253,5 @@ Still unknown:
 - How fire and ambulance crews work with no vehicles on the surface.
 - People who cannot manage the walk to a stop.
 - Trips that leave the city, and the edge where the movers meet the outside world.
-- What any of it costs.
+- What any of it costs. *Being worked out: `money.md`, ADR-0007.*
 - A second ring, for a city past the ceiling.

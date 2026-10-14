@@ -26,10 +26,14 @@
 | Kind of trip | One destination's trips: its share of all trips, its spread of lengths, its walking limit, and the walks a ride of it needs. | Mine |
 | Long walk | The 30-minute walk to school or work. | Yours (line 16) |
 | Ceiling | People the city holds before the rim is past the long walk from the one middle. | Mine |
-| Unit cost | What one of something costs: a square meter of floor, a kilometer of line, a mover, a porter for a year. A premise, every one a placeholder (ADR-0007). | Mine |
-| Cost row | One unit cost times one ledger count. A column carries only the rows it has something of. | Mine |
-| Capital | What the city costs to build: every row of what stands, totalled, per city and per person. | Mine |
-| Running cost | What the city costs for a year: upkeep as a share of what was built, vehicle-kilometers, vehicles worn out, goods runs and porters. | Mine |
+| Unit cost | What one of something costs: a square meter of floor, a kilometer of track, a mover, a pupil for a year. A premise with a mark (ADR-0007). | Mine |
+| Mark | Whose figure a premise is: **Yours**, **Sourced** (with its source and year) or **Mine**. Line 26. Every premise has one; the Board shows it. | Yours (line 26) |
+| Cost row | One unit cost times one ledger count, in one layer. A column carries only the rows it has something of. | Mine |
+| Layer | One of six: **groundworks**, **buildings** and **fleet** to build; **upkeep**, **civic services** and **households** to run. Line 25. Each is a total; the whole is the sum. | Yours (line 25) |
+| Capital | The three built layers, totalled, per city and per person. | Mine |
+| Running cost | The three yearly layers, totalled, per city and per person. | Mine |
+| Land | The city's area at the land price. Its own line, outside the six layers. | Yours (line 25) |
+| Financing | The groundworks and buildings paid off level over a term at a rate. The yearly cost of the homes appears here and nowhere else (line 28). | Yours (lines 25, 28) |
 
 ## The two columns
 
@@ -55,7 +59,7 @@ The car city is a comparison column and nothing more. There is no car city in th
 7. **Goods.** Runs for goods; the dumbwaiters, the pipe, totes and porters.
 8. **Paths and lanes.** Bike lanes and the speed at which a bike is under the harm line.
 9. **Stretch.** How far children can grow before a school is full, how far people can fall before a need runs short, how far the ring can fill, and the ceiling.
-10. **Cost.** What the nine steps counted, priced: floor by the square meter (low rise, and the ring's high rise), streets, the ground where vehicles wait, parks, the vehicles themselves, and in your city the walkway, the mover line, the stops, the entries, the pipe, the dumbwaiters and the lanes. Then a year's running cost. Both columns through one function (ADR-0007). Plants are not ledger counts; their unit costs live here and the Site prices the ones that stand.
+10. **Cost.** What the nine steps counted, priced in six layers (ADR-0007). To build: groundworks (streets, the ground where vehicles wait, parks; in your city the sub level as built floor with its track, stops, entries and pipe, and the lanes), buildings (floor by the square meter, low rise and the ring's high rise; dumbwaiters) and fleet (cars or movers). To run each year: upkeep (2% of groundworks and buildings), civic services (pupils, police, fire, health and library per person, electricity from the grid or the city's reactors, water, sewage, waste, goods runs, porters) and households (vehicle-kilometers and vehicles worn out). Then the Land and Financing lines. Both columns through one function. Plants are not ledger counts; their unit costs live here and the Site prices the ones that stand. The sub level is built floor, not tunnel.
 
 ## Rules worth knowing
 
@@ -64,8 +68,9 @@ The car city is a comparison column and nothing more. There is no car city in th
 - A ride shorter than the walk to a stop has nothing to ride: whoever wanted one goes on foot and is counted as having no ride.
 - Ties for the need nearest running short go to the need that wants more people.
 - The band is clamped to 0.95; a band of 0 or less is none.
-- Money adds rows and moves nothing: every figure of the nine steps is the same with or without a unit cost, and the parity suite compares the old rows only. Floor is priced once; needs and schools are inside it and are not priced again by count.
+- Money adds rows and moves nothing: every figure of the nine steps is the same with or without a unit cost, and the parity suite compares the old rows only. Floor is priced once; needs and schools are inside it and are not priced again by count. Housing is paid for once: no rent row, the Financing line carries the homes' yearly cost.
+- The ledger's car city drives about 2,400 km a car a year, a tenth of AAA's 15,000 miles, because every trip is inside a city a 10-minute drive across. Its per-car cost is a third of AAA's for that reason, and the vouching test allows it.
 
 ## Acceptance
 
-Revision 3 for 50,000 people is the oracle (`docs/work/archive/port-city-builder/sketch/ledger/copied.txt`). Among its figures: 2,110 against 13,249 people per km²; 10 centers of 5,000; 9 elementary schools of 400, 3 middle of 600, 2 high of 1,200; 8 ring buildings 272 m across; 76.4% of trips on foot; 159 movers against 42,000 cars; 45 km of sub level; a ceiling of 166,492 people. `domain/ledger/test/published.test.ts` asserts them; `parity.test.ts` asserts every figure of 19 recorded cases against the sketch's model. `cost.test.ts` asserts that every cost row is its count times its unit, that the floor is priced once, that a changed placeholder moves only its rows, and that the nine steps' figures do not move; at the placeholders the published city costs about 248 against 247 thousand dollars a person to build and about 5,900 against 3,200 a year to run.
+Revision 3 for 50,000 people is the oracle (`docs/work/archive/port-city-builder/sketch/ledger/copied.txt`). Among its figures: 2,110 against 13,249 people per km²; 10 centers of 5,000; 9 elementary schools of 400, 3 middle of 600, 2 high of 1,200; 8 ring buildings 272 m across; 76.4% of trips on foot; 159 movers against 42,000 cars; 45 km of sub level; a ceiling of 166,492 people. `domain/ledger/test/published.test.ts` asserts them; `parity.test.ts` asserts every figure of 19 recorded cases against the sketch's model. `cost.test.ts` asserts that every cost row is its count times its premise in one of six layers, that every premise carries a mark, that the floor is priced once, that a changed premise moves only its rows, that the nine steps' figures do not move, and, loosely, that the car column lands near what America pays. At the premises of 2026-10-13 (`docs/brainstorm/future-city/money.md`) the published city costs about 255 against 210 thousand dollars a person to build, about 14,900 against 10,400 a year to run, and about 12,900 against 12,600 a year to finance.
