@@ -55,7 +55,7 @@
 - **Exit state**: `pnpm -r test` and `pnpm -r typecheck` green; Site parity and Run scenarios at 0 differences; cost facts by layer and mark available to the Board.
 - **Demonstration**: Run `pnpm -r test` and show Site and Run parity unchanged and the new cost scenarios passing; print a seeded run's yearly spend by layer and the twenty-year total.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: CURRENT (since 2026-10-13)
 
 ### Phase 4: The Board shows the cost rows beside the other rows
 - **Tier**: Medium
