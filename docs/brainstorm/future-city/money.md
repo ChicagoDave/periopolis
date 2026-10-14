@@ -314,6 +314,19 @@ The car column is checked against what America pays, the way the ledger's densit
 - **Getting around.** AAA's 11,577 a vehicle a year times 42,000 cars is 486 M, about 9,700 a person. The car column's running rows for vehicles (per km, renewal, insurance) should land near it.
 - **Civic.** Local direct spending less schools is about 5,000 to 7,000 a person a year (Urban Institute 2021, all levels 11,087). The civic layer's sum in the car column should land in that band.
 
+### Rerun at the accepted premises, 2026-10-14
+
+Phase 4 of `docs/work/accept-money-premises/plan.md`. The car column, a person, at the premises David accepted:
+
+| Check | America | Car column | Reading |
+|---|---|---|---|
+| Stock of structures (groundworks and buildings) | 200,000 to 250,000 | 221,525 | Inside |
+| Pupils among the people | about 16% | 15.6% | Matches |
+| A car's year: driving, renewal, insurance | 11,577 (AAA) | 4,860 | 42%. The ledger's cars drive about 2,444 km a year against AAA's 15,000 miles, and a car is renewed over 17 years, not depreciated over AAA's first five. Inside the test's loose band (30% to 120%), not near AAA |
+| Civic less schools | 5,000 to 7,000 | 4,331 | **Under.** The civic layer counts police, fire, health, libraries, the utilities and goods; local spending also carries general government, welfare, highways and parks operations, corrections and more, which the ledger does not count. The whole civic layer, 6,909, is inside the test's band (40% to 120% of 11,087) |
+
+The shortfall in civic is in both columns alike: what the ledger does not count, it does not count for either city. It is recorded here, not tuned away; a fuller civic layer would add the missing services as rows with their own premises.
+
 ## Lines
 
 Yours (2026-10-13), taken as drafted and recorded in `overview.md`:
