@@ -1,5 +1,6 @@
 /**
- * @file The board: tiles, the 30-minute circles, the mover line, what stands on each tile, and the labels.
+ * @file The board: tiles, the 30-minute circles, the mover line, what stands on each tile, and the labels. When the
+ * session looks at one tile, the ground module draws that tile instead and the map waits.
  * Public interface: drawBoard, describe, tileAtPixels.
  * Owner context: Board (adapter).
  */
@@ -9,6 +10,7 @@ import { byId, svg } from '../dom.ts';
 import { fmt, years } from '../format.ts';
 import type { Page } from '../page.ts';
 import { SITE_NAME } from '../wording.ts';
+import { drawGround, drawViewBar } from './ground.ts';
 
 const SIZE = 30;
 const W3 = Math.sqrt(3);
@@ -58,6 +60,11 @@ export function describe(page: Page, k: TileKey): string {
 /** Draw the board from the ground up. Only the tiles take clicks, so nothing drawn above them gets in the way. */
 export function drawBoard(page: Page): void {
   const { s } = page;
+  drawViewBar(page);
+  if (s.view.at === 'tile') {
+    drawGround(page);
+    return;
+  }
   const board = byId('board');
   const hadFocus = board.contains(document.activeElement);
   board.setAttribute('viewBox', [-HALF_W, -HALF_H, 2 * HALF_W, 2 * HALF_H].map((v) => v.toFixed(0)).join(' '));

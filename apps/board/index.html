@@ -142,6 +142,26 @@ p { margin: 0; }
 #board text.shutsoon { fill: var(--ink); font: 800 8px var(--display); }
 .scalebar { stroke: var(--ink); stroke-width: 1.4; fill: none; }
 #board text.scaletext { font: 400 7.5px var(--data); fill: var(--ink-2); }
+/* A tile's ground, one unit one metre. */
+.viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.viewbar .levels { margin-left: auto; display: inline-flex; gap: 4px; }
+.viewbar .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.g-tile { fill: var(--ground); stroke: var(--rule); stroke-width: 2; }
+.g-row { fill: var(--hood-edge); stroke: none; }
+.g-center { fill: var(--sign); stroke: var(--sign); stroke-width: 1.5; }
+.g-park { fill: var(--hood); stroke: var(--hood-edge); stroke-width: 1.5; }
+.g-plaza { fill: var(--sheet); stroke: var(--rule); stroke-width: 1.5; }
+.g-center.ghost, .g-park.ghost, .g-plaza.ghost { fill: none; stroke-dasharray: 6 6; }
+.g-lane { stroke: var(--new); stroke-width: 6; stroke-linecap: round; }
+.g-bldg { fill: var(--sign); stroke: var(--paper); stroke-width: 1.5; }
+.g-pipe { stroke: var(--flag); stroke-width: 3; stroke-linecap: round; }
+.g-walkway { stroke: var(--ink-2); stroke-width: 4; stroke-linecap: round; }
+.g-entry { fill: var(--sheet); stroke: var(--ink); stroke-width: 2; }
+.g-stop { fill: var(--sheet); stroke: var(--ink); stroke-width: 3; }
+#board text.g-head { font: 800 15px var(--display); }
+#board text.g-legend { font: 400 11px var(--data); fill: var(--ink-2); }
+#board text.g-name { font: 600 12px var(--display); }
+#board text.g-note { font: 400 9.5px var(--data); fill: var(--ink-2); }
 
 /* the rule book */
 .side { grid-area: side; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
@@ -251,6 +271,14 @@ p { margin: 0; }
       <div class="banner" id="banner" hidden>
         <span id="bannertext"></span>
         <button class="btn small" id="today" type="button">Back to today</button>
+      </div>
+      <div class="viewbar" id="viewbar" hidden>
+        <button class="btn small" id="back" type="button">Back to the map</button>
+        <span id="viewtext"></span>
+        <span class="levels" role="group" aria-label="Level">
+          <button class="btn small" id="level-surface" type="button" aria-pressed="true">Surface</button>
+          <button class="btn small" id="level-sub" type="button" aria-pressed="false">Sub level</button>
+        </span>
       </div>
       <div class="boardscroll" id="boardscroll">
         <svg id="board" role="group" aria-label="The site. Each hexagon is the ground of one neighborhood." xmlns="http://www.w3.org/2000/svg"></svg>

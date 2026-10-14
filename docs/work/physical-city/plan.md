@@ -50,8 +50,8 @@
 - **Deliverable**: Clicking a tile with the inspect action (or a zoom control) shows that tile's plan, scale bar and layer legend in SVG; a surface/sub switch; a back control to the tile map, which is unchanged. A Homes tile shows the neighborhood plan, a Ring tile the ring plan, other tiles show no plan. View state kept in the session and not saved with the city. No rules in the Board; no regular expressions; headers on every file.
 - **Exit state**: Board builds to one page; session unit tests cover the view state; the tile map renders as before.
 - **Demonstration**: `pnpm --filter @city/board build` then open the page in the browser: zoom into the opening city's neighborhood and the ring, flip the level, return; confirm by eye the counts drawn match Ground (rows, 33 entries).
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-13 — `pnpm --filter @city/board build` emits dist/index.html; driven in headless Chromium: inspect tile 1,0 → Look closer shows the neighborhood's surface (47 `.g-row` rects whose data-homes sum to 2,041, the park, the center, three lane edges), Sub level shows 33 `.g-entry`, 32 `.g-walkway`, 24 `.g-pipe` and the stop, Back to the map restores 91 `.tile`s and the tally "14 of 15 hold, 1 to watch"; the ring tile shows 8 `.g-bldg` squares facing a 6.5-acre plaza; the status line carries the plan caption; no page errors. Screenshots checked by eye: rows clear the park and center by half a row, pipes stay inside the tile, the note wraps. `pnpm -r test`: ledger 41, site 72, ground 27, run 123, board 101 (4 new view tests); `pnpm -r typecheck` clean. [reported by session, unverified]
+- **Status**: DONE
 
 ### Phase 4: Browser flow, documentation and close-out
 - **Tier**: Small

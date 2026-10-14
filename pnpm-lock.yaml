@@ -17,6 +17,9 @@ importers:
 
   apps/board:
     dependencies:
+      '@city/ground':
+        specifier: workspace:*
+        version: link:../../domain/ground
       '@city/ledger':
         specifier: workspace:*
         version: link:../../domain/ledger

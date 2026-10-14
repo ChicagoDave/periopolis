@@ -1,10 +1,12 @@
 /**
  * @file Every sentence the page shows, worded from the domain's typed facts and events (ADR-0004). Nothing else in the
  * Board builds a sentence from rule state. The sketch's sentences are the oracle; test/wording.test.ts holds them to it.
- * Public interface: SITE_NAME, PIECE_NAME, PIECE_MANY, STATUS, linesLabel, checkTitle, checkDetail, issueText, testLabel,
- * moveSaid, orderSaid, noticeText, openedSentence.
+ * Public interface: SITE_NAME, PIECE_NAME, PIECE_MANY, STATUS, LEVEL_NAME, PLACEHOLDER_TEXT, linesLabel, checkTitle,
+ * checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText, openedSentence, planCaption, layerLines,
+ * placeholderNote.
  * Owner context: Board (adapter).
  */
+import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
 import type { ExtraKind, Facts, LineCheck, Outcome, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
 import type { Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
 import { cap, count, list, num, years } from './format.ts';
@@ -51,6 +53,21 @@ export const PIECE_MANY: Readonly<Record<PieceKind, string>> = {
   water: 'water plant units',
   sewage: 'sewage plant units',
   waste: 'waste works units',
+};
+
+/** The two levels of a tile's ground, named. */
+export const LEVEL_NAME: Readonly<Record<Level, string>> = { surface: 'Surface', sub: 'Sub level' };
+
+/** Each placement the Ground chose because the ledger does not fix it, named. */
+export const PLACEHOLDER_TEXT: Readonly<Record<Placeholder, string>> = {
+  'row-pitch': 'the space between rows',
+  'row-positions': 'where the rows sit',
+  'center-size': 'the size of the center',
+  'park-position': 'where the park sits',
+  'lane-edges': 'which edges carry the bike lane',
+  'entry-positions': 'where the entries sit',
+  'pipe-positions': 'where the pipe runs',
+  'building-angles': 'where round the plaza the first building stands',
 };
 
 /** A check's status, as a chip. */
@@ -345,3 +362,38 @@ export function openedSentence(bag: Readonly<Partial<Record<PieceKind, number>>>
 }
 
 export { isSchool };
+
+/** A tile's ground in one sentence: what the ledger fixed, as the plan laid it out. */
+export function planCaption(plan: GroundPlan): string {
+  if (plan.kind === 'ring') {
+    const f = plan.figures;
+    return `The ring: ${count(f.buildings, 'building', 'buildings')} of ${num(f.stories)} stories, ${num(f.acrossM)} m across, round a ${num(f.plazaM2 / 4046.86, 1)}-acre plaza${f.fitsFrame ? '' : ', wider than its tile'}. Below, the stop.`;
+  }
+  const f = plan.figures;
+  return `One neighborhood: ${count(f.homes, 'townhouse', 'townhouses')} of ${num(f.stories)} stories in ${count(f.rows, 'row', 'rows')}, ${num(f.frontageM / 1000, 1)} km of frontage; the center, a ${num(f.parkM2 / 4046.86)}-acre park, ${num(f.laneM / 1000, 1)} km of bike lane. Below, ${count(f.entries, 'entry', 'entries')} of about ${num(f.homesPerEntry)} homes, ${num(f.walkwayM / 1000, 1)} km of walkway, ${num(f.pipeM / 1000, 1)} km of goods pipe, and the stop.`;
+}
+
+/** What one level holds, one line per kind of thing, for the legend. */
+export function layerLines(layer: Layer, plan: GroundPlan): string[] {
+  if (layer.of === 'ring') {
+    if (layer.level === 'surface') return [`${count(layer.buildings.length, 'building', 'buildings')} of ${num(plan.figures.stories)} stories`, 'the plaza'];
+    return [`the stop, ${count(layer.stop.berths, 'berth', 'berths')}`];
+  }
+  if (layer.level === 'surface') {
+    const homes = layer.rows.reduce((n, r) => n + r.homes, 0);
+    return [`${count(homes, 'townhouse', 'townhouses')} in ${count(layer.rows.length, 'row', 'rows')}`, 'the center', `the park, ${num(layer.park.areaM2 / 4046.86)} acres`, `bike lane, ${num(layer.lane.reduce((m, e) => m + e.m, 0) / 1000, 1)} km`];
+  }
+  const walkway = layer.entries.reduce((m, e) => m + (e.walkway ? e.walkway.m : 0), 0);
+  const served = layer.entries.reduce((n, e) => n + e.homes, 0);
+  return [
+    `${count(layer.entries.length, 'entry', 'entries')}, about ${num(served / layer.entries.length)} homes each`,
+    `walkway, ${num(walkway / 1000, 1)} km`,
+    `goods pipe, ${num(layer.pipes.reduce((m, p) => m + p.m, 0) / 1000, 1)} km`,
+    `the stop, ${count(layer.stop.berths, 'berth', 'berths')}`,
+  ];
+}
+
+/** The placements the ledger did not fix, as one line. */
+export function placeholderNote(plan: GroundPlan): string {
+  return `Placed to draw, not fixed by the ledger: ${list(plan.placeholders.map((p) => PLACEHOLDER_TEXT[p]))}.`;
+}

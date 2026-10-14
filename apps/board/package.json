@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@city/ground": "workspace:*",
     "@city/ledger": "workspace:*",
     "@city/run": "workspace:*",
     "@city/site": "workspace:*"

@@ -18,8 +18,8 @@ function km(m: number, decimals = 1): number {
   return Math.round((m / 1000) * scale) / scale;
 }
 
-function clearOf(p: Point, d: Disc): boolean {
-  return Math.hypot(p.x - d.at.x, p.y - d.at.y) >= d.radiusM - 1e-9;
+function clearOf(p: Point, d: Disc, by: number): boolean {
+  return Math.hypot(p.x - d.at.x, p.y - d.at.y) >= d.radiusM + by - 1e-9;
 }
 
 describe('the sums reconcile with the ledger', () => {
@@ -54,7 +54,7 @@ describe('the sums reconcile with the ledger', () => {
 });
 
 describe('the shapes add up to the figures and sit where they may', () => {
-  it('the rows hold every home, in whole homes, at one pitch, inside the tile and clear of the center and park', () => {
+  it('the rows hold every home, in whole homes, at one pitch, inside the tile and half a row clear of the center and park', () => {
     const { rows, center, park } = plan.surface;
     expect(rows.reduce((n, r) => n + r.homes, 0)).toBe(plan.figures.homes);
     expect(rows.reduce((m, r) => m + r.frontageM, 0)).toBeCloseTo(plan.figures.frontageM, 6);
@@ -65,11 +65,16 @@ describe('the shapes add up to the figures and sit where they may', () => {
       expect(insideFrame(plan.frame, { x: r.x1, y: r.y })).toBe(true);
       for (let i = 0; i <= r.homes; i++) {
         const p = { x: r.x0 + i * WALKING_CITY.frontage, y: r.y };
-        expect(clearOf(p, center) && clearOf(p, park)).toBe(true);
+        expect(clearOf(p, center, plan.figures.rowDepthM / 2) && clearOf(p, park, plan.figures.rowDepthM / 2)).toBe(true);
       }
     }
     const ys = [...new Set(rows.map((r) => r.y))].sort((a, b) => a - b);
-    for (let i = 1; i < ys.length; i++) expect((ys[i] as number) - (ys[i - 1] as number)).toBeCloseTo(plan.figures.rowPitchM, 6);
+    // Rows sit on one pitch; a level too narrow for a whole home is skipped, so neighbors may be several pitches apart.
+    for (let i = 1; i < ys.length; i++) {
+      const steps = ((ys[i] as number) - (ys[i - 1] as number)) / plan.figures.rowPitchM;
+      expect(Math.abs(steps - Math.round(steps))).toBeLessThan(1e-6);
+      expect(Math.round(steps)).toBeGreaterThanOrEqual(1);
+    }
     // The pitch is a placeholder: a quarter-metre step at or below the ledger's ground per home over one front.
     const ledgerPitch = ((ledger.footprint + ledger.yards + ledger.streets) * SHARED.hh) / WALKING_CITY.frontage;
     expect(plan.figures.rowPitchM).toBeLessThanOrEqual(ledgerPitch);
@@ -122,6 +127,7 @@ describe('the shapes add up to the figures and sit where they may', () => {
       const pair = plan.surface.rows.slice(i * 2, i * 2 + 2);
       expect(p.m).toBeCloseTo(pair.reduce((m, r) => m + r.frontageM, 0) / 2, 6);
       expect(p.from.y).toBe(p.to.y);
+      expect(insideFrame(plan.frame, p.from) && insideFrame(plan.frame, p.to)).toBe(true);
     });
   });
   it('names every placement the ledger leaves open, and nothing it fixes', () => {

@@ -8,7 +8,8 @@ import type { ExtraKind, TileKey } from '@city/site';
 import { button, byId, el } from '../dom.ts';
 import { fmt, years } from '../format.ts';
 import type { Page } from '../page.ts';
-import { SITE_NAME, issueText } from '../wording.ts';
+import { SITE_NAME, issueText, planCaption } from '../wording.ts';
+import { planAt } from './ground.ts';
 import { TOOLS, toolCalled } from './tray.ts';
 
 const SITE_LABEL: Readonly<Record<string, string>> = { hood: 'Homes', ring: 'Ring', power: 'Power', water: 'Water', sewage: 'Sewage', waste: 'Waste' };
@@ -65,6 +66,22 @@ export function drawInspector(page: Page): void {
     return;
   }
   box.append(el('h2', '', SITE_NAME[t.kind]));
+  if (t.kind === 'hood' || t.kind === 'ring') {
+    const looking = s.view.at === 'tile' && s.view.key === picked;
+    const look = button(looking ? 'Back to the map' : 'Look closer', () => {
+      if (looking) {
+        s.lookAway();
+        page.say('The map.');
+      } else if (s.look(picked)) {
+        const plan = planAt(page, picked);
+        page.say(plan ? planCaption(plan) : '');
+      }
+      page.render();
+    });
+    look.id = 'look';
+    look.setAttribute('aria-pressed', String(looking));
+    box.append(look);
+  }
   if (t.kind === 'hood') {
     const rows: (readonly [string, string, boolean?])[] = [['People', fmt(s.ev.pop1)]];
     const ring = info?.ring;

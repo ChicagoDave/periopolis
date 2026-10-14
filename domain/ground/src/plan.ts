@@ -114,6 +114,8 @@ export interface NeighborhoodFigures {
   readonly farthestEntryWalkMin: number;
   /** The space between rows, metres. */
   readonly rowPitchM: number;
+  /** How deep a row is, metres; rows keep half of it clear of the center and the park. */
+  readonly rowDepthM: number;
 }
 
 /** The ground of one neighborhood. */

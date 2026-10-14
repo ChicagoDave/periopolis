@@ -160,6 +160,17 @@ function start(data: { game?: unknown }): void {
     s.showing = null;
     page.swap({ layout: emptyLayout(), clock: null }, `The site is clear${running ? ', and the clock is stopped' : ''}. Undo brings the city back.`);
   });
+  byId('back').addEventListener('click', () => {
+    s.lookAway();
+    page.say('The map.');
+    page.render();
+  });
+  for (const level of ['surface', 'sub'] as const) {
+    byId(`level-${level}`).addEventListener('click', () => {
+      s.showLevel(level);
+      page.render();
+    });
+  }
   byId('today').addEventListener('click', () => {
     s.showing = null;
     page.say('Back to today.');

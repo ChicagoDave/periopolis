@@ -46,6 +46,8 @@ const DIRECTIONS: readonly (readonly [number, number])[] = [
 const LEAST_PITCH_M = 8;
 /** The search tries pitches this far apart, metres. */
 const PITCH_STEP_M = 0.25;
+/** How deep a row of townhouses is, metres, so rows keep that much clear of the center and the park. */
+const ROW_DEPTH_M = 12;
 /** Middle of the center to its edge, metres. The Ledger does not size the center: a placeholder. */
 const CENTER_RADIUS_M = 80;
 /** Open ground between the center and the park, metres. A placeholder. */
@@ -69,15 +71,16 @@ function disc(at: Point, areaM2: number): Disc {
   return { at, radiusM: Math.sqrt(areaM2 / Math.PI), areaM2 };
 }
 
-/** The stretches of the line y that lie on the frame and clear the discs, west to east. */
+/** The stretches of the line y that lie on the frame and keep half a row's depth clear of the discs, west to east. */
 function openSpans(frame: Frame, y: number, discs: readonly Disc[]): (readonly [number, number])[] {
   const w = halfWidthAt(frame, y);
   if (w <= 0) return [];
   let spans: (readonly [number, number])[] = [[-w, w]];
   for (const d of discs) {
     const dy = y - d.at.y;
-    if (Math.abs(dy) >= d.radiusM) continue;
-    const dx = Math.sqrt(d.radiusM * d.radiusM - dy * dy);
+    const reach = d.radiusM + ROW_DEPTH_M / 2;
+    if (Math.abs(dy) >= reach) continue;
+    const dx = Math.sqrt(reach * reach - dy * dy);
     const next: (readonly [number, number])[] = [];
     for (const [a, b] of spans) {
       if (d.at.x - dx > a) next.push([a, Math.min(b, d.at.x - dx)]);
@@ -193,7 +196,7 @@ function placeEntries(
   return { entries, walkMins };
 }
 
-/** The goods pipe: one length under each pair of rows, as long as the two rows' fronts together, halved. */
+/** The goods pipe: one length under each pair of rows, as long as the two rows' fronts together, halved, centered on them. */
 function layPipes(rows: readonly Row[], rowsPerPipe: number): Segment[] {
   const pipes: Segment[] = [];
   const per = Math.max(1, Math.round(rowsPerPipe));
@@ -201,15 +204,16 @@ function layPipes(rows: readonly Row[], rowsPerPipe: number): Segment[] {
     const group = rows.slice(i, i + per);
     let frontage = 0;
     let y = 0;
-    let x0 = Infinity;
+    let mid = 0;
     for (const r of group) {
       frontage += r.frontageM;
       y += r.y;
-      x0 = Math.min(x0, r.x0);
+      mid += (r.x0 + r.x1) / 2;
     }
     const m = frontage / per;
     y /= group.length;
-    pipes.push(segment({ x: x0, y }, { x: x0 + m, y }));
+    mid /= group.length;
+    pipes.push(segment({ x: mid - m / 2, y }, { x: mid + m / 2, y }));
   }
   return pipes;
 }
@@ -284,6 +288,7 @@ export function planNeighborhood(s: SharedPremises, c: WalkingCityPremises, l: W
       pipeM,
       farthestEntryWalkMin: walkMins.reduce((a, b) => Math.max(a, b), 0),
       rowPitchM: pitchM,
+      rowDepthM: ROW_DEPTH_M,
     },
     surface: { of: 'neighborhood', level: 'surface', rows, center, park, lane },
     sub: { of: 'neighborhood', level: 'sub', stop: { at: { x: 0, y: 0 }, berths: l.berths }, entries, pipes },

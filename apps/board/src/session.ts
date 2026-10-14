@@ -1,9 +1,11 @@
 /**
- * @file The page's session: the game, the tool in hand, the tile picked, the line cursor, the stretch test shown, and
- * the history undo keeps. Replaced, never changed in place.
- * Public interface: Session, newSession.
+ * @file The page's session: the game, the tool in hand, the tile picked, the line cursor, the stretch test shown, the
+ * view (the map, or one tile's ground at a level), and the history undo keeps. Replaced, never changed in place.
+ * The view is the page's alone: it is never saved with the city.
+ * Public interface: Session, View, newSession.
  * Owner context: Board (adapter).
  */
+import type { Level } from '@city/ground';
 import { RULES, inHand, notices, stressAt } from '@city/run';
 import type { Game, Notice, WorkInHand } from '@city/run';
 import { RATES, assess } from '@city/site';
@@ -11,9 +13,20 @@ import type { Assessment, TestId, TileKey } from '@city/site';
 import type { GameStore } from './storage.ts';
 import type { ToolId } from './wording.ts';
 
+/** What the board shows: the whole map, or the ground of one tile at one level. */
+export type View = { readonly at: 'map' } | { readonly at: 'tile'; readonly key: TileKey; readonly level: Level };
+
+/** Whether a tile has ground to look at: a neighborhood or a ring. */
+function hasGround(game: Game, key: TileKey): boolean {
+  const t = game.layout.tiles[key];
+  return t !== undefined && (t.kind === 'hood' || t.kind === 'ring');
+}
+
 /** Everything the page shows is drawn from this. */
 export interface Session {
   game: Game;
+  /** The map, or one tile's ground. Never saved. */
+  view: View;
   tool: ToolId;
   picked: TileKey | null;
   lineFrom: TileKey | null;
@@ -34,12 +47,19 @@ export interface Session {
   save(): void;
   /** Take the game back one step; false when there is nothing to undo. */
   undo(): boolean;
+  /** Look at a tile's ground on the surface; false when the tile has no ground (open, a plant, a site). */
+  look(key: TileKey): boolean;
+  /** Back to the map. */
+  lookAway(): void;
+  /** Show the other level of the tile being looked at; nothing happens on the map. */
+  showLevel(level: Level): void;
 }
 
 /** A session on a game. */
 export function newSession(game: Game, store: GameStore): Session {
   const s: Session = {
     game,
+    view: { at: 'map' },
     tool: 'inspect',
     picked: null,
     lineFrom: null,
@@ -52,6 +72,8 @@ export function newSession(game: Game, store: GameStore): Session {
     news: [],
     store,
     refresh() {
+      // A tile looked at that has lost its ground (erased, undone, the site cleared) sends the view back to the map.
+      if (s.view.at === 'tile' && !hasGround(s.game, s.view.key)) s.view = { at: 'map' };
       const clock = s.game.clock;
       s.hand = inHand(s.game.layout, clock ? clock.jobs : null, RULES);
       s.news = clock ? notices(clock, RATES.band, RULES) : [];
@@ -77,6 +99,17 @@ export function newSession(game: Game, store: GameStore): Session {
       s.lineFrom = null;
       s.save();
       return true;
+    },
+    look(key) {
+      if (!hasGround(s.game, key)) return false;
+      s.view = { at: 'tile', key, level: 'surface' };
+      return true;
+    },
+    lookAway() {
+      s.view = { at: 'map' };
+    },
+    showLevel(level) {
+      if (s.view.at === 'tile') s.view = { ...s.view, level };
     },
   };
   return s;

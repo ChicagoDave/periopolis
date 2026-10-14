@@ -1,5 +1,6 @@
 /**
- * @file The session and the storage adapter: what is saved, what undo brings back, and what a bad save becomes.
+ * @file The session and the storage adapter: what is saved, what undo brings back, what a bad save becomes, and the
+ * view: the map or one tile's ground, never saved, back to the map when the ground goes.
  * Owner context: Board (adapter), tests.
  */
 import { describe, expect, it } from 'vitest';
@@ -88,5 +89,64 @@ describe('the session', () => {
     const s = newSession({ layout: starterLayout(), clock: null }, broken);
     expect(() => s.remember()).not.toThrow();
     expect(placed().ok).toBe(true);
+  });
+});
+
+describe('the view', () => {
+  it('opens on the map, looks at a neighborhood or a ring on the surface, and refuses ground that has none', () => {
+    const s = newSession({ layout: starterLayout(), clock: null }, memoryStore());
+    expect(s.view).toEqual({ at: 'map' });
+    expect(s.look('1,0')).toBe(true);
+    expect(s.view).toEqual({ at: 'tile', key: '1,0', level: 'surface' });
+    expect(s.look('0,0')).toBe(true);
+    expect(s.view).toEqual({ at: 'tile', key: '0,0', level: 'surface' });
+    expect(s.look('4,0')).toBe(false);
+    expect(s.view).toEqual({ at: 'tile', key: '0,0', level: 'surface' });
+    const plant = Object.keys(starterLayout().tiles).find((k) => starterLayout().tiles[k]?.kind === 'power') as string;
+    expect(s.look(plant)).toBe(false);
+    expect(s.view).toEqual({ at: 'tile', key: '0,0', level: 'surface' });
+  });
+
+  it('switches level only while looking at a tile, and comes back to the map', () => {
+    const s = newSession({ layout: starterLayout(), clock: null }, memoryStore());
+    s.showLevel('sub');
+    expect(s.view).toEqual({ at: 'map' });
+    s.look('1,0');
+    s.showLevel('sub');
+    expect(s.view).toEqual({ at: 'tile', key: '1,0', level: 'sub' });
+    s.showLevel('surface');
+    expect(s.view).toEqual({ at: 'tile', key: '1,0', level: 'surface' });
+    s.lookAway();
+    expect(s.view).toEqual({ at: 'map' });
+  });
+
+  it('is never saved with the city', () => {
+    const store = memoryStore();
+    const s = newSession({ layout: starterLayout(), clock: null }, store);
+    s.look('1,0');
+    s.showLevel('sub');
+    s.save();
+    expect(store.load()).toEqual({ tiles: starterLayout().tiles, lines: starterLayout().lines, clock: null });
+    const again = newSession(restoreGame(store.load()) as { layout: ReturnType<typeof starterLayout>; clock: null }, store);
+    expect(again.view).toEqual({ at: 'map' });
+  });
+
+  it('returns to the map when the tile looked at loses its ground, and stays while it keeps it', () => {
+    const s = newSession({ layout: starterLayout(), clock: null }, memoryStore());
+    s.look('1,0');
+    s.showLevel('sub');
+    s.remember();
+    s.game = move(s.game, 'elementary', '1,0', null).game;
+    s.refresh();
+    expect(s.view).toEqual({ at: 'tile', key: '1,0', level: 'sub' });
+    s.remember();
+    s.game = move(s.game, 'erase', '1,0', null).game;
+    expect(s.game.layout.tiles['1,0']).toBeUndefined();
+    s.refresh();
+    expect(s.view).toEqual({ at: 'map' });
+    s.undo();
+    s.refresh();
+    expect(s.game.layout.tiles['1,0']?.kind).toBe('hood');
+    expect(s.view).toEqual({ at: 'map' });
   });
 });
