@@ -96,7 +96,8 @@ p { margin: 0; }
 /* the board */
 #board text { font-family: var(--display); fill: var(--ink); }
 .tile { cursor: pointer; outline: none; }
-.hex { fill: var(--ground); stroke: var(--rule); stroke-width: 1; }
+.outline { fill: var(--ground); stroke: var(--ink-2); stroke-width: 1.4; }
+.hex { fill: var(--ground); stroke: var(--rule); stroke-width: .7; stroke-opacity: .6; }
 .tile.hood .hex { fill: var(--hood); stroke: var(--hood-edge); }
 .tile.ring .hex { fill: var(--sign); stroke: var(--sign); }
 .tile.power .hex, .tile.water .hex, .tile.sewage .hex, .tile.waste .hex { fill: var(--plant); stroke: var(--plant-edge); }
@@ -281,7 +282,7 @@ p { margin: 0; }
         </span>
       </div>
       <div class="boardscroll" id="boardscroll">
-        <svg id="board" role="group" aria-label="The site. Each hexagon is the ground of one neighborhood." xmlns="http://www.w3.org/2000/svg"></svg>
+        <svg id="board" role="group" aria-label="The site. Each tile is the ground of one neighborhood." xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
       <p class="said" id="said" role="status"></p>
       <div class="bar">
@@ -339,7 +340,7 @@ p { margin: 0; }
   <div class="notes">
     <section>
       <h2>What a tile is</h2>
-      <p>One hexagon is the ground of one center: 5,000 people in three-story townhouses on 93 acres, with a bakery, butcher, cafés, library, doctor and park in the middle. The farthest home is a 6-minute walk from it. Neighboring centers are a 10-minute walk apart.</p>
+      <p>One tile is the ground of one center: 5,000 people in three-story townhouses on 93 acres, with a bakery, butcher, cafés, library, doctor and park in the middle. The farthest home is a 6-minute walk from it. Neighboring centers are a 10-minute walk apart.</p>
       <p>Lines 1, 2, 7 to 9, 11 and 12 are not pieces on the board. They are built into every tile the way the ledger worked them out.</p>
     </section>
     <section>

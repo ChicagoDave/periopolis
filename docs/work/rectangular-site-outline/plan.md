@@ -38,8 +38,8 @@
 - **Deliverable**: A drawn rectangular site outline; tile lines at reduced contrast with the outline stronger than the lines; hit-testing and keyboard focus over the new tile set; viewBox fits the rectangle; scale bar moved into a corner that is free; page text no longer calls the site a hexagon. The six Playwright flows updated: tile count 91 becomes the outline's count (asserted at `flows.spec.ts` lines 209 and 224), 14 of 15 lines stays. Board unit tests (wording, session) green.
 - **Exit state**: `pnpm --filter @city/board test:e2e` passes all six flows; `pnpm -r test` green; the built page opens on a rectangle with hexagonal tiles.
 - **Demonstration**: Build the page and screenshot it with the Playwright browser: a rectangular outline, fainter tile lines, the ledger's city in place with 14 of 15 lines; run the six flows and show them passing with the new tile count.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: Built page screenshotted with headless Chromium in light and dark schemes: one plain rectangular outline round 115 hexagonal tiles, tile lines fainter than the outline, the ledger's city in place, scale bar below the outline. `pnpm --filter @city/board test:e2e` 6 passed (flow 6 asserts 115 tiles and one `rect.outline`); `pnpm -r test` 41/80/27/123/101; typecheck clean; build ok.
+- **Status**: DONE
 
 ### Phase 3: Docs and records describe the new figure
 - **Tier**: Small

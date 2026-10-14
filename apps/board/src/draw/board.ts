@@ -16,8 +16,14 @@ const SIZE = 30;
 const W3 = Math.sqrt(3);
 const PX_KM = SIZE / RATES.tileKm;
 const REACH = extent(RATES.outline);
-const HALF_W = W3 * SIZE * (REACH.halfWidth + 0.5) + 12;
-const HALF_H = 1.5 * SIZE * REACH.halfHeight + SIZE + 12;
+/** Half the site's outline, px: the tiles' reach plus the half tile the outermost tiles extend past their middles. */
+const OUT_W = W3 * SIZE * (REACH.halfWidth + 0.5);
+const OUT_H = 1.5 * SIZE * REACH.halfHeight + SIZE;
+const MARGIN = 12;
+/** Room below the outline for the scale and the tile's figures. */
+const FOOTER = 34;
+const HALF_W = OUT_W + MARGIN;
+const HALF_H = OUT_H + MARGIN;
 const LETTER: Readonly<Record<string, string>> = { elementary: 'E', middle: 'M', high: 'H', fields: 'F' };
 const PLANT_LABEL: Readonly<Record<string, string>> = { power: 'Power', water: 'Water', sewage: 'Sewage', waste: 'Waste' };
 const SITE_LABEL: Readonly<Record<string, string>> = { hood: 'Homes', ring: 'Ring', power: 'Power', water: 'Water', sewage: 'Sewage', waste: 'Waste' };
@@ -68,13 +74,15 @@ export function drawBoard(page: Page): void {
   }
   const board = byId('board');
   const hadFocus = board.contains(document.activeElement);
-  board.setAttribute('viewBox', [-HALF_W, -HALF_H, 2 * HALF_W, 2 * HALF_H].map((v) => v.toFixed(0)).join(' '));
+  board.setAttribute('viewBox', [-HALF_W, -HALF_H, 2 * HALF_W, 2 * HALF_H + FOOTER].map((v) => v.toFixed(0)).join(' '));
   board.textContent = '';
   const defs = svg('defs');
   const hatch = svg('pattern', { id: 'hatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
   hatch.append(svg('line', { x1: 0, y1: 0, x2: 0, y2: 6 }, 'hatchline'));
   defs.append(hatch);
   const ground = svg('g');
+  // The site's outline: one plain figure round the tiles (ADR-0006), stronger than the tile lines inside it.
+  ground.append(svg('rect', { x: (-OUT_W).toFixed(1), y: (-OUT_H).toFixed(1), width: (2 * OUT_W).toFixed(1), height: (2 * OUT_H).toFixed(1), rx: 2 }, 'outline'));
   const reach = svg('g', undefined, 'over');
   const lines = svg('g', undefined, 'over');
   const stands = svg('g', undefined, 'over');
@@ -183,10 +191,10 @@ export function drawBoard(page: Page): void {
     const [cx, cy] = tileAtPixels(firstRing);
     top.append(text(cx, (cy - RATES.longKm * PX_KM - 4).toFixed(1), 'reachlabel', '30-minute walk'));
   }
-  // A scale, in the empty corner the hexagon leaves.
+  // A scale, below the outline at its left edge.
   const half = PX_KM / 2;
-  const sx = Number((-W3 * SIZE * (REACH.halfWidth / 2 + 0.5) - 10 - half).toFixed(1));
-  const sy = HALF_H - 16;
+  const sx = Number((-OUT_W).toFixed(1));
+  const sy = OUT_H + MARGIN + 16;
   top.append(svg('path', { d: `M${sx} ${sy - 4} V${sy} H${(sx + half).toFixed(1)} V${sy - 4}` }, 'scalebar'));
   const scale = svg('text', { x: sx, y: sy - 8 }, 'scaletext');
   scale.textContent = '500 m';
