@@ -11,6 +11,7 @@ import { dice } from './dice.ts';
 import type { Job } from './jobs.ts';
 import { GRADES } from './rules.ts';
 import type { PieceKind, RunRules } from './rules.ts';
+import type { Growth } from './growth.ts';
 import type { Money } from './spend.ts';
 
 /** What can happen: a housing squeeze, a stretch of line closed, a wave of young families, a slump. */
@@ -55,6 +56,8 @@ export interface Clock {
   readonly record: readonly RecordRow[];
   /** Broken line-years: one line broken for one year, summed over years 1 on. */
   readonly lineYears: number;
+  /** The month clock (ADR-0009), when the run was started with growth; absent, homes fill the year they finish. */
+  readonly growth?: Growth;
 }
 
 /**

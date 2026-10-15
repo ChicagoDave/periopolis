@@ -1,10 +1,14 @@
 /**
- * @file The run: starting and stopping the clock, a year passing, and a clock read back from storage.
- * Public interface: Game, startRun, stopRun, tick, seenIn, restoreClock.
+ * @file The run: starting and stopping the clock, a year passing, a month passing on a run with growth (ADR-0009),
+ * and a clock read back from storage.
+ * Public interface: Game, RunOptions, startRun, stopRun, tick, tickMonth, seenIn, restoreClock.
  * Owner context: Run (domain).
  */
 import { LAYERS, adjacent, allTiles, assess, costOf, edgeEnds } from '@city/site';
-import type { CheckId, CheckStatus, Layer, Layout, SiteRates, Stress } from '@city/site';
+import type { CheckId, CheckStatus, Layer, Layout, SiteRates, Stress, TileKey } from '@city/site';
+
+import { growthOn, monthStep, occupiedOf } from './growth.ts';
+import type { Growth, MonthRow } from './growth.ts';
 
 import type { Job } from './jobs.ts';
 import { addPiece, draftOf, planned } from './pieces.ts';
@@ -32,6 +36,7 @@ const EXTRA_KINDS: readonly string[] = ['elementary', 'middle', 'high', 'fields'
  * @param opened - what opened this year
  * @param rates - the ledger's rates
  * @param before - what stood a year before, by layer; null for year 0, which spends nothing
+ * @param occupied - people living in each neighborhood, on a run with growth; absent, every neighborhood is full
  */
 export function seenIn(
   layout: Layout,
@@ -40,8 +45,9 @@ export function seenIn(
   opened: Readonly<Partial<Record<PieceKind, number>>>,
   rates: SiteRates,
   before: Money | null = null,
+  occupied?: Readonly<Record<TileKey, number>>,
 ): RecordRow {
-  const a = assess(layout, rates, { now: stress });
+  const a = assess(layout, rates, occupied ? { now: stress, occupied } : { now: stress });
   const t: Record<CheckStatus, number> = { ok: 0, warn: 0, bad: 0, idle: 0 };
   for (const c of a.checks) t[c.status]++;
   const broken: CheckId[] = a.checks.filter((c) => c.status === 'bad').map((c) => c.id);
@@ -60,17 +66,31 @@ export function seenIn(
   };
 }
 
+/** How a run is started. */
+export interface RunOptions {
+  /** Run the month clock (ADR-0009): homes fill at the citywide pace and people come and go. Absent or false, homes
+   * fill the year they finish, as in the sketch. */
+  readonly growth?: boolean;
+}
+
 /**
- * Start a run on whatever stands. Year 0 is noted in the record, and does not count.
+ * Start a run on whatever stands. Year 0 is noted in the record, and does not count. With growth, what already stands
+ * is lived in, full.
  * @param layout - what stands
  * @param seed - the run's seed
  * @param rates - the ledger's rates
  * @param rules - the clock's rules
+ * @param options - whether to run the month clock
  */
-export function startRun(layout: Layout, seed: number, rates: SiteRates, rules: RunRules): Game {
+export function startRun(layout: Layout, seed: number, rates: SiteRates, rules: RunRules, options: RunOptions = {}): Game {
   const clock = beginClock(seed, rules);
-  const record = [seenIn(layout, stressAt(clock, rates.band), 0, {}, rates, null)];
-  return { layout, clock: { ...clock, record } };
+  if (!options.growth) {
+    const record = [seenIn(layout, stressAt(clock, rates.band), 0, {}, rates, null)];
+    return { layout, clock: { ...clock, record } };
+  }
+  const growth = growthOn(layout, rates);
+  const record = [seenIn(layout, stressAt(clock, rates.band), 0, {}, rates, null, occupiedOf(layout, growth, rates))];
+  return { layout, clock: { ...clock, record, growth } };
 }
 
 /**
@@ -88,7 +108,8 @@ function waitsFor(j: Job, rules: RunRules): 'hood' | 'power' | null {
 }
 
 /**
- * One year passes: the crews work, what is finished opens, and the city is checked as it stands that year.
+ * One year passes: the crews work, what is finished opens, and the city is checked as it stands that year. On a run
+ * with growth the year's twelve months pass, the crews' work opening at its end.
  * At the horizon, or with the clock stopped, the game is returned as it is.
  * @param game - the game
  * @param rates - the ledger's rates
@@ -97,6 +118,35 @@ function waitsFor(j: Job, rules: RunRules): 'hood' | 'power' | null {
 export function tick(game: Game, rates: SiteRates, rules: RunRules): Game {
   const clock = game.clock;
   if (!clock || clock.year >= rules.years) return game;
+  if (clock.growth) {
+    let g = game;
+    while (g.clock && g.clock.year === clock.year) g = tickMonth(g, rates, rules);
+    return g;
+  }
+  return yearPasses(game, clock, rates, rules, null);
+}
+
+/**
+ * One month passes on a run with growth: the city's people change by the Ledger's month. The twelfth month is the
+ * year's end: the crews' work opens, the new neighborhoods stand empty for arrivals, and the year is recorded.
+ * Without growth, at the horizon, or with the clock stopped, the game is returned as it is.
+ * @param game - the game
+ * @param rates - the ledger's rates
+ * @param rules - the clock's rules
+ */
+export function tickMonth(game: Game, rates: SiteRates, rules: RunRules): Game {
+  const clock = game.clock;
+  if (!clock || !clock.growth || clock.year >= rules.years) return game;
+  const growth = clock.growth;
+  if (growth.month < 11) {
+    const next = monthStep(game.layout, growth, clock.year + 1, stressAt(clock, rates.band, clock.year + 1), rates);
+    return { layout: game.layout, clock: { ...clock, growth: next } };
+  }
+  return yearPasses(game, clock, rates, rules, growth);
+}
+
+/** The year's end: the crews work, what is finished opens, and the year is recorded; with growth, month 12 passes. */
+function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules, growth: Growth | null): Game {
   const year = clock.year + 1;
   const draft = draftOf(game.layout);
   const jobs: { what: PieceKind; at: string; left: number; total: number }[] = clock.jobs.map((j) => ({ ...j }));
@@ -131,10 +181,32 @@ export function tick(game: Game, rates: SiteRates, rules: RunRules): Game {
   );
   const next: Clock = { ...clock, year, jobs: still, events, record: clock.record, lineYears: clock.lineYears };
   const last = clock.record[clock.record.length - 1];
-  const row = seenIn(layout, stressAt(next, rates.band), year, opened, rates, last ? last.standing : null);
+  const stress = stressAt(next, rates.band);
+  if (!growth) {
+    const row = seenIn(layout, stress, year, opened, rates, last ? last.standing : null);
+    return {
+      layout,
+      clock: { ...next, record: [...clock.record, row], lineYears: clock.lineYears + row.bad },
+    };
+  }
+  // Month 12 on the year's new layout: what opened stands empty, ready for arrivals; then the year is recorded under
+  // the people living there, and month 12 carries the year's change in what stands.
+  const lived = monthStep(layout, growth, year, stress, rates);
+  const row = seenIn(layout, stress, year, opened, rates, last ? last.standing : null, occupiedOf(layout, lived, rates));
+  const months = lived.months.slice(0, -1);
+  const twelfth = lived.months[lived.months.length - 1];
+  const capital = {} as Record<Layer, number>;
+  for (const layer of LAYERS) capital[layer] = twelfth ? twelfth.spend[layer] : 0;
+  for (const layer of ['groundworks', 'buildings', 'fleet'] as const) capital[layer] = row.spend[layer];
+  const closed = twelfth ? [...months, { ...twelfth, spend: capital }] : lived.months;
   return {
     layout,
-    clock: { ...next, record: [...clock.record, row], lineYears: clock.lineYears + row.bad },
+    clock: {
+      ...next,
+      record: [...clock.record, row],
+      lineYears: clock.lineYears + row.bad,
+      growth: { month: 0, occupied: lived.occupied, months: closed },
+    },
   };
 }
 
@@ -242,7 +314,7 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
       spend: moneyOf(r['spend']),
     });
   }
-  return {
+  const clock: Clock = {
     year,
     seed: seed >>> 0,
     jobs: inOrder,
@@ -250,6 +322,34 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
     record,
     lineYears: record.filter((r) => r.year > 0).reduce((t, r) => t + r.bad, 0),
   };
+  const growth = growthOf(raw['growth'], layout, rates, rules);
+  return growth ? { ...clock, growth } : clock;
+}
+
+/**
+ * The month clock read back from storage: the month, each standing neighborhood's people (no more than it holds), and
+ * the months recorded. Anything else is dropped; a stored clock without growth restores without it.
+ */
+function growthOf(raw: unknown, layout: Layout, rates: SiteRates, rules: RunRules): Growth | null {
+  if (!isRecord(raw) || !whole(raw['month'], 0, 11)) return null;
+  const occupied: Record<TileKey, number> = {};
+  const rawOccupied = raw['occupied'];
+  if (isRecord(rawOccupied)) {
+    for (const k of Object.keys(rawOccupied)) {
+      const v = rawOccupied[k];
+      if (layout.tiles[k]?.kind === 'hood' && typeof v === 'number' && Number.isFinite(v) && v >= 0) occupied[k] = Math.min(v, rates.hood * (1 + rates.band));
+    }
+  }
+  const months: MonthRow[] = [];
+  const rawMonths = raw['months'];
+  const num = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x) && x >= 0;
+  for (const m of Array.isArray(rawMonths) ? rawMonths.slice(0, rules.years * 12) : []) {
+    if (!isRecord(m) || !whole(m['year'], 1, rules.years) || !whole(m['month'], 1, 12)) continue;
+    const { births, deaths, left, arrived, people, homes } = m;
+    if (!num(births) || !num(deaths) || !num(left) || !num(arrived) || !num(people) || !num(homes)) continue;
+    months.push({ year: m['year'] as number, month: m['month'] as number, births, deaths, left, arrived, people, homes, spend: moneyOf(m['spend']) });
+  }
+  return { month: raw['month'] as number, occupied, months };
 }
 
 

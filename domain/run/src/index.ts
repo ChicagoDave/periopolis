@@ -1,7 +1,7 @@
 /**
  * @file The Run. Twenty years on the clock: crews, jobs and the work in hand; the timeline of five announced events;
  * the yearly record and its line-years.
- * Public interface: startRun, stopRun, tick, placeOrder, cancelJob, putFirst, inHand, notices, stressAt, restoreClock,
+ * Public interface: startRun, stopRun, tick, tickMonth, the month clock (growth), placeOrder, cancelJob, putFirst, inHand, notices, stressAt, restoreClock,
  * totalSpend, the rules, and the types of games, clocks, jobs, events, records and money.
  * Owner context: Run (domain). Depends on @city/site alone.
  */
@@ -19,5 +19,7 @@ export { beginClock, waveIn, isActive, isAnnounced, stressAt, notices, pickEdge 
 export type { EventType, TimelineEvent, Clock, RecordRow, Notice } from './timeline.ts';
 export { placeOrder } from './order.ts';
 export type { OrderEvent, OrderOutcome } from './order.ts';
-export { startRun, stopRun, tick, seenIn, restoreClock } from './run.ts';
-export type { Game } from './run.ts';
+export { startRun, stopRun, tick, tickMonth, seenIn, restoreClock } from './run.ts';
+export type { Game, RunOptions } from './run.ts';
+export { growthOn, monthStep, occupiedOf, homesOf } from './growth.ts';
+export type { Growth, MonthRow } from './growth.ts';

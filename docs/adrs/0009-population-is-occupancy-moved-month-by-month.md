@@ -24,10 +24,11 @@ Issue 3: David asked for "standard population growth/shrinkage data so we can ru
 - Ground, the capital rows and every parity figure stay where they are: nothing that reads the homes as built moves.
 - The Site's checks take a population instead of `rates.hood × (1 + stress)` (plan Phase 3); at 5,000 a tile every figure is identical.
 - *Added 2026-10-14, Phase 3:* `assessCore` takes each neighborhood's occupants (`occupied`), and `assess` carries them into every assessment it makes, the stretch tests included. The daily list is fed or short by the emptiest neighborhood, and its facts say `uneven` when the neighborhoods differ, so the Board names "the emptiest neighborhood" instead of "each". `Core.pop1` stays a full neighborhood under the stress; `Core.people` holds each neighborhood's occupants.
+- *Added 2026-10-14, Phase 4:* the Run's month clock is opt-in (`startRun(…, { growth: true })`); crews still work by the year and their work opens in month 12, new neighborhoods empty. Arrivals fill empty homes in tile order, so one neighborhood fills at a time, and a neighborhood filling is too empty to keep its daily list: the sized city founded from nothing breaks the daily line every year until it is full (year 16). The event stresses (squeeze, slump) still apply on top of occupancy. The yearly path and its parity suite are unchanged.
 - A city that builds faster than 4,800 people a year arrive has empty homes, and the month clock shows them; a full city of 50,000 loses about 2,175 people a year to moving and refills from arrivals.
 - Trips a person a day stays 3.37 (NHTS 2017) here; NHTS 2022's 2.3 is issue 4, its own decision.
 - A seasonal rate, a different leaving share, or a different pace is a change to a premise, not to this decision.
 
 ## Session
 
-Session 51a736, 2026-10-14, Phases 2 and 3 of `docs/work/population-from-sourced-rates/plan.md`.
+Session 51a736, 2026-10-14, Phases 2 to 4 of `docs/work/population-from-sourced-rates/plan.md`.
