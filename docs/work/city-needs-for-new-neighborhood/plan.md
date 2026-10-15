@@ -46,8 +46,8 @@ Why propose: the Site stays a pure function of the layout (ADR-0004: needs are f
 - **Deliverable**: `domain/site/src/propose.ts`; Proposal fact shapes carrying need, tile and the commands that would carry it out; each proposal's price through `costOf`; tests from scenarios (proposal tiles are on the board, open or the right kind, and applying all proposals via the existing commands brings every check to ok; proposals for an already-whole layout are empty; a full board yields a "no room" fact rather than an invalid tile).
 - **Exit state**: `proposeFor` exported; applying its proposals in order through the existing commands never rejects; existing command behavior and parity untouched.
 - **Demonstration**: a test that starts from the starter layout, adds a neighborhood, applies every proposal through the existing commands, and asserts `assess` reports no line broken (14 of 15, 1 to watch: the size line waits on people); suite green.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-14, session 51a736: `pnpm -r test` green (ledger 76, site 122, ground 27, run 132, board 112), `pnpm -r typecheck` clean. `propose.test.ts`: the starter is proposed nothing; an 11th neighborhood at `2,0` is proposed one stretch `2,0|3,-1` (about 39 M to build); thirteen are proposed ring +1, a unit at each plant, two schools, fields and three stretches; on five layouts every step is on the board and on open ground or its own kind, and accepting all through `applyProposal` leaves `assess` with no line broken (size on watch; `work` on watch where a mover runs past the walk); a full board yields `{ room: false }` for the ring. [verified: site test row "6 passed 122 passed" 2026-10-15T00:18:25Z, after the last source edit; ledger/ground/run/board counts and typecheck reported by session, unverified]
+- **Status**: DONE
 
 ### Phase 3: The Board offers the additions
 - **Tier**: Medium
