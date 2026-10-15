@@ -2,7 +2,7 @@
  * @file The Site. A board of hexagonal tiles inside an outline, where the city is laid out; commands that lay it out; the fifteen line
  * checks and the four stretch tests against the layout.
  * Public interface: the layout and its commands, assess, the rates, the board geometry, seating, the line network,
- * what a layout needs to keep its lines whole and where each need could go, a city sized to its people, and the cost of what stands (with the Ledger's cost and population names re-exported, so the Run depends on the Site
+ * one day of its people hour by hour (the day view), what a layout needs to keep its lines whole and where each need could go, a city sized to its people, and the cost of what stands (with the Ledger's cost and population names re-exported, so the Run depends on the Site
  * alone).
  * Owner context: Site (domain). Depends on @city/ledger alone.
  */
@@ -25,6 +25,10 @@ export type { LineNetwork, Bridge } from './network.ts';
 export { seat } from './seating.ts';
 export type { Taker, Place, Seat, Seating } from './seating.ts';
 export { assessCore } from './assess.ts';
+export { dayOf, dayFrom } from './day.ts';
+export type { Day, Hour } from './day.ts';
+export { DAYS, DAY_TYPES } from '@city/ledger';
+export type { DayPremises, DayType } from '@city/ledger';
 export { NEED_CHECKS, needsOf } from './needs.ts';
 export type { Need } from './needs.ts';
 export { proposeFor, applyProposal } from './propose.ts';

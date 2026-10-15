@@ -14,6 +14,7 @@
 | Consequence | A figure the derivation gives. Never set, always derived. | Mine |
 | Capacity | The homes as built, in people: 5,000 a tile. Ground draws them and the capital rows price them; population never moves them (ADR-0009). | Mine |
 | Occupancy | How many people live in the homes this month. Moved by `monthOf` from births, deaths, people who move house and leave, and arrivals into empty homes (ADR-0009). | Yours (2026-10-14) |
+| Day shape | How one kind of day spreads the ledger's figures over 24 clock hours (`DAYS`, ADR-0009 Decision 7). Trips: the busiest hour (5–6 p.m., Mine) carries `peakShare`, 10%, and NHTS 2022 Table 8-1's stretches by start time, each spread evenly over its hours, fill the rest of the day in proportion (`hourlyTripShares`). Power: a smooth swing from 0.6 of the peak at 5 a.m. (Mine) to the peak at 5 p.m. (EIA 2020) and back (`hourlyPowerShares`). School starts at 8 a.m. (NCES) and runs 6.5 hours (Mine). A summer weekday only. | Yours (2026-10-14) |
 | Column | One city worked out: the **car city** or **your city** (the walking city). The page shows them side by side. | Mine |
 | Need | One entry of the needs list: what the city must hold and where. A **counted** need takes so many people to keep one open; a **capped** need (a school) holds so many pupils at most. | Mine |
 | Tier | Where a need lands: in **every center**, **shared** between centers (a district), in **the middle** of the city, or left **out**. | Mine |
