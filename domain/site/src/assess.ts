@@ -46,12 +46,20 @@ function cappedNeed(rates: SiteRates, id: SchoolKind): CappedNeed {
 }
 
 /**
- * Check a layout against every line, under a stress.
+ * Check a layout against every line, under a stress, for the people who live in it.
  * @param layout - the board
  * @param stress - what is happening to the city this year
  * @param rates - the ledger's rates
+ * @param occupied - people living in each neighborhood before the stress (ADR-0009); a neighborhood left out holds its
+ *   capacity, `rates.hood`, so leaving this out is the sketch's city of full neighborhoods
+ * @throws RangeError when a neighborhood's occupancy is negative or not a number
  */
-export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Core {
+export function assessCore(
+  layout: Layout,
+  stress: Stress,
+  rates: SiteRates,
+  occupied: Readonly<Record<TileKey, number>> = {},
+): Core {
   const tiles = layout.tiles;
   const keys = Object.keys(tiles);
   const of = (kind: string): TileKey[] => keys.filter((k) => tiles[k]?.kind === kind);
@@ -65,8 +73,19 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
     const t = tiles[k];
     return t && t.kind !== 'hood' ? t.n : 0;
   };
+  // A full neighborhood this year; each neighborhood holds its own occupants, a full one when none are given.
   const pop1 = rates.hood * (1 + stress.people);
-  const pop = hoods.length * pop1;
+  const people: Record<TileKey, number> = {};
+  for (const h of hoods) {
+    const o = occupied[h] ?? rates.hood;
+    if (!(o >= 0)) throw new RangeError(`occupancy of ${h} must be zero or more, not ${o}`);
+    people[h] = o * (1 + stress.people);
+  }
+  const occ = (h: TileKey): number => people[h] ?? 0;
+  const pop = hoods.reduce((t, h) => t + occ(h), 0);
+  // The fewest people in any one neighborhood: the daily list is fed or short by its emptiest neighborhood.
+  const least = hoods.length ? Math.min(...hoods.map(occ)) : pop1;
+  const uneven = hoods.some((h) => Math.abs(occ(h) - least) > TINY);
   // A stretch of mover line closed for repairs is still built, but carries nobody this year.
   const shut = stress.closed ?? [];
   const open: Record<EdgeKey, true> = {};
@@ -98,11 +117,12 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
     const hungriest = daily.reduce((a, x) => Math.max(a, x.people), 0);
     if (!some) check('daily', [3, 13, 14], 'idle', { check: 'daily', case: 'idle', hood: rates.hood });
     else {
-      const short = daily.filter((x) => x.people > pop1 + TINY).map((x) => x.id);
+      const short = daily.filter((x) => x.people > least + TINY).map((x) => x.id);
       if (short.length) {
-        for (const h of hoods) flag(h, 'bad', { kind: 'dailyShort', needs: short });
-        check('daily', [3, 13, 14], 'bad', { check: 'daily', case: 'short', pop1, short }, hoods);
-      } else check('daily', [3, 13, 14], 'ok', { check: 'daily', case: 'fed', pop1, hungriest });
+        const thin = hoods.filter((h) => daily.some((x) => x.people > occ(h) + TINY));
+        for (const h of thin) flag(h, 'bad', { kind: 'dailyShort', needs: daily.filter((x) => x.people > occ(h) + TINY).map((x) => x.id) });
+        check('daily', [3, 13, 14], 'bad', { check: 'daily', case: 'short', pop1: least, uneven, short }, thin);
+      } else check('daily', [3, 13, 14], 'ok', { check: 'daily', case: 'fed', pop1: least, uneven, hungriest });
     }
   }
 
@@ -135,7 +155,7 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
       let buildings = 0;
       for (const g of rings) {
         const n = unitsAt(g);
-        const load = hoods.filter((h) => ringOf[h] === g).length * pop1;
+        const load = hoods.filter((h) => ringOf[h] === g).reduce((t, h) => t + occ(h), 0);
         const cap = n * rates.ringServes;
         buildings += n;
         const p = draft(g);
@@ -205,21 +225,21 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
     // A wave of children can sit in some grades only.
     const more = stress.kids ? stress.kids[kind] : stress.children;
     const spec = cappedNeed(rates, kind);
-    const each = pop1 * spec.grades * shared.gradeShare * (1 + more);
+    const eachOf = (h: TileKey): number => occ(h) * spec.grades * shared.gradeShare * (1 + more);
     const places = hoods.filter((h) => hoodAt(h)?.has[kind]).map((h) => ({ key: h, cap: spec.cap }));
     const res = seat(
-      hoods.map((h) => ({ key: h, amount: each })),
+      hoods.map((h) => ({ key: h, amount: eachOf(h) })),
       places,
       walk,
       walking.longWalkMin + TINY,
     );
     for (const p of places) (draft(p.key).schools ??= {})[kind] = { load: res.load[p.key] ?? 0, cap: spec.cap };
-    for (const h of hoods) (draft(h).goes ??= {})[kind] = { to: res.goes[h] ?? [], left: res.left[h] ?? 0, each };
+    for (const h of hoods) (draft(h).goes ??= {})[kind] = { to: res.goes[h] ?? [], left: res.left[h] ?? 0, each: eachOf(h) };
     const out = hoods.filter((h) => (res.left[h] ?? 0) > 0.5);
     const missing = out.reduce((t, h) => t + (res.left[h] ?? 0), 0);
     for (const h of out) flag(h, 'bad', { kind: 'pupilsUnseated', school: kind, pupils: res.left[h] ?? 0 });
     if (!some) check(kind, [15, 16], 'idle', { check: kind, case: 'idle', cap: spec.cap });
-    else if (!places.length) check(kind, [15, 16], 'bad', { check: kind, case: 'none', pupils: each * hoods.length }, out);
+    else if (!places.length) check(kind, [15, 16], 'bad', { check: kind, case: 'none', pupils: hoods.reduce((t, h) => t + eachOf(h), 0) }, out);
     else if (out.length) {
       check(kind, [15, 16], 'bad', { check: kind, case: 'unseated', missing, hoods: out.length, cap: spec.cap }, out);
     } else {
@@ -231,7 +251,7 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
         check: kind,
         case: 'seated',
         schools: places.length,
-        pupils: each * hoods.length,
+        pupils: hoods.reduce((t, h) => t + eachOf(h), 0),
         fullest,
         cap: spec.cap,
         longestMin: longest,
@@ -309,27 +329,30 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
     }
   };
   for (const h of hoods) {
-    total.foot += pop1 * share.daily;
-    total.noRide += pop1 * share.daily * shared.rideAnyway;
+    const here = occ(h);
+    total.foot += here * share.daily;
+    total.noRide += here * share.daily * shared.rideAnyway;
     for (const kind of SCHOOLS) {
       const g = draft(h).goes?.[kind];
       if (!g) continue;
-      for (const way of g.to) leg(h, way.to, (pop1 * share[kind] * way.amount) / g.each, walking.longWalkMin, false);
-      if (g.left > 1e-9) total.nowhere += (pop1 * share[kind] * g.left) / g.each;
+      // A neighborhood with no one in it sends no pupils anywhere.
+      if (!(g.each > 0)) continue;
+      for (const way of g.to) leg(h, way.to, (here * share[kind] * way.amount) / g.each, walking.longWalkMin, false);
+      if (g.left > 1e-9) total.nowhere += (here * share[kind] * g.left) / g.each;
     }
     const f = draft(h).fields;
-    if (f) leg(h, f.key, pop1 * share.fields, rates.fieldWalk, false);
-    else total.nowhere += pop1 * share.fields;
+    if (f) leg(h, f.key, here * share.fields, rates.fieldWalk, false);
+    else total.nowhere += here * share.fields;
     const g = ringOf[h];
     if (g) {
-      leg(h, g, pop1 * share.civic, shared.walkMaxMin, false);
-      leg(h, g, pop1 * share.office, walking.longWalkMin, false);
-    } else total.nowhere += pop1 * (share.civic + share.office);
+      leg(h, g, here * share.civic, shared.walkMaxMin, false);
+      leg(h, g, here * share.office, walking.longWalkMin, false);
+    } else total.nowhere += here * (share.civic + share.office);
     for (const j of hoods) {
-      leg(h, j, (pop1 * share.otherWork) / hoods.length, walking.longWalkMin, true);
-      leg(h, j, (pop1 * share.rest) / hoods.length, shared.walkMaxMin, true);
+      leg(h, j, (here * share.otherWork) / hoods.length, walking.longWalkMin, true);
+      leg(h, j, (here * share.rest) / hoods.length, shared.walkMaxMin, true);
     }
-    draft(h).stuck = (stuckBy[h] ?? 0) / pop1;
+    draft(h).stuck = here > 0 ? (stuckBy[h] ?? 0) / here : 0;
   }
   {
     const stuckShare = pop > 0 ? total.stuck / pop : 0;
@@ -468,7 +491,7 @@ export function assessCore(layout: Layout, stress: Stress, rates: SiteRates): Co
     const p = per[k];
     if (p) reports[k] = finish(p);
   }
-  return { per: reports, checks, score, stress, pop1 };
+  return { per: reports, checks, score, stress, pop1, people };
 }
 
 /** Close a draft into a report, carrying only the fields the tile's kind set. */

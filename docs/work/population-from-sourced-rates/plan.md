@@ -2,6 +2,7 @@
 
 **Created**: 2026-10-14
 **Plan Status**: ACTIVE
+**Serves objective**: sustainable-city-shown
 **Overall scope**: Close issue 3. Replace the fixed people per tile (5,000) and "homes fill the year they are finished" with a population that changes month by month from sourced yearly rates (births, deaths, in-migration, out-migration) plus a sourced move-in premise for finished homes; keep a separate day view that runs one day hour by hour (trips, peak power, movers in service, school runs) for the people the city has that month. The two stay separate: the month clock owns who lives here, the day view owns how they spend one day.
 **Bounded contexts touched**: Ledger (`@city/ledger`: people per tile, `rates.hood`, population premises); Site (`@city/site`: `assessCore` pop1 under a population, ways/power checks); Run (`@city/run`: the clock's step, `docs/domain/run.md`); Board (wording of population facts and the day view, ADR-0004). Ground and Lines read only.
 **Key domain language**: Premise, Mark (Yours, Sourced with `accepted`, Mine), Components of change (births, deaths, migration in/out), Move-in rate (how fast finished homes are occupied), Month step, Day view, Hourly curve
@@ -53,8 +54,8 @@
 - **Deliverable**: `assessCore` takes a population as input instead of computing `rates.hood * (1 + stress.people)`; with the fixed 5,000 a tile as that input every existing figure is identical (site parity at 0 differences). Checks that are daily or peak figures (ways, peakKw) read the given population. Needs (ADR-0008) derive from the same checks under that population. Behavior Statements and tests from them.
 - **Exit state**: Site checks are a function of the people the city has (occupancy); `rates.hood` remains only as a tile's capacity, the homes as built, which the capital rows and Ground keep reading (`site.md`: "the capital rows count the homes as built").
 - **Demonstration**: `pnpm --filter @city/site test` green including parity at 0 differences; a test shows a half-populated layout passing a check that the full one fails (or the reverse), with the figures named.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-14, session 51a736: `assessCore(layout, stress, rates, occupied)` and `assess(…, { occupied })` count each neighborhood's occupants (default `rates.hood`); `Core.people` added; `costOf`'s yearly per-person rows follow the occupants, capital rows the homes as built; daily facts carry `uneven`, worded by the Board ("the emptiest neighborhood") in the same change. `pnpm --filter @city/site test` 137 passed with `parity.test.ts` at 0 differences; `occupancy.test.ts` (7): thirteen neighborhoods break the ring and the plants full, but with the three new ones empty (50,000 living there) the ring and every plant hold; a neighborhood of 400 is short of its daily list and only it is marked; omitting occupancy is the same assessment figure for figure; refusals. `pnpm -r test` green (ledger 83, site 137, ground 27, run 132, board 122), typecheck clean. `rates.hood` remains as capacity in `assess.ts`, `cost.ts` (capital rows) and `run.ts` (homes), per ADR-0009. [verified: test row "83 passed 27 passed 137 passed 132 passed 122 passed 8 passed" 2026-10-15T02:15:06Z, after the last source edit (wording.test.ts, 02:14:34Z); typecheck clean reported by session, unverified]
+- **Status**: DONE
 
 ### Phase 4: Run steps by the month
 - **Tier**: Large

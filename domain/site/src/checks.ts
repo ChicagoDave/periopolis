@@ -29,8 +29,9 @@ export type CheckId =
 /** The facts behind a check's status. Each check has one shape per case. */
 export type Facts =
   | { readonly check: 'daily'; readonly case: 'idle'; readonly hood: number }
-  | { readonly check: 'daily'; readonly case: 'short'; readonly pop1: number; readonly short: readonly string[] }
-  | { readonly check: 'daily'; readonly case: 'fed'; readonly pop1: number; readonly hungriest: number }
+  /** pop1 is the fewest people in any neighborhood; uneven when the neighborhoods do not all hold the same (ADR-0009). */
+  | { readonly check: 'daily'; readonly case: 'short'; readonly pop1: number; readonly uneven: boolean; readonly short: readonly string[] }
+  | { readonly check: 'daily'; readonly case: 'fed'; readonly pop1: number; readonly uneven: boolean; readonly hungriest: number }
   | { readonly check: 'size'; readonly case: 'idle'; readonly urgent: number; readonly fine: number }
   | { readonly check: 'size'; readonly case: 'underUrgent'; readonly urgent: number; readonly fine: number; readonly pop: number }
   | { readonly check: 'size'; readonly case: 'underFine'; readonly fine: number; readonly pop: number }
@@ -232,6 +233,8 @@ export interface Core {
   readonly checks: readonly LineCheck[];
   readonly score: Score;
   readonly stress: Stress;
-  /** People in one neighborhood this year. */
+  /** People in one full neighborhood this year: its capacity under the stress. */
   readonly pop1: number;
+  /** People living in each neighborhood this year, under the stress (ADR-0009); full ones hold pop1. */
+  readonly people: Readonly<Record<TileKey, number>>;
 }

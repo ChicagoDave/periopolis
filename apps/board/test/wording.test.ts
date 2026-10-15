@@ -121,3 +121,15 @@ describe('what the city needs, worded', () => {
     expect(needs.slice(0, 2).map(needText)).toEqual(['A ring of 1 building for the offices and halls.', '2 more reactor modules, to carry the peak with one down for fuel.']);
   });
 });
+
+describe('the daily list in a city still filling (ADR-0009)', () => {
+  it('names the emptiest neighborhood when the neighborhoods do not all hold the same', () => {
+    const a = assess(starterLayout(), RATES, { occupied: { '1,0': 400 } });
+    const daily = a.checks.find((c) => c.id === 'daily');
+    if (!daily) throw new Error('no daily check');
+    expect(checkDetail(daily.facts, RATES)).toBe("With 400 people in the emptiest neighborhood, the bakery, the butcher, the cafés and the doctor's office run short of customers.");
+    const fed = assess(starterLayout(), RATES, { occupied: { '1,0': 4500 } }).checks.find((c) => c.id === 'daily');
+    if (!fed) throw new Error('no daily check');
+    expect(checkDetail(fed.facts, RATES)).toBe("The emptiest neighborhood has 4,500 people. Its hungriest need, the doctor's office, wants 4,000.");
+  });
+});

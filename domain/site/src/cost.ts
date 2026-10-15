@@ -41,19 +41,19 @@ export interface SiteCost extends CostFigures {
 /**
  * Price what stands on a layout at the Ledger's premises.
  * @param layout - the board
- * @param core - the layout assessed this year: its score gives the fleet and the rides, pop1 the people a neighborhood holds
+ * @param core - the layout assessed this year: its score gives the fleet and the rides, people the occupants of each
+ *   neighborhood (ADR-0009), pop1 a full one's
  * @param rates - the ledger's rates
  * @param k - the premises; the Ledger's COSTS when left out
  * @returns the money, by tile, stretch and the city as a whole
  */
-export function costOf(layout: Layout, core: Pick<Core, 'score' | 'pop1'>, rates: SiteRates, k: CostPremises = COSTS): SiteCost {
+export function costOf(layout: Layout, core: Pick<Core, 'score' | 'pop1' | 'people'>, rates: SiteRates, k: CostPremises = COSTS): SiteCost {
   const base = rates.base;
   const shared = rates.shared;
   const walking = rates.walking;
   const hood = rates.hood;
   const perCenter = (total: number): number => total / base.centers;
   const net = lineNetwork(layout.lines);
-  const pop1 = core.pop1;
   const score = core.score;
   const floorPerBuilding = base.ringNeed > 0 ? base.middleFloorM2 / base.ringNeed : 0;
   const lowRisePerHood = perCenter(Math.max(0, shared.pop * (shared.homeFloor + shared.otherFloor) - base.middleFloorM2));
@@ -65,6 +65,8 @@ export function costOf(layout: Layout, core: Pick<Core, 'score' | 'pop1'>, rates
     const counted: Counted[] = [];
     const stop = net.onLine(key);
     if (t.kind === 'hood') {
+      // The yearly per-person rows count the people living here this year (ADR-0009); the capital rows, the homes as built.
+      const pop1 = core.people[key] ?? core.pop1;
       counted.push(
         { id: 'streets', layer: 'groundworks', count: hood * base.streets, premise: 'streetM2' },
         { id: 'parks', layer: 'groundworks', count: hood * walking.parks, premise: 'parkM2' },

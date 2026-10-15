@@ -4,7 +4,7 @@
  * Public interface: TestId, BAND_TESTS, Given, StretchTest, Assessment, assess.
  * Owner context: Site (domain).
  */
-import type { EdgeKey } from './board.ts';
+import type { EdgeKey, TileKey } from './board.ts';
 import { assessCore } from './assess.ts';
 import type { CheckId, CheckStatus, Core, Facts, Score, Stress } from './checks.ts';
 import { NO_STRESS } from './checks.ts';
@@ -62,6 +62,8 @@ export interface AssessOptions {
   readonly show?: TestId | null;
   /** This year's stress, from the clock. Absent means an ordinary year. */
   readonly now?: Stress | null;
+  /** People living in each neighborhood before the stress (ADR-0009). Absent means every neighborhood is full. */
+  readonly occupied?: Readonly<Record<TileKey, number>>;
 }
 
 /**
@@ -72,8 +74,9 @@ export interface AssessOptions {
  * @param options - what to show and what is happening this year
  */
 export function assess(layout: Layout, rates: SiteRates, options: AssessOptions = {}): Assessment {
-  const plain = assessCore(layout, NO_STRESS, rates);
-  const today = options.now ? assessCore(layout, options.now, rates) : plain;
+  const occupied = options.occupied ?? {};
+  const plain = assessCore(layout, NO_STRESS, rates, occupied);
+  const today = options.now ? assessCore(layout, options.now, rates, occupied) : plain;
   const was: Partial<Record<CheckId, number>> = {};
   for (const c of plain.checks) was[c.id] = RANK[c.status];
   // A line gives when the stretch leaves it worse off than it is in an ordinary year.
@@ -83,7 +86,7 @@ export function assess(layout: Layout, rates: SiteRates, options: AssessOptions 
       .map((c) => ({ id: c.id, status: c.status, facts: c.facts }));
   const stretched: Partial<Record<TestId, Core>> = {};
   const tests: StretchTest[] = bandTests(rates.band).map((t) => {
-    const then = assessCore(layout, t.stress, rates);
+    const then = assessCore(layout, t.stress, rates, occupied);
     stretched[t.id] = then;
     return { id: t.id, gives: given(then) };
   });
@@ -91,7 +94,7 @@ export function assess(layout: Layout, rates: SiteRates, options: AssessOptions 
   const weak = bridges(layout);
   let hit: { then: Core; gives: Given[]; edge: EdgeKey } | null = null;
   for (const w of weak) {
-    const then = assessCore(layout, { people: 0, children: 0, closed: [w.edge] }, rates);
+    const then = assessCore(layout, { people: 0, children: 0, closed: [w.edge] }, rates, occupied);
     const gives = given(then);
     if (gives.length) {
       hit = { then, gives, edge: w.edge };

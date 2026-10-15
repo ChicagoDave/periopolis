@@ -288,9 +288,9 @@ export function checkDetail(facts: Facts, rates: SiteRates): string {
       if (facts.case === 'idle') return `Place a neighborhood to begin. Each is ${num(facts.hood)} people with its own bakery, butcher, cafés, library, doctor and park.`;
       if (facts.case === 'short') {
         const text = list(facts.short.map((id) => DAILY[id] ?? id));
-        return `With ${num(facts.pop1)} people in a neighborhood, ${text}${facts.short.length > 1 ? ' run' : ' runs'} short of customers.`;
+        return `With ${num(facts.pop1)} people in ${facts.uneven ? 'the emptiest neighborhood' : 'a neighborhood'}, ${text}${facts.short.length > 1 ? ' run' : ' runs'} short of customers.`;
       }
-      return `Each neighborhood has ${num(facts.pop1)} people. Its hungriest need, the doctor's office, wants ${num(facts.hungriest)}.`;
+      return `${facts.uneven ? 'The emptiest neighborhood' : 'Each neighborhood'} has ${num(facts.pop1)} people. Its hungriest need, the doctor's office, wants ${num(facts.hungriest)}.`;
     case 'size': {
       if (facts.case === 'underFine') {
         return `Fine dining wants ${num(facts.fine)} people in the city. It has ${num(facts.pop)}, which is ${num((100 * facts.pop) / facts.fine)}% of that.`;
