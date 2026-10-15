@@ -44,8 +44,8 @@
   - `@` A: 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153
   - `@` AAAA: 2606:50c0:8000::153, 2606:50c0:8001::153, 2606:50c0:8002::153, 2606:50c0:8003::153
   - `www` CNAME: chicagodave.github.io
-- **Demonstrated**: 
-- **Status**: CURRENT (since 2026-10-15)
+- **Demonstrated**: 2026-10-15 — workflow run 38687545953 (push of b76820d) green and deployed; https://periopolis.city answers HTTP/2 200 from GitHub.com, and the served page has the same sha1 (55f3b04b) as a local build of apps/board; `BOARD_URL=https://periopolis.city pnpm exec playwright test` in apps/board: 9 passed, including the starter's 14 of 15 lines holding; http://www.periopolis.city answers 301 to the apex. Enforce HTTPS waits on David ticking it in Settings → Pages.
+- **Status**: DONE
 
 ### Phase 2: A stranger's front door on the Board
 - **Tier**: Small
