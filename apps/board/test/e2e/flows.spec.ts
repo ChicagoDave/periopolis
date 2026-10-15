@@ -12,7 +12,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const url = `file://${join(here, '../../dist/index.html')}`;
+/** The built page from disk, or the published Board when BOARD_URL names it (ADR-0011). */
+const url = process.env.BOARD_URL ?? `file://${join(here, '../../dist/index.html')}`;
 
 const tile = (page: Page, k: string) => page.locator(`#board .tile[data-k="${k}"]`);
 const place = async (page: Page, tool: string, keys: readonly string[]): Promise<void> => {
