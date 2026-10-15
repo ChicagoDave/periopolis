@@ -14,7 +14,7 @@ Two clocks, kept separate (decided with David, 2026-10-14):
 - [x] **Components of change**: births, deaths, moving, with sources
 - [x] **Moving in**: how fast finished homes fill, from new towns
 - [x] **The day**: hourly shapes for trips, power and school
-- [ ] **David decides**: the questions at the end (Phase 2)
+- [x] **David decides**: the questions at the end, answered 2026-10-14 ("Decided" below)
 
 ## Capacity and occupancy
 
@@ -102,3 +102,18 @@ Two things this shows about the ledger:
 6. **Trips a day.** 3.37 (NHTS 2017, accepted) or 2.3 (NHTS 2022)? Outside this plan unless you want it in.
 7. **The day.** Which day the view shows by default: a summer weekday, a winter weekday, or both side by side?
 8. **Marks.** Accept the Sourced rows above as they stand?
+
+## Decided
+
+David, 2026-10-14 (session 51a736), on the eight questions:
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | Capacity and occupancy | 5,000 a tile stays the homes as built; occupancy moves month to month under it. |
+| 2 | Moving in | A citywide pace: at most about 4,800 people a year arrive (Irvine 1980–1990), shared among empty finished homes. |
+| 3 | Seasons | A twelfth of each yearly rate a month. |
+| 4 | Leaving | Half of the people who move house leave the city (stays Mine until a benchmark is found). |
+| 5 | The peak hour | Keep the ledger's 10%; the day view's busiest hour equals it, and NHTS 2022's shape fills the rest of the day. |
+| 6 | Trips a day | Keep 3.37 (NHTS 2017) in this plan; 2.3 (NHTS 2022) is its own issue. |
+| 7 | The day | A summer weekday by default. |
+| 8 | Marks | Every Sourced row above is accepted as it stands; the Mine rows (half leave, the 0.6 low hour of power, the 6.5-hour school day, movers in service all day) stay Mine. |

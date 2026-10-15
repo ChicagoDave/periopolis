@@ -51,11 +51,12 @@ export interface Marked {
 }
 
 const YOURS: Mark = { kind: 'yours' };
-function sourced(source: string, year: number, url: string): Mark {
+/** A Sourced mark, not yet accepted. Shared with the package's other premises (population.ts); not re-exported. */
+export function sourced(source: string, year: number, url: string): Mark {
   return { kind: 'sourced', source, year, url, accepted: false };
 }
 /** David accepted this Sourced figure. Accepting a Mine figure makes it Yours instead, so anything else is refused. */
-function accept(mark: Mark): Mark {
+export function accept(mark: Mark): Mark {
   if (mark.kind !== 'sourced') throw new Error(`only a sourced mark is accepted, not ${mark.kind}; an accepted Mine figure is Yours`);
   return { ...mark, accepted: true };
 }
