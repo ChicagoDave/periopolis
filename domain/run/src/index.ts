@@ -1,7 +1,7 @@
 /**
  * @file The Run. Twenty years on the clock: crews, jobs and the work in hand; the timeline of five announced events;
  * the yearly record and its line-years.
- * Public interface: startRun, stopRun, tick, tickMonth, the month clock (growth), placeOrder, cancelJob, putFirst, inHand, notices, stressAt, restoreClock,
+ * Public interface: startRun, stopRun, tick, tickMonth, the month clock (growth), placeOrder, cancelJob, putFirst, inHand, the crew order (classOf, crewed), notices, stressAt, restoreClock,
  * totalSpend, the rules, and the types of games, clocks, jobs, events, records and money.
  * Owner context: Run (domain). Depends on @city/site alone.
  */
@@ -14,6 +14,8 @@ export type { Roll } from './dice.ts';
 export { pieces, planned, pieceId, splitPiece } from './pieces.ts';
 export type { PieceId, Placed } from './pieces.ts';
 export { inHand, cancelJob, putFirst } from './jobs.ts';
+export { classOf, crewed } from './crews.ts';
+export type { PieceClass } from './crews.ts';
 export type { Job, JobStatus, JobItem, SiteInHand, WorkInHand } from './jobs.ts';
 export { beginClock, waveIn, isActive, isAnnounced, stressAt, notices, pickEdge } from './timeline.ts';
 export type { EventType, TimelineEvent, Clock, RecordRow, Notice } from './timeline.ts';

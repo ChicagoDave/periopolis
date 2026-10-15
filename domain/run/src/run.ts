@@ -10,6 +10,7 @@ import type { CheckId, CheckStatus, Layer, Layout, SiteRates, Stress, TileKey } 
 import { growthOn, monthStep, occupiedOf } from './growth.ts';
 import type { Growth, MonthRow } from './growth.ts';
 
+import { crewed } from './crews.ts';
 import type { Job } from './jobs.ts';
 import { addPiece, draftOf, planned } from './pieces.ts';
 import { PIECES } from './rules.ts';
@@ -71,6 +72,9 @@ export interface RunOptions {
   /** Run the month clock (ADR-0009): homes fill at the citywide pace and people come and go. Absent or false, homes
    * fill the year they finish, as in the sketch. */
   readonly growth?: boolean;
+  /** Crews take what the city needs first (ADR-0012). Absent or false, jobs are crewed in the order they stand, as in
+   * the sketch. */
+  readonly inOrder?: boolean;
 }
 
 /**
@@ -80,10 +84,11 @@ export interface RunOptions {
  * @param seed - the run's seed
  * @param rates - the ledger's rates
  * @param rules - the clock's rules
- * @param options - whether to run the month clock
+ * @param options - whether to run the month clock, and whether crews take what the city needs first
  */
 export function startRun(layout: Layout, seed: number, rates: SiteRates, rules: RunRules, options: RunOptions = {}): Game {
-  const clock = beginClock(seed, rules);
+  const dealt = beginClock(seed, rules);
+  const clock: Clock = options.inOrder ? { ...dealt, inOrder: true } : dealt;
   if (!options.growth) {
     const record = [seenIn(layout, stressAt(clock, rates.band), 0, {}, rates, null)];
     return { layout, clock: { ...clock, record } };
@@ -151,13 +156,10 @@ function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules,
   const draft = draftOf(game.layout);
   const jobs: { what: PieceKind; at: string; left: number; total: number }[] = clock.jobs.map((j) => ({ ...j }));
   const opened: Partial<Record<PieceKind, number>> = {};
-  let crews = rules.crews;
-  for (const j of jobs) {
-    if (j.left > 0 && crews > 0) {
-      j.left -= 1;
-      crews--;
-    }
-  }
+  const working = crewed(jobs, rules.crews, clock.inOrder === true);
+  jobs.forEach((j, i) => {
+    if (working[i]) j.left -= 1;
+  });
   const open = (j: Job): void => {
     addPiece(draft, j.what, j.at);
     opened[j.what] = (opened[j.what] ?? 0) + 1;
@@ -272,7 +274,7 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
     const standing = host && host.kind === 'hood' && host.has[j.what as 'elementary' | 'middle' | 'high' | 'fields'];
     if (!standing && addPiece(plan, j.what, j.at)) kept.push(j);
   }
-  const inOrder = jobs.filter((j) => kept.includes(j));
+  const placed = jobs.filter((j) => kept.includes(j));
   const events: TimelineEvent[] = [];
   const rawEvents = raw['events'];
   for (const e of Array.isArray(rawEvents) ? rawEvents : []) {
@@ -314,14 +316,15 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
       spend: moneyOf(r['spend']),
     });
   }
-  const clock: Clock = {
+  const base: Clock = {
     year,
     seed: seed >>> 0,
-    jobs: inOrder,
+    jobs: placed,
     events,
     record,
     lineYears: record.filter((r) => r.year > 0).reduce((t, r) => t + r.bad, 0),
   };
+  const clock: Clock = raw['inOrder'] === true ? { ...base, inOrder: true } : base;
   const growth = growthOf(raw['growth'], layout, rates, rules);
   return growth ? { ...clock, growth } : clock;
 }

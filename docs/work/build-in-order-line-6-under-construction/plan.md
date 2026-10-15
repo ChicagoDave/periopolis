@@ -48,8 +48,8 @@
 - **Deliverable**: Priority classes on `Job`, crews assigned class by class then placement order in `yearPasses`, `startsNow` in `JobOrdered` consistent with it; behind the rule decided in Phase 1 so the yearly parity mode is untouched. Behavior Statement and tests from the scenarios: with 10 crews and homes ordered before mover stretches and plants, the stretches and plants are worked first; the existing waiting/waits-for host rules (`waitsFor`) still hold; spend stays yearly in sum (ADR-0007 Decision 14).
 - **Exit state**: `pnpm --filter @city/run test` green including `parity.test.ts` unchanged; a scenario test reproduces the founding run's ordering and shows the mover stretches before the neighborhoods.
 - **Demonstration**: Run the Run package tests; show the parity suite green with its fixtures unmodified (`git diff --stat domain/run/test/fixtures` empty) and the new ordering test asserting job completion years by class.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-15 — `pnpm -r test`: ledger 91, ground 27, site 148, run 153 (142 before, plus 11 in `domain/run/test/order.test.ts`), board 130, all passed; `pnpm -r typecheck` 0 errors; `git diff --stat` on `domain/{run,site,ledger}/test/fixtures` empty, so the parity suite passes against unchanged fixtures. `order.test.ts` replays David's city-261015 orders: with `inOrder` year 1 opens six stretches and leaves every home untouched, and every stretch and plant stands before the first neighborhood opens (after year 2); without it the homes open at year 2 with one stretch built, as the sketch does. The emergency class (Decision 7) needs lived-in shortfalls and lands with Phase 3's gate. [verified: test event 2026-10-15T08:29:37Z, 91 27 148 153 130 passed, after the last source edit; typecheck and fixture diff reported by session, unverified]
+- **Status**: DONE
 
 ### Phase 3: A finished neighborhood stands empty until the city can carry it (move-in gate)
 - **Tier**: Medium

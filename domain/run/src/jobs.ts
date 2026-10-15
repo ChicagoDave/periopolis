@@ -5,6 +5,7 @@
  */
 import { EXTRAS } from '@city/site';
 import type { EdgeKey, ExtraKind, Layout, TileKey } from '@city/site';
+import { crewed } from './crews.ts';
 import type { PieceKind, RunRules } from './rules.ts';
 
 /** An order that takes years to become a building. */
@@ -57,12 +58,14 @@ function isExtra(what: PieceKind): what is ExtraKind {
 }
 
 /**
- * Jobs are worked on in the order they stand: the first so many of them with work left have a crew.
+ * Jobs are worked on in the order they stand: the first so many of them with work left have a crew. With `inOrder`
+ * they are taken class by class first (ADR-0012).
  * @param layout - what stands
  * @param jobs - the work in hand, or null when the clock is stopped
  * @param rules - the clock's rules
+ * @param inOrder - whether the clock crews what the city needs first
  */
-export function inHand(layout: Layout, jobs: readonly Job[] | null, rules: RunRules): WorkInHand {
+export function inHand(layout: Layout, jobs: readonly Job[] | null, rules: RunRules, inOrder = false): WorkInHand {
   const sites: Record<TileKey, { kind: PieceKind; n: number; left: number; status: JobStatus }> = {};
   const extras: Record<TileKey, Partial<Record<ExtraKind, JobItem>>> = {};
   const more: Record<TileKey, number> = {};
@@ -71,8 +74,9 @@ export function inHand(layout: Layout, jobs: readonly Job[] | null, rules: RunRu
   let working = 0;
   let waiting = 0;
   if (jobs) {
+    const crew = crewed(jobs, rules.crews, inOrder);
     jobs.forEach((j, index) => {
-      const status: JobStatus = j.left <= 0 ? 'ready' : working < rules.crews ? 'working' : 'waiting';
+      const status: JobStatus = j.left <= 0 ? 'ready' : crew[index] ? 'working' : 'waiting';
       if (status === 'working') working++;
       else if (status === 'waiting') waiting++;
       const item: JobItem = { index, what: j.what, at: j.at, left: j.left, total: j.total, status };

@@ -4,6 +4,7 @@
  * Owner context: Run (domain).
  */
 import type { Layout, Outcome, SiteEvent, SiteRejection } from '@city/site';
+import { crewed } from './crews.ts';
 import type { Job } from './jobs.ts';
 import { draftOf, pieces, planned, removePiece, splitPiece } from './pieces.ts';
 import type { Game } from './run.ts';
@@ -76,8 +77,8 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
     for (let n = (will[key] ?? 0) - (was[key] ?? 0); n > 0; n--) {
       const withSite = what === 'power' && !was[key];
       const total = withSite ? rules.firstModule : rules.build[what];
-      const startsNow = jobs.filter((j) => j.left > 0).length < rules.crews;
       jobs.push({ what, at, left: total, total });
+      const startsNow = crewed(jobs, rules.crews, game.clock.inOrder === true)[jobs.length - 1] === true;
       events.push({ type: 'JobOrdered', what, at, total, startsNow, withSite });
     }
   }

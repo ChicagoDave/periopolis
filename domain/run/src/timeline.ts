@@ -58,6 +58,8 @@ export interface Clock {
   readonly lineYears: number;
   /** The month clock (ADR-0009), when the run was started with growth; absent, homes fill the year they finish. */
   readonly growth?: Growth;
+  /** Crews take what the city needs first (ADR-0012), when the run was started in order; absent, the sketch's order. */
+  readonly inOrder?: true;
 }
 
 /**
