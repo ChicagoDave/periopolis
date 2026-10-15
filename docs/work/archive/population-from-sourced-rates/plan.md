@@ -1,7 +1,7 @@
 # Session Plan: Population from sourced rates, month by month, and an hour-by-hour day view
 
 **Created**: 2026-10-14
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Serves objective**: sustainable-city-shown
 **Overall scope**: Close issue 3. Replace the fixed people per tile (5,000) and "homes fill the year they are finished" with a population that changes month by month from sourced yearly rates (births, deaths, in-migration, out-migration) plus a sourced move-in premise for finished homes; keep a separate day view that runs one day hour by hour (trips, peak power, movers in service, school runs) for the people the city has that month. The two stay separate: the month clock owns who lives here, the day view owns how they spend one day.
 **Bounded contexts touched**: Ledger (`@city/ledger`: people per tile, `rates.hood`, population premises); Site (`@city/site`: `assessCore` pop1 under a population, ways/power checks); Run (`@city/run`: the clock's step, `docs/domain/run.md`); Board (wording of population facts and the day view, ADR-0004). Ground and Lines read only.

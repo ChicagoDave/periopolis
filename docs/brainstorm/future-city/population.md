@@ -1,6 +1,6 @@
 # Population
 
-How many people the city has, month by month, and how they spend one day, hour by hour: issue 3, Phase 1 of `docs/work/population-from-sourced-rates/plan.md`. Today a finished neighborhood holds exactly 5,000 people the year it is finished (`overview.md`, "Homes fill the year they are finished"), and the only variation is the stress band. This brainstorm sources what replaces that.
+How many people the city has, month by month, and how they spend one day, hour by hour: issue 3, Phase 1 of `docs/work/archive/population-from-sourced-rates/plan.md`. Today a finished neighborhood holds exactly 5,000 people the year it is finished (`overview.md`, "Homes fill the year they are finished"), and the only variation is the stress band. This brainstorm sources what replaces that.
 
 The marks are the money brainstorm's (`money.md`, ADR-0007 Decision 9): **Yours** is David's, **Sourced** carries its source and year and stays a placeholder until David accepts it, **Mine** is a placeholder Claude filled in with the search recorded.
 

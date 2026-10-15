@@ -7,7 +7,7 @@
 
 ## Context
 
-Issue 3: David asked for "standard population growth/shrinkage data so we can run the sim hour by hour or day by day or month by month". Today a finished neighborhood holds exactly 5,000 people the year it is finished, and people vary only through the stress band. The sources (`docs/brainstorm/future-city/population.md`) show that natural increase is about 1.5 per 1,000 a year, so a new city grows by people moving in, and that new towns filled at a few thousand people a year at most. Population changes over months; trips and power change over hours. The plan (`docs/work/population-from-sourced-rates/plan.md`) needed the shape of both before code.
+Issue 3: David asked for "standard population growth/shrinkage data so we can run the sim hour by hour or day by day or month by month". Today a finished neighborhood holds exactly 5,000 people the year it is finished, and people vary only through the stress band. The sources (`docs/brainstorm/future-city/population.md`) show that natural increase is about 1.5 per 1,000 a year, so a new city grows by people moving in, and that new towns filled at a few thousand people a year at most. Population changes over months; trips and power change over hours. The plan (`docs/work/archive/population-from-sourced-rates/plan.md`) needed the shape of both before code.
 
 ## Decision
 
@@ -31,4 +31,4 @@ Issue 3: David asked for "standard population growth/shrinkage data so we can ru
 
 ## Session
 
-Session 51a736, 2026-10-14, Phases 2 to 4 of `docs/work/population-from-sourced-rates/plan.md`.
+Session 51a736, 2026-10-14, Phases 2 to 4, and session c465b8, Phases 5 and 6, of `docs/work/archive/population-from-sourced-rates/plan.md`.

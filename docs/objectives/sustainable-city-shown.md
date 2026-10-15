@@ -32,5 +32,5 @@ Periopolis works a post-car city out from premises (the ledger), lays it out on 
 - **Status**: ACTIVE
 
 ## Spawned work
-- `docs/work/population-from-sourced-rates/plan.md` (populated: who lives here month by month, and one day by hour)
+- `docs/work/archive/population-from-sourced-rates/plan.md` (populated: who lives here month by month, and one day by hour)
 - `docs/work/archive/city-needs-for-new-neighborhood/plan.md` (planned and built: what a new neighborhood needs; a city sized to its people)
