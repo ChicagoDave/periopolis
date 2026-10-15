@@ -10,7 +10,7 @@
 export interface SharedPremises {
   /** Population. */
   readonly pop: number;
-  /** Trips per person per day. */
+  /** Trips per person per day: NHTS 2017's steady state, not 2022's pandemic recovery (ADR-0010). */
   readonly trips: number;
   /** People per home. */
   readonly hh: number;

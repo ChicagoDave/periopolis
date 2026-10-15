@@ -74,7 +74,7 @@ Source: [Summary of Travel Trends, 2022 NHTS](https://nhts.ornl.gov/assets/2022/
 
 Two things this shows about the ledger:
 - **The peak.** 4–7 p.m. holds 22% of trips over three hours, 7.3% an hour on average; Figure 8-1's busiest hour reads under 9%. The ledger's 10% peak hour is on the high side of 2022 and is what the fleet is sized for. Keep it, or move it to the table (question 5).
-- **Trips a day.** NHTS 2022 records 2.3 person trips a person a day against 3.4 in 2017 (Table 4-9), the post-pandemic drop. The ledger uses 3.37. This is a change to an accepted premise, not part of this plan unless David raises it (question 6).
+- **Trips a day.** NHTS 2022 records 2.3 person trips a person a day against 3.4 in 2017 (Table 4-9), the post-pandemic drop. The ledger uses 3.37. This is a change to an accepted premise, not part of this plan unless David raises it (question 6). *Decided 2026-10-14 (ADR-0010):* keep 3.37; the 2022 report calls its figure a recovery, not a steady state, and its methods changed.
 
 ### Power by hour
 
@@ -114,6 +114,6 @@ David, 2026-10-14 (session 51a736), on the eight questions:
 | 3 | Seasons | A twelfth of each yearly rate a month. |
 | 4 | Leaving | Half of the people who move house leave the city (stays Mine until a benchmark is found). |
 | 5 | The peak hour | Keep the ledger's 10%; the day view's busiest hour equals it, and NHTS 2022's shape fills the rest of the day. |
-| 6 | Trips a day | Keep 3.37 (NHTS 2017) in this plan; 2.3 (NHTS 2022) is its own issue. |
+| 6 | Trips a day | Keep 3.37 (NHTS 2017) in this plan; 2.3 (NHTS 2022) is its own issue. Issue 4 kept 3.37 (ADR-0010). |
 | 7 | The day | A summer weekday by default. |
 | 8 | Marks | Every Sourced row above is accepted as it stands; the Mine rows (half leave, the 0.6 low hour of power, the 6.5-hour school day, movers in service all day) stay Mine. |
