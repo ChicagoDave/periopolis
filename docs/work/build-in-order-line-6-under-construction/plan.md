@@ -60,7 +60,7 @@
 - **Exit state**: In the founding scenario no one moves in until the line, plants, reactors and schools are open, then neighborhoods fill at Irvine's pace; the `filling` watch and line-year counts behave as ADR-0012 decided; `pnpm -r test` and `pnpm -r typecheck` green.
 - **Demonstration**: `pnpm -r test` and typecheck pass; a Run test replays the layout from `docs/work/tests/city-261015.txt` and prints year-by-year people: 0 while the gate is shut, rising only after it opens.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: CURRENT (since 2026-10-15)
 
 ### Phase 4: Line 6 says under construction, on the Board and on the live site
 - **Tier**: Small
