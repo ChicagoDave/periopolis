@@ -1,0 +1,89 @@
+FUTURE CITY BUILDER
+
+People: 30,000 in 6 neighborhoods
+Ring buildings: 1. Schools: 3 elementary, 0 middle, 0 high. Fields: 2.
+Reactor modules: 0. Water units: 0. Sewage units: 0. Waste units: 0.
+Mover line: 0 km with 0 stops. Sub-level walkway: 0 km. Goods pipe: 37 km.
+Trips: 74% on foot, 9% by bike, 0% by mover, 17% with no way to go. Movers: 0. Average ride: 0 min door to door.
+Car city of the same size: 3,514 acres, 25,200 cars, 85% of trips by car.
+
+LINES
+[Holds] Lines 3, 13, 14: Every neighborhood feeds its daily list. Each neighborhood has 5,000 people. Its hungriest need, the doctor's office, wants 4,000.
+[Watch] Lines 3, 14: The city is big enough for urgent care and fine dining. Fine dining wants 71,300 people in the city. It has 30,000, which is 42% of that.
+[Broken] Lines 10, 19: The ring has room for the offices and halls. The ring is full. One building holds the offices and halls of 7,771 people, so 30,000 people take 4.
+[Holds] Line 16: Work is within a 30-minute walk. The farthest neighborhood is a 10-minute walk from its ring.
+[Broken] Line 6: Every neighborhood has a mover stop. 6 neighborhoods have no stop on a line to the ring. Draw the mover line through them.
+[Broken] Lines 15, 16: Every elementary pupil has a seat within a 30-minute walk. 660 pupils in 3 neighborhoods have no seat within a 30-minute walk. A school holds at most 500.
+[Broken] Lines 15, 16: Every middle-school pupil has a seat within a 30-minute walk. There is no middle school yet. 1,080 pupils have nowhere to go.
+[Broken] Lines 15, 16: Every high-school pupil has a seat within a 30-minute walk. There is no high school yet. 1,440 pupils have nowhere to go.
+[Holds] Line 4: Playing fields are a longer walk or a short ride away. 2 sets of fields. Every neighborhood is within a 20-minute walk or a mover ride of one.
+[Broken] Line 17: No trip is left without a way. 10.7% of trips are longer than people will walk and have no mover to take. Run the mover line to the tiles marked.
+[Broken] Lines 20, 21: The reactors carry the peak with one module down. With no modules the city cannot carry a peak of 45 MW with one down for fuel. It takes 2.
+[Broken] Line 22: Everyone has treated drinking water. There is no water plant yet. The city has 30,000, which takes 1.
+[Broken] Line 22: All sewage is treated. There is no sewage plant yet. The city has 30,000, which takes 1.
+[Broken] Line 22: Waste is sorted and food waste digested. There is no waste works yet. The city has 30,000, which takes 1.
+[Not yet] Line 5: Nothing is hauled on the surface. Plants are reached through the sub level, so each needs the mover line.
+
+STRETCH
+[Holds] 20% more children in the same homes
+[Holds] 20% fewer people
+[Holds] 20% more people on the same land
+[Holds] One stretch of mover line closed for repairs
+
+CLOCK
+Year 2 of 20. Homes for 30,000 people. Broken line-years: 10.
+Announced: Year 4: a housing squeeze. 20% more people in the same homes for 3 years.
+Year 0: 0 people. Nobody lives here yet.
+Year 1: 0 people. Nobody lives here yet.
+Year 2: 30,000 people. 10 lines broken: the ring has room for the offices and halls; every neighborhood has a mover stop; every elementary pupil has a seat within a 30-minute walk; every middle-school pupil has a seat within a 30-minute walk; every high-school pupil has a seat within a 30-minute walk; no trip is left without a way; the reactors carry the peak with one module down; everyone has treated drinking water; all sewage is treated; waste is sorted and food waste digested. Opened: 1 ring building, 6 neighborhoods, 3 elementary schools, 2 sets of playing fields.
+Work in hand: reactor module at 5,-4 (2 yr); water plant unit at -6,3 (2 yr); sewage plant unit at -5,1 (2 yr); waste works unit at -4,-1 (2 yr); stretch of mover line at -1,0|0,0 (1 yr); stretch of mover line at -1,0|0,-1 (1 yr); stretch of mover line at 1,-1|1,0 (1 yr); stretch of mover line at -1,1|0,1 (1 yr); stretch of mover line at -1,1|0,0 (1 yr); stretch of mover line at 0,0|0,1 (1 yr); stretch of mover line at 0,-1|0,0 (waiting); stretch of mover line at 0,-1|1,-1 (waiting); stretch of mover line at 0,1|1,0 (waiting); stretch of mover line at -1,0|-1,1 (waiting); stretch of mover line at -1,0|-2,0 (waiting); stretch of mover line at -2,0|-3,0 (waiting); stretch of mover line at -4,-1|-4,0 (waiting); stretch of mover line at -4,0|-5,1 (waiting); stretch of mover line at -3,0|-4,1 (waiting); stretch of mover line at -4,1|-5,2 (waiting); stretch of mover line at -5,2|-6,3 (waiting); stretch of mover line at -3,0|-4,0 (waiting); stretch of mover line at 0,0|1,0 (waiting)
+
+MONEY (ADR-0007; every unit cost is a placeholder with its mark)
+To build: $5.2 B ($174,750 a person). To run: $420 M a year ($13,997 a person). Land: $333 M. Financing: $314 M a year.
+Car city of the same size, a person: $261,845 to build, $20,141 a year to run.
+Groundworks: $247 M
+Buildings: $5.0 B
+Fleet: $0
+Upkeep: $105 M
+Civic services: $315 M
+Households: $0
+  Streets, paths and plazas: 449,025 at $300 a m² = $135 M [Sourced 2024, accepted]
+  Parks: 300,000 at $50 a m² = $15 M [Sourced 2026, accepted]
+  Sub-level entries: 196 at $300,000 each = $59 M [Sourced 2026, accepted]
+  Goods pipe: 37 at $1 M a km = $37 M [Sourced 2023, accepted]
+  Bike lanes: 6.9 at $300,000 a km = $2.1 M [Sourced 2024, accepted]
+  Ring floor: 50,000 at $3,200 a m² of floor = $160 M [Sourced 2025, accepted]
+  Low-rise floor: 2,692,980 at $1,750 a m² of floor = $4.7 B [Sourced 2024, accepted]
+  Dumbwaiters: 12,245 at $10,000 each = $122 M [Sourced 2025, accepted]
+  Upkeep of the structures: $5.2 B at 2% of the structures a year = $105 M [Sourced 1998, accepted]
+  Schools: 4,680 at $16,526 a pupil a year = $77 M [Sourced 2023, accepted]
+  Police: 30,000 at $450 a person a year = $14 M [Sourced 2021, accepted]
+  Fire: 30,000 at $220 a person a year = $6.6 M [Sourced 2021, accepted]
+  Health: 30,000 at $1,100 a person a year = $33 M [Sourced 2021, accepted]
+  Libraries: 30,000 at $45 a person a year = $1.4 M [Sourced 2021, accepted]
+  Public welfare: 30,000 at $2,597 a person a year = $78 M [Sourced 2021, accepted]
+  Higher education: 30,000 at $938 a person a year = $28 M [Sourced 2021, accepted]
+  Administration: 30,000 at $443 a person a year = $13 M [Sourced 2021, accepted]
+  Corrections: 30,000 at $262 a person a year = $7.9 M [Sourced 2021, accepted]
+  Courts: 30,000 at $158 a person a year = $4.7 M [Sourced 2021, accepted]
+  Running the streets: 449,025 at $2 a m² of street a year = $1.1 M [Sourced 2021, accepted]
+  Running the parks: 300,000 at $3 a m² of park a year = $774,000 [Sourced 2021, accepted]
+  Electricity: 258,000 at $32 a MWh = $8.3 M [Sourced 2023, accepted]
+  Drinking water: 1,272,951 at $6 a thousand gallons = $7.6 M [Sourced 2022, accepted]
+  Sewage treatment: 1,095,000 at $9 a thousand gallons = $9.9 M [Sourced 2024, accepted]
+  Waste: 26,700 at $160 a ton = $4.3 M [Sourced 2024, accepted]
+  Goods runs: 61,320 at $300 a run = $18 M [Yours]
+  Porters: 20 at $54,000 a porter a year = $1.1 M [Sourced 2024, accepted]
+Spent so far, years 1 to 2: $5.7 B ($5.2 B to build, $420 M to run).
+  By layer: Groundworks $247 M; Buildings $5.0 B; Fleet $0; Upkeep $105 M; Civic services $315 M; Households $0.
+
+TILES (east, down-right)
+0,-1 hood
+1,-1 hood with elementary, fields
+-1,0 hood with elementary
+0,0 ring x1
+1,0 hood
+-1,1 hood with fields
+0,1 hood with elementary
+
+MOVER LINE

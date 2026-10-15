@@ -2,6 +2,7 @@
 
 **Created**: 2026-10-15
 **Plan Status**: ACTIVE
+**Superseded by**: docs/work/build-in-order-line-6-under-construction/plan.md
 **Overall scope**: Put the built Board (`apps/board/dist/index.html`) on the public web at periopolis.city, give a stranger what they need to review it, get at least 3 written replies from people who work in city planning or development into `docs/objectives/reviews/`, and log every gap a reply names that the model cannot answer as a still-unknown, all by 2026-12-31.
 **Bounded contexts touched**: Board (adapter, wording only; no rule changes). Otherwise N/A — publishing, deployment and outreach work, framed in plain technical terms (no DDD decomposition).
 **Key domain language**: Board, still-unknown (the list in `docs/brainstorm/future-city/overview.md`), Sourced / Yours / Mine, review (a practitioner's written reply)
@@ -67,7 +68,7 @@
 - **Exit state**: The intake format exists and is committed; the first outreach wave is sent (David's action, recorded by date and count); the clock for the fortnightly cadence starts at the publish date.
 - **Demonstration**: `ls docs/objectives/reviews/` shows the README and outreach record; the outreach record shows at least 8 invitations sent with dates; the live Board link in the message opens the site.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: CURRENT (since 2026-10-15)
 
 ### Phase 4: Fortnightly review checks (recurring through 2026-12-31)
 - **Tier**: Small

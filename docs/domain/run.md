@@ -14,7 +14,7 @@
 | Clock | The year, the work in hand, the events dealt, the record, and the line-years so far. | Mine |
 | Run | Twenty years on the clock, from a seed. | Mine |
 | Crew | One of ten. A crew does one job at a time and is whatever it takes to finish a neighborhood in two years. | Mine |
-| Job | An order that takes years to become a piece: what, where, years left, years in all. Jobs are worked in the order they stand; the first ten with work left have a crew. | Mine |
+| Job | An order that takes years to become a piece: what, where, years left, years in all. Jobs are worked in the order they stand; the first ten with work left have a crew. With `inOrder` (ADR-0012), which the Board always starts, they are taken class by class first: emergencies, then the line, ring, plants and schools, then fields, then neighborhoods. | Mine |
 | Piece | Anything a crew builds: a neighborhood (2 years), a ring building (2), an elementary or middle school (1), a high school (2), fields (1), a stretch of line (1), a module (1, or 3 with its site), a plant unit (2). | Mine |
 | Planned board | The layout as it will stand when the work in hand is done. Orders are made on it. | Mine |
 | Order | A layout command applied to the planned board. What came is ordered as jobs; what went is canceled from the work in hand, the latest first, or taken down if it already stands. | Mine |
@@ -50,6 +50,13 @@ Each event is one of the four stretch tests come true. A city where every line h
 - **What a founding spends**: from an empty site, the spend summed over twenty years is the cost of what stands at year 20 plus the running bills of years 1 to 20; summed over layers it equals summed over years. A stretch finishes in a year and is paid before the neighborhood's floor; no mover is bought until someone rides; a stretch taken down comes off that year's groundworks. Seed 42, a ring, a reactor and four neighborhoods on spokes ordered at year 0: 4.9 billion to build and 4.1 to run over twenty years, 9.1 in all.
 
 - **The sized city founded from nothing, with growth** (seed 42): every piece ordered at year 0. Neighborhoods open from year 2; from year 3 people arrive at the full 4,800 a year, Irvine's pace, and the city grows by 2,600 to 4,700 a year net of leavers; it is full, 50,000, in year 16, after which 2,175 a year leave and as many arrive. While a neighborhood fills it is too empty to keep its daily list; that is a watch, not a broken line, so filling counts no line-years (David, 2026-10-14). By year 20 no line is broken. With the homes full, twelve months of running spend equal the year's to the cent.
+- **Built in order, people when served** (ADR-0012, `inOrder`; from `docs/work/tests/city-261015.txt`). Given an empty site and, ordered at year 0 in this order, six neighborhoods round a ring building with three elementary schools and two sets of fields, then the mover line through all six, a reactor, and a water, a sewage and a waste unit:
+  - When the clock runs, then the stretches, the ring, the reactor and the plant units have crews before any neighborhood, and the neighborhoods are worked last, in the order they were placed.
+  - When a neighborhood is finished but its water, sewage, waste or power is not open for its people, then it holds nobody, the clock says what it lacks, and its own breaks are a watch that counts no line-years.
+  - When the plants and the reactor carry it but it has no stop on a finished line to the ring, then everyone may move in; line 6 and line 17 are broken and count; while its stretches are in hand, line 6 says the line to it is under construction.
+  - When the plants and the reactor carry it but its pupils have no seats within a 30-minute walk, then only the childless share moves in, with no pupils, and the clock says it lacks school seats; when its seats open, it fills.
+  - When a lived-in neighborhood is left short of water, sewage, waste or power by a squeeze, nobody leaves, the line is broken and counts, and a unit of the short kind in hand takes a crew ahead of everything else.
+  - Without `inOrder` the same orders play exactly as the sketch's clock: homes first, 30,000 people at year 2, line 6 broken (the parity suite).
 - **The ledger's city with growth**: full from the start, it refills its 181 leavers a month and stays at 50,000; it records the same lines and the same capital spend as the run without growth.
 
 ## Acceptance

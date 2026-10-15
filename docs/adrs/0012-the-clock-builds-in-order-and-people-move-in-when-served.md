@@ -1,0 +1,45 @@
+# ADR-0012: On the Board's clock, crews build what the city needs before homes, and people move in only when they are served
+
+**Date**: 2026-10-15
+**Kind**: technical
+**Scope**: domain/ledger, domain/run, domain/site, apps/board
+**Status**: ACCEPTED
+
+## Context
+
+David's founding run (`docs/work/tests/city-261015.txt`) placed six neighborhoods, a ring building, schools and fields, then the mover line and the plants. The clock's ten crews work jobs strictly in the order they stand (`domain/run/src/run.ts`, `yearPasses`), so the homes took every crew for two years and opened at year 2 to 30,000 people with no line, no water, no sewage, no waste works and no power. Line 6 told them to "draw the mover line through them" when it was already drawn and waiting for crews. David, 2026-10-15: "the tools should be forced to build in order - you can't invite people until the infrastructure supports them."
+
+The clock's behaviour is the sketch's, pinned by the Run's parity suite (ADR-0003 Decision 1); ADR-0009 Decision 5 kept parity by making the month clock a mode beside the sketch's yearly one. The same constraint applies here.
+
+## Decision
+
+1. **A mode beside the sketch's, which the Board turns on** (David, 2026-10-15). `startRun(…, { inOrder: true })` turns on the build order and the move-in gate; the clock carries the flag, so a stored run restores with it. Without it the clock is the sketch's, untouched, and the parity suite replays without it and stays byte-identical. The Board starts every run, yearly or with growth, with `inOrder`.
+2. **Crews take what the city needs first** (David, 2026-10-15). Jobs fall into three classes: first what people need before they can live anywhere — stretches of line, ring buildings, reactor modules, water, sewage and waste units, and schools; then fields; then neighborhoods. The first ten jobs with work left, taken class by class and within a class in the order they stand, have a crew. The work in hand keeps its order as placed; the classes order only who gets a crew. Putting a job first puts it first within its class: a home cannot be put ahead of the line. A school still opens only with its neighborhood (it waits ready), and a further module only with its site.
+3. **A finished neighborhood is lived in only as far as it is served** (David, 2026-10-15). Two conditions are hard, and a neighborhood without them stands empty:
+   - the city's water, sewage and waste units carry its people too (line 22);
+   - the city's reactor modules carry the peak with its people too, with one module down (lines 20 and 21).
+   Two are soft, and decide who may live there, not whether anyone may:
+   - **No stop on a line to the ring does not keep anyone out** (line 6). Daily needs are a walk away and work is within a 30-minute walk (line 16), so everyone may move in; line 6, and line 17 for trips with no way to go, stay broken and show it.
+   - **Without school seats within a 30-minute walk (line 15), only households with no school-age children move in.** The share of people living in such households is a new population premise in the Ledger, beside ADR-0009's (`POPULATION`), marked Mine until a source is accepted; the neighborhood holds that share of its capacity and no pupils until its seats are open, then fills.
+   The gate is read from the Site's assessment of the layout with that neighborhood's people counted (ADR-0008: read off the checks, never re-derived). **Each neighborhood is admitted on its own conditions** (David, 2026-10-15): a served neighborhood is lived in while another still waits for its stretch, so the city fills outward as the line reaches it. Neighborhoods are admitted in the board's tile order, each against the city as it would be with the ones before it admitted.
+4. **What being lived in means in each mode.** In the yearly mode, an admitted neighborhood is full that year, or holds the childless share while it lacks seats; one not admitted holds nobody. With growth, arrivals fill admitted neighborhoods up to what they may hold, still in tile order and at no more than 4,800 a year (ADR-0009 Decision 3). A neighborhood standing when a run starts is admitted by the same rule.
+5. **The Run says what holds a neighborhood back.** Each year (and month, with growth) the clock records the neighborhoods standing empty or held to the childless share and, for each, what it lacks (water, sewage, waste, power, or school seats), as typed facts the Board words (ADR-0004).
+6. **Under construction is a fact about the planned board.** A neighborhood's stop is under construction when the board as planned (`planned(layout, jobs)`, what stands plus the work in hand) gives it a stop on a line to the ring and the board as it stands does not. The Run reports the count; the Board words line 6 as the line being under construction for those, and keeps "Draw the mover line through them" for neighborhoods the plan does not reach. Site stays a read of one layout (ADR-0001: Site does not know about jobs).
+7. **People who live there stay; a breakdown is an emergency** (David, 2026-10-15). The gate only governs moving in. When a closure, a squeeze or a module taken down leaves lived-in neighborhoods short of water, sewage, waste or power, nobody leaves: the shortfall breaks lines and counts line-years as the stretch tests and the promise assume, and it is a city emergency. Jobs in hand that restore the missing service (units or modules of the short kind) take crews ahead of every other class until it is restored. The Run orders nothing itself; with no such job in hand, the emergency shows only as the broken line.
+8. **A neighborhood nobody lives in is a watch, not a break** (David, 2026-10-15). Its own breaks (line 6 without a stop, line 15 without seats) show amber with what it lacks and count no line-years, as ADR-0009 did for a neighborhood still filling; nobody lives there, so nobody is failed. Once anyone lives there, every broken line counts as now.
+9. **The Site checks under the occupancy it is given.** The Run passes each neighborhood's occupants (`occupied`, as ADR-0009 does) and the neighborhoods held to the childless share; the Site counts no pupils for those, and gives the `stops` and school checks a watch case for neighborhoods with nobody living there, as the daily check's `filling` case does. Without that occupancy, as on the sketch's clock, every neighborhood is full and every figure and status is unchanged.
+
+## Consequences
+
+- The Run's parity suite and fixtures are unchanged; the new behaviour is tested in its own scenarios (`docs/domain/run.md`).
+- Placement order no longer decides when people arrive on the Board; the Run decides it from what is open. A player who orders homes before the plants sees them finished and empty, with the reason, as a watch instead of broken lines; homes before the line or the schools are lived in, by everyone or by the childless share, and their breaks count.
+- The crews have an emergency class above the three, for restoring water, sewage, waste or power to people already living there.
+- The childless share is a new premise, Mine until a source is accepted (ADR-0007 Decision 9).
+- Admission costs one Site assessment per waiting neighborhood per year (and month, with growth).
+- The month clock's arrivals (ADR-0009) are narrowed: they fill admitted neighborhoods in tile order, not every empty home. ADR-0009 carries a note pointing here.
+- Spend is unchanged in kind (ADR-0007 Decision 14): pieces are still paid as they finish, so reordering the crews moves spend between years, never its sum for the same work.
+- A run stored before this decision restores without `inOrder` and plays the old way.
+
+## Session
+
+Session 1afb7b, 2026-10-15, Phase 1 of `docs/work/build-in-order-line-6-under-construction/plan.md`.
