@@ -55,8 +55,8 @@
 - **Deliverable**: On the Board, a short "What this is and how to review it" panel for a practitioner arriving cold: what Periopolis claims, the Sourced / Yours / Mine convention, where the source lives (github.com/ChicagoDave/periopolis), and how to reply (an email address or issue link David confirms). Board tests for the new wording; the e2e flows still green.
 - **Exit state**: A first-time visitor can tell in one screen what is being shown, that every figure carries a mark, and exactly where to send a written reply; published at periopolis.city via Phase 1's path.
 - **Demonstration**: Load the live site in a clean browser profile (Playwright, no stored game) and assert the panel text and the reply address are on screen; wording tests and `pnpm -r test` green.
-- **Demonstrated**: 
-- **Status**: CURRENT (since 2026-10-15)
+- **Demonstrated**: 2026-10-15 — workflow run 38689746411 (push of 32aa977) green and deployed; `BOARD_URL=https://periopolis.city pnpm exec playwright test` in apps/board: 10 passed, each in a fresh browser context, including the front-door flow (panel heading and claim, the Sourced / Yours / Mine chips, the source link, and the review link to `issues/new?template=review.yml` in the first screen); `pnpm -r test` 538 passed. Replies go to a GitHub issue through the form `.github/ISSUE_TEMPLATE/review.yml`, which applies the `question` label (a label in the link is ignored for non-collaborators); a reviewer's city comes back through the Board's existing "Copy the city as text", so no share link was built. [reported by session, unverified: no event-log row for the live run]
+- **Status**: DONE
 
 ### Phase 3: Reviewer intake and first outreach
 - **Tier**: Small
