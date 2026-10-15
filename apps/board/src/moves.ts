@@ -1,14 +1,14 @@
 /**
  * @file A click with a tool, made into a layout command or a crew's order. Holds the line tool's cursor: where the
  * mover line continues from.
- * Public interface: Game, Move, commandFor, move.
+ * Public interface: Game, Move, commandFor, move, accept.
  * Owner context: Board (adapter).
  */
 import { RULES, placeOrder } from '@city/run';
 import type { Game } from '@city/run';
-import { RATES, addPlantUnit, addRingBuilding, adjacent, erase, isPlantKind, layStretch, placeNeighborhood, toggleExtra } from '@city/site';
-import type { Layout, Outcome, TileKey } from '@city/site';
-import { moveSaid, orderSaid } from './wording.ts';
+import { RATES, addPlantUnit, addRingBuilding, adjacent, applyProposal, erase, isPlantKind, layStretch, placeNeighborhood, toggleExtra } from '@city/site';
+import type { Layout, Outcome, Proposal, TileKey } from '@city/site';
+import { addedSaid, moveSaid, orderSaid } from './wording.ts';
 import type { ToolId } from './wording.ts';
 
 export type { Game };
@@ -60,6 +60,29 @@ export function move(game: Game, tool: ToolId, key: TileKey, from: TileKey | nul
   const out = command(game.layout);
   if (!out.ok) return no(moveSaid(tool, out, RATES), nextFrom);
   return { game: { layout: out.layout, clock: null }, said: moveSaid(tool, out, RATES), changed: true, from: nextFrom };
+}
+
+/**
+ * Build proposals the Site made for this layout, in order, through the ordinary commands (ADR-0008 Decision 4).
+ * Only with the clock stopped: an order is not built yet, so proposing again would order the same thing twice.
+ * @param game - the game the proposals were made for
+ * @param proposals - the proposals to build, in the order `proposeFor` gave them
+ * @returns the move; unchanged, saying why, when the clock runs, a proposal has no room, or a command refuses
+ */
+export function accept(game: Game, proposals: readonly Proposal[]): Move {
+  const no = (said: string): Move => ({ game, said, changed: false, from: null });
+  if (game.clock) return no('Stop the clock to build what the city needs.');
+  let layout = game.layout;
+  const built: Proposal[] = [];
+  for (const p of proposals) {
+    if (!p.room) break;
+    const out = applyProposal(layout, p.steps, RATES);
+    if (!out.ok) break;
+    layout = out.layout;
+    built.push(p);
+  }
+  if (!built.length) return no('There is no room on the site for what the city needs.');
+  return { game: { layout, clock: null }, said: addedSaid(built), changed: true, from: null };
 }
 
 void EXTRAS;

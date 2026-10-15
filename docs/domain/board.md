@@ -15,6 +15,7 @@
 | Drawing | `src/draw/*` | The board (SVG), the tray, the score, the clock card and the work in hand, the inspector, the rules and the stretch tests. |
 | A tile's ground | `src/draw/ground.ts` | The Ground's plan of a neighborhood or the ring, one SVG unit to the metre, with a legend, a scale bar and the placements the ledger did not fix; the view bar with the way back and the level switch. Rows, entries and buildings carry their counts as data attributes so a flow can add them up. |
 | The text export | `src/export.ts` | "Copy the city as text", for pasting back into a conversation. Carries a MONEY section: the layers, every row with its mark, and the run's spend so far. |
+| What the city needs | `src/draw/needs.ts`, `accept` in `src/moves.ts` | The Site's proposals for the layout (ADR-0008), one line each with its price, Show (marks its tiles) and Add, and Add all. Building goes through the Site's `applyProposal` and the ordinary commit, so undo and saving work as for any move. Holds no rules: the Board never decides what a city needs or where it goes. |
 | Money | `src/money.ts`, `src/draw/money.ts` | The Site's cost of what stands gathered by row id in layer order (`linesOf`), and the run's spend so far (`spentSoFar`); the card that shows them. The Board prices nothing: it asks `costOf` and `totalSpend` and words the layers, rows, premises and marks. |
 
 The page's HTML and styles are the sketch's two halves, plus the view bar and the ground's styles added for the physical city.
@@ -22,6 +23,10 @@ The page's HTML and styles are the sketch's two halves, plus the view bar and th
 ## Zooming in
 
 "Look closer" in the inspector, on a neighborhood or a ring, shows that tile's ground in place of the map; the tile map is the zoomed-out view and does not change. The view bar names the tile, switches between the surface and the sub level, and goes back. The view lives in the session only: a reload opens on the map, and a tile that loses its ground (erased, undone, the site cleared) sends the view back to the map on the next redraw. The plan is Ground's; the Board picks a level with `layersAt` and words the caption, the legend and the placeholder note.
+
+## What the city needs
+
+The card under the inspector lists what the layout lacks to keep its lines whole, in the order the Site proposes it, each with what it adds to the bill (a school or fields nearer home can cost less, since fewer people ride). Show marks the tiles a proposal touches; Add builds it, with any plant or ring proposed earlier that its line runs to; Add all builds every one. A whole city reads "The city needs nothing more to keep its lines whole." While the clock runs nothing is proposed, since an order is not built yet and proposing again would order it twice; stop the clock to see what the city needs. A full board says it has no room. The size line is never on the list: it waits on people (ADR-0006, 14 of 15).
 
 ## Money
 

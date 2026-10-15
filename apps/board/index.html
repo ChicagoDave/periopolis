@@ -167,6 +167,13 @@ p { margin: 0; }
 /* the rule book */
 .side { grid-area: side; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .stretch { grid-area: stretch; }
+.needlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.needlist .need { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; border-top: 1px solid var(--rule); padding-top: 6px; }
+.needlist .what { grid-column: 1; }
+.needlist .price { grid-column: 1; color: var(--ink-2); font-size: .85em; }
+.needlist .acts { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: 4px; align-items: start; }
+.needlist .noroom .what { color: var(--ink-2); }
+#addall { align-self: start; }
 .card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .quiet { font-size: .9rem; color: var(--ink-2); }
 .facts { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; margin: 0; font: 400 .88rem/1.35 var(--display); }
@@ -336,6 +343,12 @@ p { margin: 0; }
         </details>
       </section>
       <section class="card" id="inspector" aria-label="The tile you picked"></section>
+      <section class="card needs" id="needs" aria-labelledby="h-needs">
+        <h2 id="h-needs">What the city needs</h2>
+        <p class="quiet" id="needsnow"></p>
+        <button class="btn small" id="addall" type="button" hidden>Add all</button>
+        <ol class="needlist" id="needlist"></ol>
+      </section>
       <section class="card" id="workcard" aria-labelledby="h-work" hidden>
         <h2 id="h-work">Work in hand</h2>
         <p class="quiet" id="worknow"></p>

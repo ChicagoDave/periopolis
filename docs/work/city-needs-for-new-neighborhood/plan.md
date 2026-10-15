@@ -57,8 +57,8 @@ Why propose: the Site stays a pure function of the layout (ADR-0004: needs are f
 - **Deliverable**: wording entries for every Proposal case (Need wording landed in Phase 1; type checker proves coverage), panel and preview in `src/draw/*`/`page.ts`, Playwright flow: place a neighborhood, see the needs, add all, see the broken lines go ok and the tally return to 14 of 15, 1 to watch; wording and session tests.
 - **Exit state**: placing a neighborhood on the Board leads to a visible, acceptable list of what it needs; without accepting, the layout is exactly what the player drew.
 - **Demonstration**: `pnpm --filter @city/board test:e2e` green with the new flow; the built `dist/index.html` opened shows the panel after placing a neighborhood.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-14, session 51a736: `pnpm --filter @city/board test:e2e` 7 passed on the built `dist/index.html`, including the new flow: the starter's card says it needs nothing; a neighborhood at `2,0` shows one line, Show marks it, Add builds it and the tally returns to "14 of 15 hold, 1 to watch"; two more show 8 additions, Add all builds them back to 14 of 15, and Undo brings the 8 back. `pnpm -r test` green (ledger 76, site 122, ground 27, run 132, board 121), typecheck clean. Screenshots of the card in the running app checked by eye; a saving is worded "less" (a high school nearer home cuts rides). [verified: test row "76 passed 122 passed 27 passed 132 passed 121 passed 7 passed" 2026-10-15T00:24:39Z, after the last source edit (00:21:01Z); typecheck and screenshots reported by session, unverified]
+- **Status**: DONE
 
 ### Phase 4: A city sized to its people
 - **Tier**: Medium

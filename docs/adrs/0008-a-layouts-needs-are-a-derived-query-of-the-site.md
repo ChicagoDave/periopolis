@@ -24,8 +24,9 @@ David: "If I add a neighborhood, the planner should know what else the city need
 - Quantities are what the checks state: ring buildings and plant units by capacity, reactor modules for the peak with one down, schools as at least the unseated pupils over a school's cap. Schools and fields seated by distance rather than capacity are "at least one, near these"; where they go is the Proposal's question (plan Phase 2).
 - Placing on its own, if wanted later, is a Board setting, off by default, that calls the same accept path; it is not a change to the Site.
 - *Added 2026-10-14, Phase 2:* `proposeFor` proposes one need at a time and re-reads the needs after each, so knock-on needs (a new plant needs the line) follow the addition that causes them; `applyProposal` is the one accept path and runs only the ordinary commands. A proposal carries its price as the change in `costOf`'s build and run totals.
+- *Added 2026-10-14, Phase 3:* the Board's needs card words every proposal (`needText`, `proposalPrice`) and builds through `applyProposal` only with the clock stopped; while it runs, nothing is proposed, because an order is not yet in the layout and proposing again would order it twice. A proposal can lower the bill (a school nearer home means fewer rides), and the Board words that as less, never as a negative cost.
 - The starter layout and every existing command are untouched, so the sketch's paths and parity hold by construction.
 
 ## Session
 
-Session 51a736, 2026-10-14, Phases 1 and 2 of `docs/work/city-needs-for-new-neighborhood/plan.md`.
+Session 51a736, 2026-10-14, Phases 1 to 3 of `docs/work/city-needs-for-new-neighborhood/plan.md`.

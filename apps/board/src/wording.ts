@@ -3,14 +3,15 @@
  * Board builds a sentence from rule state. The sketch's sentences are the oracle; test/wording.test.ts holds them to it.
  * Public interface: SITE_NAME, PIECE_NAME, PIECE_MANY, STATUS, LEVEL_NAME, PLACEHOLDER_TEXT, LAYER_NAME, COST_ROW_NAME,
  * PREMISE_UNIT, linesLabel, checkTitle, checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText,
- * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText.
+ * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText, proposalPrice, needsNow,
+ * addedSaid.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
-import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
+import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, Proposal, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
 import type { Layer as MoneyLayer } from '@city/site';
 import type { Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
-import { cap, count, list, money, num, years } from './format.ts';
+import { cap, count, list, low, money, num, years } from './format.ts';
 
 /** The six layers of money (ADR-0007), named. */
 export const LAYER_NAME: Readonly<Record<MoneyLayer, string>> = {
@@ -410,6 +411,42 @@ export function needText(need: Need): string {
     case 'line':
       return `The mover line run to ${list(need.reach)}, on a line to the ring.`;
   }
+}
+
+/**
+ * What a proposal adds to the bill, or that the site has no room for it.
+ * @param p - one proposal from the Site's `proposeFor`
+ */
+export function proposalPrice(p: Proposal): string {
+  if (!p.room) return 'There is no room on the site for it.';
+  if (Math.abs(p.build) < 0.5 && Math.abs(p.run) < 0.5) return 'Inside floor already built; it costs nothing more.';
+  // A school or fields nearer home can save money: fewer rides, so a smaller fleet.
+  const part = (x: number, what: string): string => (x <= -0.5 ? `${money(-x)} less ${what}` : `${money(Math.max(0, x))} ${what}`);
+  return `${cap(part(p.build, 'to build'))}, ${part(p.run, 'a year to run')}.`;
+}
+
+/**
+ * The needs card's opening sentence.
+ * @param count - proposals there are room for
+ * @param running - whether the clock runs
+ * @param noRoom - whether the last need has no room on the site
+ */
+export function needsNow(count: number, running: boolean, noRoom: boolean): string {
+  if (running) return 'While the clock runs, the crews build what you order. Stop the clock to see what the city needs.';
+  if (!count && !noRoom) return 'The city needs nothing more to keep its lines whole.';
+  const lead = count ? `${count === 1 ? 'One addition keeps' : `${num(count)} additions keep`} the lines whole that building can mend.` : '';
+  const tail = noRoom ? `${lead ? ' ' : ''}The site has no room for the last of what it needs.` : ' Show marks where one goes; Add builds it.';
+  return lead + tail;
+}
+
+/**
+ * What the status line says when proposals are built.
+ * @param built - the proposals built, in order
+ */
+export function addedSaid(built: readonly Proposal[]): string {
+  const first = built[0];
+  if (built.length === 1 && first) return `Built: ${low(needText(first.need))}`;
+  return `Built ${count(built.length, 'addition', 'additions')}. Undo takes them back one click at a time.`;
 }
 
 /** A stretch test's label. */

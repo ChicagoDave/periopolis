@@ -12,6 +12,7 @@ import { describe, drawBoard } from './draw/board.ts';
 import { drawClock, drawWork, yearLine } from './draw/clock.ts';
 import { drawInspector } from './draw/inspector.ts';
 import { drawMoney } from './draw/money.ts';
+import { drawNeeds } from './draw/needs.ts';
 import { drawRules, drawTests } from './draw/rules.ts';
 import { drawScore } from './draw/score.ts';
 import { buildTray, drawTray } from './draw/tray.ts';
@@ -57,6 +58,7 @@ function start(data: { game?: unknown }): void {
       drawScore(page);
       drawClock(page);
       drawInspector(page);
+      drawNeeds(page);
       drawWork(page);
       drawRules(page);
       drawTests(page);

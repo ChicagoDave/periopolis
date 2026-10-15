@@ -272,3 +272,31 @@ test("a tile's ground: the drawn homes, entries and ring buildings are the Groun
   await expect(page.locator('#viewbar')).toBeHidden();
   await expect(page.locator('#board .tile.ring')).toHaveCount(1);
 });
+
+test('a placed neighborhood shows what the city needs, and Add all builds it back to 14 of 15 (ADR-0008)', async ({ page }) => {
+  await expect(page.locator('#needsnow')).toHaveText('The city needs nothing more to keep its lines whole.');
+  await expect(page.locator('#needlist li')).toHaveCount(0);
+  await place(page, 'hood', ['2,0']);
+  await expect(page.locator('#tally')).toContainText('broken');
+  await expect(page.locator('#needlist li')).toHaveCount(1);
+  await expect(page.locator('#needlist li .what')).toHaveText('The mover line run to 2,0, on a line to the ring.');
+  await expect(page.locator('#addall')).toBeHidden();
+  // Show marks the tiles a proposal touches, without building anything.
+  await page.locator('#needlist li').first().getByRole('button', { name: 'Show' }).click();
+  await expect(page.locator('#tally')).toContainText('broken');
+  await page.locator('#needlist li').first().getByRole('button', { name: 'Add' }).click();
+  await expect(page.locator('#said')).toHaveText('Built: the mover line run to 2,0, on a line to the ring.');
+  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#needlist li')).toHaveCount(0);
+  // Two more neighborhoods: now the ring, the plants, the schools and the fields fall short as well.
+  await place(page, 'hood', ['-3,0', '0,2']);
+  await expect(page.locator('#needlist li')).toHaveCount(8);
+  await expect(page.locator('#addall')).toBeVisible();
+  await page.click('#addall');
+  await expect(page.locator('#said')).toHaveText('Built 8 additions. Undo takes them back one click at a time.');
+  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#needsnow')).toHaveText('The city needs nothing more to keep its lines whole.');
+  // Undo takes the additions back together, as one move.
+  await page.click('#undo');
+  await expect(page.locator('#needlist li')).toHaveCount(8);
+});
