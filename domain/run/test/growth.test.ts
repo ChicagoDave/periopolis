@@ -144,10 +144,13 @@ describe('the month clock', () => {
     expect(sum(monthsIn(g, 20), (m) => m.left)).toBeCloseTo(50000 * 0.087 * 0.5, 2);
   });
 
-  it('while a neighborhood fills, it is too empty to keep its daily list; full, it is fed', () => {
+  it('while a neighborhood fills, its daily list is a watch, not a break; full, it is fed', () => {
     const g = yearsOf(foundSized(42), 20);
     const row = (year: number) => g.clock?.record.find((r) => r.year === year);
-    expect(row(10)?.broken).toContain('daily');
+    for (let year = 8; year <= 15; year++) {
+      expect(row(year)?.broken).not.toContain('daily');
+      expect(row(year)?.warn).toBeGreaterThanOrEqual(1);
+    }
     expect(row(20)?.broken).not.toContain('daily');
     expect(row(20)?.bad).toBe(0);
   });

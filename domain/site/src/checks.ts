@@ -32,6 +32,8 @@ export type Facts =
   /** pop1 is the fewest people in any neighborhood; uneven when the neighborhoods do not all hold the same (ADR-0009). */
   | { readonly check: 'daily'; readonly case: 'short'; readonly pop1: number; readonly uneven: boolean; readonly short: readonly string[] }
   | { readonly check: 'daily'; readonly case: 'fed'; readonly pop1: number; readonly uneven: boolean; readonly hungriest: number }
+  /** Short only in neighborhoods still filling: a watch, not a break (ADR-0009). pop1 is the emptiest of them. */
+  | { readonly check: 'daily'; readonly case: 'filling'; readonly pop1: number; readonly count: number; readonly short: readonly string[] }
   | { readonly check: 'size'; readonly case: 'idle'; readonly urgent: number; readonly fine: number }
   | { readonly check: 'size'; readonly case: 'underUrgent'; readonly urgent: number; readonly fine: number; readonly pop: number }
   | { readonly check: 'size'; readonly case: 'underFine'; readonly fine: number; readonly pop: number }

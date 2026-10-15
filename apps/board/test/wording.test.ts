@@ -127,7 +127,8 @@ describe('the daily list in a city still filling (ADR-0009)', () => {
     const a = assess(starterLayout(), RATES, { occupied: { '1,0': 400 } });
     const daily = a.checks.find((c) => c.id === 'daily');
     if (!daily) throw new Error('no daily check');
-    expect(checkDetail(daily.facts, RATES)).toBe("With 400 people in the emptiest neighborhood, the bakery, the butcher, the cafés and the doctor's office run short of customers.");
+    expect(daily.status).toBe('warn');
+    expect(checkDetail(daily.facts, RATES)).toBe("1 neighborhood is still filling; with 400 people in the emptiest, the bakery, the butcher, the cafés and the doctor's office wait for customers as people move in.");
     const fed = assess(starterLayout(), RATES, { occupied: { '1,0': 4500 } }).checks.find((c) => c.id === 'daily');
     if (!fed) throw new Error('no daily check');
     expect(checkDetail(fed.facts, RATES)).toBe("The emptiest neighborhood has 4,500 people. Its hungriest need, the doctor's office, wants 4,000.");

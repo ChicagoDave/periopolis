@@ -49,15 +49,26 @@ describe('the checks under a population', () => {
     }
   });
 
-  it('a neighborhood of 400 cannot feed its doctor\'s office, and only that neighborhood is marked', () => {
+  it('a neighborhood of 400 still filling is a watch on its daily list, not a break, and only it is marked', () => {
     const a = assess(starterLayout(), RATES, { occupied: { '1,0': 400 } });
     const daily = a.checks.find((c) => c.id === 'daily');
-    expect(daily?.status).toBe('bad');
+    expect(daily?.status).toBe('warn');
     expect(daily?.tiles).toEqual(['1,0']);
-    expect(daily?.facts.check === 'daily' && daily.facts.case === 'short' ? daily.facts.pop1 : null).toBe(400);
+    expect(daily?.facts).toEqual({ check: 'daily', case: 'filling', pop1: 400, count: 1, short: ['bakery', 'butcher', 'dining', 'doctor'] });
+    expect(a.per['1,0']?.level).toBe('warn');
     expect(a.per['1,0']?.issues.some((i) => i.kind === 'dailyShort')).toBe(true);
     expect(a.per['0,1']?.issues.some((i) => i.kind === 'dailyShort')).toBe(false);
     expect(a.score.pop).toBe(45400);
+  });
+
+  it('a full neighborhood emptied by a deep slump is short and broken; a filling one beside it is only watched', () => {
+    const a = assessCore(starterLayout(), { people: -0.5, children: 0 }, RATES, { '1,0': 400 });
+    const daily = a.checks.find((c) => c.id === 'daily');
+    expect(daily?.status).toBe('bad');
+    expect(daily?.facts.check === 'daily' ? daily.facts.case : null).toBe('short');
+    expect(daily?.tiles).not.toContain('1,0');
+    expect(daily?.tiles).toHaveLength(9);
+    expect(a.per['1,0']?.level).toBe('warn');
   });
 
   it('an empty neighborhood sends no pupils and no trips', () => {

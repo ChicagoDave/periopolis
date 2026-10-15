@@ -76,10 +76,13 @@ export function assessCore(
   // A full neighborhood this year; each neighborhood holds its own occupants, a full one when none are given.
   const pop1 = rates.hood * (1 + stress.people);
   const people: Record<TileKey, number> = {};
+  // A neighborhood still filling holds fewer people than its homes; its shops open as people arrive (ADR-0009).
+  const filling: Record<TileKey, true> = {};
   for (const h of hoods) {
     const o = occupied[h] ?? rates.hood;
     if (!(o >= 0)) throw new RangeError(`occupancy of ${h} must be zero or more, not ${o}`);
     people[h] = o * (1 + stress.people);
+    if (o < rates.hood - TINY) filling[h] = true;
   }
   const occ = (h: TileKey): number => people[h] ?? 0;
   const pop = hoods.reduce((t, h) => t + occ(h), 0);
@@ -117,11 +120,21 @@ export function assessCore(
     const hungriest = daily.reduce((a, x) => Math.max(a, x.people), 0);
     if (!some) check('daily', [3, 13, 14], 'idle', { check: 'daily', case: 'idle', hood: rates.hood });
     else {
-      const short = daily.filter((x) => x.people > least + TINY).map((x) => x.id);
-      if (short.length) {
-        const thin = hoods.filter((h) => daily.some((x) => x.people > occ(h) + TINY));
-        for (const h of thin) flag(h, 'bad', { kind: 'dailyShort', needs: daily.filter((x) => x.people > occ(h) + TINY).map((x) => x.id) });
-        check('daily', [3, 13, 14], 'bad', { check: 'daily', case: 'short', pop1: least, uneven, short }, thin);
+      const shortOf = (h: TileKey): string[] => daily.filter((x) => x.people > occ(h) + TINY).map((x) => x.id);
+      const thin = hoods.filter((h) => shortOf(h).length > 0);
+      // Short in a neighborhood whose homes are full is broken; short only where homes still stand empty is a watch.
+      const starved = thin.filter((h) => !filling[h]);
+      const waiting = thin.filter((h) => filling[h]);
+      for (const h of starved) flag(h, 'bad', { kind: 'dailyShort', needs: shortOf(h) });
+      for (const h of waiting) flag(h, 'warn', { kind: 'dailyShort', needs: shortOf(h) });
+      if (starved.length) {
+        const fewest = Math.min(...starved.map(occ));
+        const short = daily.filter((x) => x.people > fewest + TINY).map((x) => x.id);
+        check('daily', [3, 13, 14], 'bad', { check: 'daily', case: 'short', pop1: fewest, uneven, short }, starved);
+      } else if (waiting.length) {
+        const fewest = Math.min(...waiting.map(occ));
+        const short = daily.filter((x) => x.people > fewest + TINY).map((x) => x.id);
+        check('daily', [3, 13, 14], 'warn', { check: 'daily', case: 'filling', pop1: fewest, count: waiting.length, short }, waiting);
       } else check('daily', [3, 13, 14], 'ok', { check: 'daily', case: 'fed', pop1: least, uneven, hungriest });
     }
   }

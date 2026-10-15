@@ -77,7 +77,7 @@
 - **Exit state**: For any month's population the day view returns 24 hours whose totals reconcile with the Site's daily and peak checks.
 - **Demonstration**: Test output showing the 24-hour series for the sized city, with sum equal to the Site's daily trips and max equal to peak power; suite green.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: CURRENT (since 2026-10-14)
 
 ### Phase 6: The Board words population and the day
 - **Tier**: Medium

@@ -286,6 +286,10 @@ export function checkDetail(facts: Facts, rates: SiteRates): string {
   switch (facts.check) {
     case 'daily':
       if (facts.case === 'idle') return `Place a neighborhood to begin. Each is ${num(facts.hood)} people with its own bakery, butcher, cafés, library, doctor and park.`;
+      if (facts.case === 'filling') {
+        const text = list(facts.short.map((id) => DAILY[id] ?? id));
+        return `${count(facts.count, 'neighborhood is', 'neighborhoods are')} still filling; with ${num(facts.pop1)} people in the emptiest, ${text}${facts.short.length > 1 ? ' wait' : ' waits'} for customers as people move in.`;
+      }
       if (facts.case === 'short') {
         const text = list(facts.short.map((id) => DAILY[id] ?? id));
         return `With ${num(facts.pop1)} people in ${facts.uneven ? 'the emptiest neighborhood' : 'a neighborhood'}, ${text}${facts.short.length > 1 ? ' run' : ' runs'} short of customers.`;
