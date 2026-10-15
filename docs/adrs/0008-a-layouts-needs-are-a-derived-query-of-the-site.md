@@ -7,7 +7,7 @@
 
 ## Context
 
-David: "If I add a neighborhood, the planner should know what else the city needs to enable that neighborhood." The fifteen line checks already say what is broken after a placement and mark the tiles, but not how much is missing or what would mend it. The plan (`docs/work/city-needs-for-new-neighborhood/plan.md`) asked two things: where the arithmetic of a need lives, and how the city acts on one, by placing it on its own, proposing it for one-click acceptance, or only listing it.
+David: "If I add a neighborhood, the planner should know what else the city needs to enable that neighborhood." The fifteen line checks already say what is broken after a placement and mark the tiles, but not how much is missing or what would mend it. The plan (`docs/work/archive/city-needs-for-new-neighborhood/plan.md`) asked two things: where the arithmetic of a need lives, and how the city acts on one, by placing it on its own, proposing it for one-click acceptance, or only listing it.
 
 ## Decision
 
@@ -30,4 +30,4 @@ David: "If I add a neighborhood, the planner should know what else the city need
 
 ## Session
 
-Session 51a736, 2026-10-14, Phases 1 to 4 of `docs/work/city-needs-for-new-neighborhood/plan.md`.
+Session 51a736, 2026-10-14, Phases 1 to 4 of `docs/work/archive/city-needs-for-new-neighborhood/plan.md`.

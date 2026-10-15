@@ -1,7 +1,7 @@
 # Session Plan: When a neighborhood is added, the city works out what else it needs
 
 **Created**: 2026-10-14
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Given a layout, the Site derives what the city now lacks to keep the 15 lines whole (school seats, ring room, reactor modules, plant units, mover line reach, playing fields) and where each addition could go; the Board shows it and, per the open decision below, lets David accept it. Includes a city sized to its people (the opening 50,000 city's ring, reactors and plants).
 **Bounded contexts touched**: Site (needs and placement, new commands/events/facts), Ledger (only if a sizing figure is missing; added there first), Board (wording, panel, click-through). Not Run, not Ground.
 **Key domain language**: Need (what the layout lacks, typed fact), Proposal (a need with a chosen tile, not yet built), Neighborhood, Ring, Plant, Stretch, Line check, Facts.
