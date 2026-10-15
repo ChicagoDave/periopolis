@@ -56,7 +56,7 @@
 - **Exit state**: A first-time visitor can tell in one screen what is being shown, that every figure carries a mark, and exactly where to send a written reply; published at periopolis.city via Phase 1's path.
 - **Demonstration**: Load the live site in a clean browser profile (Playwright, no stored game) and assert the panel text and the reply address are on screen; wording tests and `pnpm -r test` green.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: CURRENT (since 2026-10-15)
 
 ### Phase 3: Reviewer intake and first outreach
 - **Tier**: Small

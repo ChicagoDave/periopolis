@@ -176,6 +176,7 @@ p { margin: 0; }
 #addall { align-self: start; }
 .card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .quiet { font-size: .9rem; color: var(--ink-2); }
+.about p { margin: 0; max-width: 84ch; line-height: 1.45; }
 .facts { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; margin: 0; font: 400 .88rem/1.35 var(--display); }
 .facts dt { color: var(--ink-2); }
 .facts dt.sub { padding-left: .9rem; }
@@ -302,6 +303,13 @@ p { margin: 0; }
       <p>Lay your city out on the site and your lines are checked against the map. First test: take it to 100,000 people with every line and all four stretches holding. Second: found a city from nothing and keep it whole for 20 years.</p>
     </div>
   </header>
+
+  <section class="card about" id="about" aria-labelledby="h-about">
+    <h2 id="h-about">What this is, and how to review it</h2>
+    <p>Periopolis works a city out from premises without the private car: nobody drives or parks inside it, daily needs are a walk away, and longer trips ride shared movers on a line. The same arithmetic is run for a car city of the same size, so every result can be checked against cities that exist. The claim is that such a city can be planned, built, filled and powered, and the Board shows where that claim still rests on a guess.</p>
+    <p>Every figure carries a mark. <span class="chip mark sourced accepted">Sourced</span> has an outside citation with its source and year. <span class="chip mark yours">Yours</span> is a design choice, from the numbered lines. <span class="chip mark mine">Mine</span> is a placeholder nobody stands behind yet: those are the gaps.</p>
+    <p>The source, the premises and every decision are at <a href="https://github.com/ChicagoDave/periopolis">github.com/ChicagoDave/periopolis</a>. To review it, <a id="review-link" href="https://github.com/ChicagoDave/periopolis/issues/new?template=review.yml">open a review issue</a>: say what you do, what holds, what does not, and anything the model cannot answer. <em>Copy the city as text</em>, under the map, puts a city you changed into your reply.</p>
+  </section>
 
   <dl class="score" id="score" aria-label="Your city against a car city of the same size"></dl>
 

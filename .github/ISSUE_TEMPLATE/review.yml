@@ -1,0 +1,35 @@
+# A practitioner's review of the published Board (objective O-2). The label is applied by the template, so it holds for
+# anyone filing, not only the repository's collaborators.
+name: Review the Board
+description: You work in city planning or development and have looked at periopolis.city. Tell us what holds and what does not.
+title: "Review: "
+labels: [question]
+body:
+  - type: input
+    id: role
+    attributes:
+      label: What you do
+      description: Your role in city planning or development, e.g. transportation planner, developer, city engineer.
+    validations:
+      required: true
+  - type: textarea
+    id: holds
+    attributes:
+      label: What holds
+      description: What in the Board reads as achievable to you, and why.
+  - type: textarea
+    id: fails
+    attributes:
+      label: What does not hold
+      description: Figures, premises or results you think are wrong, with your reason or a source if you have one.
+  - type: textarea
+    id: gaps
+    attributes:
+      label: What the model cannot answer
+      description: Questions a city like this would face that the Board does not address at all.
+  - type: textarea
+    id: city
+    attributes:
+      label: Your city (optional)
+      description: If you changed the city, press "Copy the city as text" under the map and paste it here.
+      render: text

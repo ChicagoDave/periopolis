@@ -1,5 +1,5 @@
 /**
- * @file The Board's flows in a browser, on the built page: the opening city, two far neighborhoods, a founding run
+ * @file The Board's flows in a browser, on the built page: the front door, the opening city, two far neighborhoods, a founding run
  * through year 3, the ledger's city run to year 20, undo and storage, a tile's ground zoomed into at both levels, what
  * the city needs, the city sized to its people, and a city founded month by month with its day hour by hour.
  * Owner context: Board (adapter), tests.
@@ -34,6 +34,16 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async ({ page }) => {
   expect((page as Page & { problems?: string[] }).problems ?? []).toEqual([]);
+});
+
+test('a first-time visitor sees what the Board claims, the three marks, the source and where to send a review', async ({ page }) => {
+  const about = page.locator('#about');
+  await expect(about.locator('h2')).toHaveText('What this is, and how to review it');
+  await expect(about).toContainText('The claim is that such a city can be planned, built, filled and powered');
+  await expect(about.locator('.chip.mark')).toHaveText(['Sourced', 'Yours', 'Mine']);
+  await expect(about.locator('a[href="https://github.com/ChicagoDave/periopolis"]')).toBeVisible();
+  await expect(page.locator('#review-link')).toHaveAttribute('href', 'https://github.com/ChicagoDave/periopolis/issues/new?template=review.yml');
+  await expect(page.locator('#review-link')).toBeInViewport();
 });
 
 test("the opening city holds 14 of 15 lines, and a stretch test can be shown", async ({ page }) => {
