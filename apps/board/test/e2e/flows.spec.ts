@@ -300,3 +300,15 @@ test('a placed neighborhood shows what the city needs, and Add all builds it bac
   await page.click('#undo');
   await expect(page.locator('#needlist li')).toHaveCount(8);
 });
+
+test('the ledger\'s city sized to its people: one ring building and one reactor module fewer, every line still holding, and cheaper', async ({ page }) => {
+  await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
+  await page.click('#sized');
+  await expect(page.locator('#said')).toHaveText("The ledger's city sized to its 50,000 people: 7 ring buildings and 2 reactor modules, one of each fewer, and every line it held still holds. Undo brings yours back.");
+  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#moneynow')).toContainText('$12.2 B to build');
+  await expect(page.locator('#moneynow')).toContainText('$243,852 a person');
+  await expect(page.locator('#needsnow')).toHaveText('The city needs nothing more to keep its lines whole.');
+  await page.click('#undo');
+  await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
+});

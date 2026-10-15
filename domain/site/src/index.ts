@@ -2,7 +2,7 @@
  * @file The Site. A board of hexagonal tiles inside an outline, where the city is laid out; commands that lay it out; the fifteen line
  * checks and the four stretch tests against the layout.
  * Public interface: the layout and its commands, assess, the rates, the board geometry, seating, the line network,
- * what a layout needs to keep its lines whole and where each need could go, and the cost of what stands (with the Ledger's cost names re-exported, so the Run depends on the Site alone).
+ * what a layout needs to keep its lines whole and where each need could go, a city sized to its people, and the cost of what stands (with the Ledger's cost names re-exported, so the Run depends on the Site alone).
  * Owner context: Site (domain). Depends on @city/ledger alone.
  */
 export { costOf } from './cost.ts';
@@ -26,6 +26,7 @@ export { NEED_CHECKS, needsOf } from './needs.ts';
 export type { Need } from './needs.ts';
 export { proposeFor, applyProposal } from './propose.ts';
 export type { Step, Proposal } from './propose.ts';
+export { sizedTo, sizedLayout } from './sized.ts';
 export { assess, bandTests } from './stretch.ts';
 export type { TestId, Given, StretchTest, Assessment, AssessOptions } from './stretch.ts';
 export { NO_STRESS } from './checks.ts';

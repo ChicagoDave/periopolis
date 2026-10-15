@@ -24,6 +24,10 @@ The page's HTML and styles are the sketch's two halves, plus the view bar and th
 
 "Look closer" in the inspector, on a neighborhood or a ring, shows that tile's ground in place of the map; the tile map is the zoomed-out view and does not change. The view bar names the tile, switches between the surface and the sub level, and goes back. The view lives in the session only: a reload opens on the map, and a tile that loses its ground (erased, undone, the site cleared) sends the view back to the map on the next redraw. The plan is Ground's; the Board picks a level with `layersAt` and words the caption, the legend and the placeholder note.
 
+## Opening cities
+
+"Load the ledger's city" puts the sketch's 50,000 on the board; "Load it sized to its people" puts the same city with every ring building and reactor module it does not need taken away (`sizedLayout`, ADR-0008): 12.2 billion to build against 13.4. Either stops the clock, and Undo brings the old city back.
+
 ## What the city needs
 
 The card under the inspector lists what the layout lacks to keep its lines whole, in the order the Site proposes it, each with what it adds to the bill (a school or fields nearer home can cost less, since fewer people ride). Show marks the tiles a proposal touches; Add builds it, with any plant or ring proposed earlier that its line runs to; Add all builds every one. A whole city reads "The city needs nothing more to keep its lines whole." While the clock runs nothing is proposed, since an order is not built yet and proposing again would order it twice; stop the clock to see what the city needs. A full board says it has no room. The size line is never on the list: it waits on people (ADR-0006, 14 of 15).

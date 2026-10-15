@@ -5,7 +5,7 @@
  * Owner context: Site (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
-import { COSTS, LAYERS, RATES, assess, costOf, emptyLayout, kindOf, layStretch, placeNeighborhood, starterLayout } from '../src/index.ts';
+import { COSTS, LAYERS, RATES, assess, costOf, emptyLayout, kindOf, layStretch, placeNeighborhood, sizedLayout, starterLayout } from '../src/index.ts';
 import type { CostId, CostPremises, CostRow, Layout, SiteCost } from '../src/index.ts';
 
 function priced(layout: Layout, k?: CostPremises): SiteCost {
@@ -195,5 +195,24 @@ describe('the standing city against the ledger’s column (loose by design)', ()
     expect(starter.capitalTotal).toBeLessThan(ledger.capitalTotal * 1.5);
     expect(starter.runningTotal).toBeGreaterThan(ledger.runningTotal * 0.8);
     expect(starter.runningTotal).toBeLessThan(ledger.runningTotal * 1.3);
+  });
+});
+
+describe('a city sized to its people costs less a person than the ledger\'s city on the board', () => {
+  // Pinned as a check on the premises, not as truth (ADR-0007 Consequences, amended 2026-10-14).
+  it('to build: about 243,900 a person against the starter\'s 267,100 and the car city\'s 261,800', () => {
+    const sized = priced(sizedLayout(RATES));
+    const car = assess(starterLayout(), RATES).score.car?.cost;
+    if (!car) throw new Error('no car city');
+    expect(starter.capitalPerPerson).toBeCloseTo(267052, -1);
+    expect(sized.capitalPerPerson).toBeCloseTo(243852, -1);
+    expect(car.capitalTotal / 50000).toBeCloseTo(261845, -1);
+    expect(sized.capitalPerPerson).toBeLessThan(car.capitalTotal / 50000);
+  });
+
+  it('to run: about 15,400 a person against the starter\'s 15,900', () => {
+    const sized = priced(sizedLayout(RATES));
+    expect(starter.runningPerPerson).toBeCloseTo(15872, -1);
+    expect(sized.runningPerPerson).toBeCloseTo(15408, -1);
   });
 });

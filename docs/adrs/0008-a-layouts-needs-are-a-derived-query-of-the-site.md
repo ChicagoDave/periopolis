@@ -25,8 +25,9 @@ David: "If I add a neighborhood, the planner should know what else the city need
 - Placing on its own, if wanted later, is a Board setting, off by default, that calls the same accept path; it is not a change to the Site.
 - *Added 2026-10-14, Phase 2:* `proposeFor` proposes one need at a time and re-reads the needs after each, so knock-on needs (a new plant needs the line) follow the addition that causes them; `applyProposal` is the one accept path and runs only the ordinary commands. A proposal carries its price as the change in `costOf`'s build and run totals.
 - *Added 2026-10-14, Phase 3:* the Board's needs card words every proposal (`needText`, `proposalPrice`) and builds through `applyProposal` only with the clock stopped; while it runs, nothing is proposed, because an order is not yet in the layout and proposing again would order it twice. A proposal can lower the bill (a school nearer home means fewer rides), and the Board words that as less, never as a negative cost.
+- *Added 2026-10-14, Phase 4:* `sizedTo` trims a layout that needs nothing, one ring building or plant unit at a time through `erase`, keeping a removal only while nothing is needed and no line that held breaks; `sizedLayout` is the starter so trimmed, offered on the Board beside it. The starter stays the sketch's (ADR-0003).
 - The starter layout and every existing command are untouched, so the sketch's paths and parity hold by construction.
 
 ## Session
 
-Session 51a736, 2026-10-14, Phases 1 to 3 of `docs/work/city-needs-for-new-neighborhood/plan.md`.
+Session 51a736, 2026-10-14, Phases 1 to 4 of `docs/work/city-needs-for-new-neighborhood/plan.md`.

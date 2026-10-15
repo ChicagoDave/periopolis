@@ -5,7 +5,7 @@
  */
 import { RULES, startRun, stopRun, tick } from '@city/run';
 import type { Game } from '@city/run';
-import { RATES, allTiles, emptyLayout, starterLayout, tileAt, tileKey } from '@city/site';
+import { RATES, allTiles, emptyLayout, sizedLayout, starterLayout, tileAt, tileKey } from '@city/site';
 import type { TileKey } from '@city/site';
 import { byId } from './dom.ts';
 import { describe, drawBoard } from './draw/board.ts';
@@ -157,6 +157,15 @@ function start(data: { game?: unknown }): void {
     s.picked = null;
     s.showing = null;
     page.swap({ layout: starterLayout(), clock: null }, `The ledger's city of 50,000 is on the board${running ? ', and the clock is stopped' : ''}. Undo brings yours back.`);
+  });
+  byId('sized').addEventListener('click', () => {
+    const running = Boolean(s.game.clock);
+    s.picked = null;
+    s.showing = null;
+    page.swap(
+      { layout: sizedLayout(RATES), clock: null },
+      `The ledger's city sized to its 50,000 people: 7 ring buildings and 2 reactor modules, one of each fewer, and every line it held still holds${running ? '. The clock is stopped' : ''}. Undo brings yours back.`,
+    );
   });
   byId('clear').addEventListener('click', () => {
     const running = Boolean(s.game.clock);
