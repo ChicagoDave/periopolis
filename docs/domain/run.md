@@ -25,7 +25,7 @@
 | Record | One row a year: people, homes, lines held, watched and broken, which broke, what opened, what stands costs, and what the year spent. | Mine |
 | Line-year | One line broken for one year, summed over years 1 on. Year 0 is noted and does not count. | Mine |
 | Standing | What stands costs at the end of a year, by layer, from the Site's cost of what stands under that year's stress: the three built layers as the capital standing, the three yearly ones as the year's bill. | Mine |
-| Spend | The year's outlay by layer (ADR-0007 Decision 6). To build is paid as things finish: a built layer's spend is what stands at the end of the year less what stood a year before, so a piece taken down, or a fleet that shrinks with the people, comes off that year's spend. To run is paid every year: a yearly layer's spend is the year's bill. Year 0 spends nothing; what already stood was paid before the clock started. `totalSpend` sums the record by layer, by year and in all, years 1 on. | Mine |
+| Spend | The year's outlay by layer (ADR-0007 Decisions 6 and 14). To build is paid as things finish: a built layer's spend is what stands at the end of the year less what stood a year before, so a piece taken down, or a fleet that shrinks with the people, comes off that year's spend. To run is paid every year: a yearly layer's spend is the year's bill. Year 0 spends nothing; what already stood was paid before the clock started. `totalSpend` sums the record by layer, by year and in all, years 1 on. | Yours |
 
 ## The year
 

@@ -3,13 +3,13 @@
  * Owner context: Board (adapter), tests.
  */
 import { describe, expect, it } from 'vitest';
-import { RATES, assess } from '@city/site';
+import { RATES, assess, emptyLayout, needsOf, placeNeighborhood, starterLayout } from '@city/site';
 import type { Layout, Stress, TestId, TileKey } from '@city/site';
 import { RULES, notices, startRun, tick } from '@city/run';
 import type { Game } from '@city/run';
 import { move } from '../src/moves.ts';
 import type { ToolId } from '../src/wording.ts';
-import { checkDetail, checkTitle, issueText, linesLabel, noticeText, testLabel } from '../src/wording.ts';
+import { checkDetail, checkTitle, issueText, linesLabel, needText, noticeText, testLabel } from '../src/wording.ts';
 import siteRecorded from '../../../domain/site/test/fixtures/parity.json';
 import runRecorded from '../../../domain/run/test/fixtures/parity.json';
 
@@ -92,4 +92,32 @@ describe('notices, worded', () => {
       expect(years).toEqual(r.yearly.map((y) => y.notices.map((n) => n.text)));
     });
   }
+});
+
+describe('what the city needs, worded', () => {
+  const placed = (layout: Layout, keys: readonly TileKey[]): Layout =>
+    keys.reduce((s, k) => {
+      const o = placeNeighborhood(s, k, RATES);
+      if (!o.ok) throw new Error(o.rejection.reason);
+      return o.layout;
+    }, layout);
+
+  it('words every need of thirteen neighborhoods, one line each', () => {
+    const needs = needsOf(placed(starterLayout(), ['2,0', '-3,0', '0,2']), RATES);
+    expect(needs.map(needText)).toEqual([
+      '1 more building on the ring at 0,0.',
+      '1 more water plant unit.',
+      '1 more sewage plant unit.',
+      '1 more waste works unit.',
+      '1 more elementary school near 2,0, for 180 pupils with no seat.',
+      '1 more high school near 0,2, for 120 pupils with no seat.',
+      'Playing fields near 0,2.',
+      'The mover line run to 2,0, -3,0 and 0,2, on a line to the ring.',
+    ]);
+  });
+
+  it('words a lone neighborhood\'s ring and reactor modules', () => {
+    const needs = needsOf(placed(emptyLayout(), ['0,0']), RATES);
+    expect(needs.slice(0, 2).map(needText)).toEqual(['A ring of 1 building for the offices and halls.', '2 more reactor modules, to carry the peak with one down for fuel.']);
+  });
 });

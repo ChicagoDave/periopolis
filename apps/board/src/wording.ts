@@ -3,11 +3,11 @@
  * Board builds a sentence from rule state. The sketch's sentences are the oracle; test/wording.test.ts holds them to it.
  * Public interface: SITE_NAME, PIECE_NAME, PIECE_MANY, STATUS, LEVEL_NAME, PLACEHOLDER_TEXT, LAYER_NAME, COST_ROW_NAME,
  * PREMISE_UNIT, linesLabel, checkTitle, checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText,
- * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText.
+ * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
-import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Outcome, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
+import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
 import type { Layer as MoneyLayer } from '@city/site';
 import type { Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
 import { cap, count, list, money, num, years } from './format.ts';
@@ -383,6 +383,32 @@ export function issueText(issue: TileIssue): string {
       return 'Trips to it are past the walk, and no mover runs here';
     case 'plantOffLine':
       return 'Not on the mover line, so nothing can reach it below ground';
+  }
+}
+
+/**
+ * What the city needs to keep its lines whole, as the needs list words it: one line per thing to build.
+ * @param need - one need from the Site's `needsOf`
+ * @returns the sentence
+ */
+export function needText(need: Need): string {
+  switch (need.need) {
+    case 'ring':
+      return `A ring of ${count(need.buildings, 'building', 'buildings')} for the offices and halls.`;
+    case 'ringBuildings':
+      return `${cap(count(need.add, 'more building', 'more buildings'))} on the ring at ${need.tile}.`;
+    case 'modules':
+      return `${cap(count(need.add, 'more reactor module', 'more reactor modules'))}, to carry the peak with one down for fuel.`;
+    case 'plantUnits':
+      return `${cap(count(need.add, `more ${PLANT_NOUN[need.plant]} unit`, `more ${PLANT_NOUN[need.plant]} units`))}.`;
+    case 'schools': {
+      const noun = SITE_NAME[need.school].toLowerCase();
+      return `${cap(count(need.add, `more ${noun}`, `more ${noun}s`))} near ${list(need.near)}, for ${num(need.pupils)} pupils with no seat.`;
+    }
+    case 'fields':
+      return `Playing fields near ${list(need.near)}.`;
+    case 'line':
+      return `The mover line run to ${list(need.reach)}, on a line to the ring.`;
   }
 }
 
