@@ -3,13 +3,14 @@
  * Public interface: none; it runs on load.
  * Owner context: Board (adapter).
  */
-import { RULES, startRun, stopRun, tick } from '@city/run';
+import { RULES, startRun, stopRun, tick, tickMonth } from '@city/run';
 import type { Game } from '@city/run';
 import { RATES, allTiles, emptyLayout, sizedLayout, starterLayout, tileAt, tileKey } from '@city/site';
 import type { TileKey } from '@city/site';
 import { byId } from './dom.ts';
 import { describe, drawBoard } from './draw/board.ts';
 import { drawClock, drawWork, yearLine } from './draw/clock.ts';
+import { drawDay } from './draw/day.ts';
 import { drawInspector } from './draw/inspector.ts';
 import { drawMoney } from './draw/money.ts';
 import { drawNeeds } from './draw/needs.ts';
@@ -23,6 +24,7 @@ import type { Page } from './page.ts';
 import { newSession } from './session.ts';
 import { browserStore, restoreGame } from './storage.ts';
 import type { SavedGame } from './storage.ts';
+import { monthLine } from './wording.ts';
 import type { ToolId } from './wording.ts';
 
 const KEY = 'future-city-builder-v1';
@@ -62,6 +64,7 @@ function start(data: { game?: unknown }): void {
       drawWork(page);
       drawRules(page);
       drawTests(page);
+      drawDay(page);
       drawMoney(page);
       byId<HTMLButtonElement>('undo').disabled = s.history.length === 0;
     },
@@ -189,12 +192,21 @@ function start(data: { game?: unknown }): void {
     page.say('Back to today.');
     page.render();
   });
+  // Whether a run starts with the month clock (ADR-0009): people arrive month by month into finished homes.
+  const monthly = (): boolean => byId<HTMLInputElement>('monthly').checked;
+  const byMonth = (): string => (monthly() ? ' People arrive month by month; Next month steps one.' : '');
   byId('run').addEventListener('click', () =>
-    page.swap(startRun(s.game.layout, seed(), RATES, RULES), `The clock is running on this city: year 0 of ${RULES.years}. What you place now is an order for the ${RULES.crews} crews. Press Next year when your orders are in.`),
+    page.swap(
+      startRun(s.game.layout, seed(), RATES, RULES, { growth: monthly() }),
+      `The clock is running on this city: year 0 of ${RULES.years}. What you place now is an order for the ${RULES.crews} crews. Press Next year when your orders are in.${byMonth()}`,
+    ),
   );
   byId('found').addEventListener('click', () => {
     s.picked = null;
-    page.swap(startRun(emptyLayout(), seed(), RATES, RULES), `An empty site, year 0, ${RULES.crews} crews. Place your first orders, then press Next year. Undo brings the old city back.`);
+    page.swap(
+      startRun(emptyLayout(), seed(), RATES, RULES, { growth: monthly() }),
+      `An empty site, year 0, ${RULES.crews} crews. Place your first orders, then press Next year. Undo brings the old city back.${byMonth()}`,
+    );
   });
   byId('stop').addEventListener('click', () => page.swap(stopRun(s.game), 'The clock is stopped. Work in hand was finished at once.'));
   byId('tick').addEventListener('click', () => {
@@ -208,6 +220,22 @@ function start(data: { game?: unknown }): void {
     s.save();
     page.render();
     if (row) page.say(yearLine(row) + ((next.clock?.year ?? 0) >= RULES.years ? ` The ${RULES.years} years are up.` : ''));
+  });
+  byId('month').addEventListener('click', () => {
+    const clock = s.game.clock;
+    if (!clock || !clock.growth || clock.year >= RULES.years) return;
+    const next = tickMonth(s.game, RATES, RULES);
+    const months = next.clock?.growth?.months ?? [];
+    const last = months[months.length - 1];
+    const yearEnded = (next.clock?.year ?? 0) > clock.year;
+    const row = next.clock?.record[next.clock.record.length - 1];
+    s.remember();
+    s.game = next;
+    s.lineFrom = null;
+    s.save();
+    page.render();
+    const said = last ? monthLine(last) : '';
+    page.say(yearEnded && row ? `${said} ${yearLine(row)}${(next.clock?.year ?? 0) >= RULES.years ? ` The ${RULES.years} years are up.` : ''}` : said);
   });
   byId('copy').addEventListener('click', () => {
     const text = asText(s);

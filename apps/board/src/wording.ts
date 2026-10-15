@@ -4,14 +4,16 @@
  * Public interface: SITE_NAME, PIECE_NAME, PIECE_MANY, STATUS, LEVEL_NAME, PLACEHOLDER_TEXT, LAYER_NAME, COST_ROW_NAME,
  * PREMISE_UNIT, linesLabel, checkTitle, checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText,
  * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText, proposalPrice, needsNow,
- * addedSaid.
+ * addedSaid; and the month clock and the day (ADR-0009): POPULATION_PREMISE, DAY_PREMISE, DAY_NAME, monthLine,
+ * peopleNow, hourLabel, dayCaption.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
 import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, Proposal, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
+import type { Day, DayPremises, DayType, PopulationPremises } from '@city/site';
 import type { Layer as MoneyLayer } from '@city/site';
-import type { Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
-import { cap, count, list, low, money, num, years } from './format.ts';
+import type { MonthRow, Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
+import { cap, count, fmt, list, low, money, num, years } from './format.ts';
 
 /** The six layers of money (ADR-0007), named. */
 export const LAYER_NAME: Readonly<Record<MoneyLayer, string>> = {
@@ -609,4 +611,100 @@ export function layerLines(layer: Layer, plan: GroundPlan): string[] {
 /** The placements the ledger did not fix, as one line. */
 export function placeholderNote(plan: GroundPlan): string {
   return `Placed to draw, not fixed by the ledger: ${list(plan.placeholders.map((p) => PLACEHOLDER_TEXT[p]))}.`;
+}
+
+/** Each population premise: its name, and its value in words. One the Ledger adds unworded fails the type check. */
+export const POPULATION_PREMISE: Readonly<Record<keyof PopulationPremises, { readonly name: string; readonly value: (v: number) => string }>> = {
+  birthsPerThousand: { name: 'Births', value: (v) => `${num(v, 1)} a year per 1,000 people` },
+  deathsPerThousand: { name: 'Deaths', value: (v) => `${num(v, 1)} a year per 1,000 people` },
+  movingShare: { name: 'People who move house', value: (v) => `${num(100 * v, 1)}% a year` },
+  leavingShare: { name: 'Movers who leave the city', value: (v) => `${num(100 * v)}% of them` },
+  arrivalsPerYear: { name: 'Arrivals into empty homes', value: (v) => `${num(v)} people a year at most, citywide` },
+};
+
+/** "5 p.m.", "midnight", "noon": a clock hour's start. */
+function clock(h: number): string {
+  const at = ((h % 24) + 24) % 24;
+  if (at === 0) return 'midnight';
+  if (at === 12) return 'noon';
+  return at < 12 ? `${at} a.m.` : `${at - 12} p.m.`;
+}
+
+/** "5 to 6 p.m.", "11 p.m. to midnight": one clock hour. */
+export function hourLabel(h: number): string {
+  const from = clock(h);
+  const to = clock(h + 1);
+  // "5 to 6 p.m." when both ends share a.m. or p.m.; the full words otherwise.
+  const tail = (x: string): string => x.slice(x.indexOf(' ') + 1);
+  const sameHalf = from.indexOf(' ') > 0 && to.indexOf(' ') > 0 && tail(from) === tail(to);
+  return sameHalf ? `${from.slice(0, from.indexOf(' '))} to ${to}` : `${from} to ${to}`;
+}
+
+/** Hours after midnight as a time of day: 8 is "8 a.m.", 14.5 is "2:30 p.m.". */
+function timeOf(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (!m) return clock(h);
+  const word = clock(h);
+  const at = word.indexOf(' ');
+  return at > 0 ? `${word.slice(0, at)}:${String(m).padStart(2, '0')}${word.slice(at)}` : `${word} and ${m} minutes`;
+}
+
+/** Each premise of the day: its name, and its value in words. One the Ledger adds unworded fails the type check. */
+export const DAY_PREMISE: Readonly<Record<keyof Omit<DayPremises, 'tripPeriods'>, { readonly name: string; readonly value: (v: number) => string }>> & {
+  readonly tripPeriods: { readonly name: string; readonly value: (periods: DayPremises['tripPeriods']['value']) => string };
+} = {
+  tripPeriods: {
+    name: 'Trips by the time they start',
+    value: (periods) => periods.map((p) => `${clock(p.from)} to ${clock(p.from + p.hours)} ${num(100 * p.share, 1)}%`).join('; '),
+  },
+  tripPeakHour: { name: 'The busiest hour for trips', value: (v) => `${hourLabel(v)}, with the ledger's 10% of the day's trips` },
+  powerPeakHour: { name: 'Power at its peak', value: (v) => hourLabel(v) },
+  powerLowHour: { name: 'Power at its lowest', value: (v) => hourLabel(v) },
+  powerLowShare: { name: 'The lowest hour against the peak', value: (v) => `${num(100 * v)}%` },
+  schoolStart: { name: 'School starts', value: (v) => timeOf(v) },
+  schoolHours: { name: 'The school day', value: (v) => `${num(v, 1)} hours` },
+};
+
+/** Each kind of day, named. */
+export const DAY_NAME: Readonly<Record<DayType, string>> = { summerWeekday: 'A summer weekday' };
+
+/** One month of the city's people, in a sentence. */
+export function monthLine(row: MonthRow): string {
+  const moves: string[] = [];
+  if (row.arrived > 0.5) moves.push(`${fmt(row.arrived)} moved in`);
+  if (row.births > 0.05) moves.push(`${fmt(row.births, 1)} born`);
+  if (row.deaths > 0.05) moves.push(`${fmt(row.deaths, 1)} died`);
+  if (row.left > 0.05) moves.push(`${fmt(row.left, 1)} moved away`);
+  const lead = `Year ${row.year}, month ${row.month}: ${fmt(row.people)} people in homes for ${fmt(row.homes)}.`;
+  if (!row.homes) return `${lead.slice(0, lead.indexOf(':'))}: no homes stand yet, so nobody lives here.`;
+  return moves.length ? `${lead} ${cap(list(moves))}.` : `${lead} Nobody came or went.`;
+}
+
+/**
+ * Where the month clock stands: "Year 3, month 4 of 12. 5,092 people living in homes for 10,000."
+ * @param year - the year under way (the clock's completed years plus one), or the last year at the horizon
+ * @param month - months completed in that year, 0 to 11
+ * @param people - people living in the city
+ * @param homes - homes as built, in people
+ */
+export function peopleNow(year: number, month: number, people: number, homes: number): string {
+  const when = month ? `Year ${year}, month ${month} of 12.` : `The start of year ${year}.`;
+  return `${when} ${fmt(people)} ${people === 1 ? 'person' : 'people'} living in homes for ${fmt(homes)}.`;
+}
+
+/** A sentence's full stop, unless it already ends on one ("6 p.m."). */
+const stop = (text: string): string => (text.endsWith('.') ? text : `${text}.`);
+
+/** The day in a sentence: its trips, their busiest hour, power and the movers. */
+export function dayCaption(day: Day): string {
+  if (!(day.pop > 0)) return `${DAY_NAME[day.day]}, and nobody lives here yet: no trips, no power drawn, every mover parked.`;
+  const peak = day.hours[day.tripPeakHour];
+  const busiest = Math.max(...day.hours.map((h) => h.moving));
+  return (
+    `${DAY_NAME[day.day]} for ${fmt(day.pop)} people: ${fmt(day.trips)} trips, ${fmt(peak?.trips ?? 0)} of them from ${stop(hourLabel(day.tripPeakHour))} ` +
+    `Power peaks at ${fmt(day.peakMw, 1)} MW and draws ${fmt(day.energyMwh)} MWh over the day. ` +
+    `At the busiest hour ${fmt(busiest)} of the ${fmt(day.fleet)} movers are moving; the rest are parked or charging.` +
+    (day.pupils > 0.5 ? ` ${fmt(day.pupils)} pupils walk or ride to school and home again.` : '')
+  );
 }

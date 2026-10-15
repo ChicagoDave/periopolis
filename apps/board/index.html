@@ -60,7 +60,7 @@ p { margin: 0; }
 .score .car { font: 400 .76rem/1.3 var(--display); color: var(--ink-2); display: block; overflow-wrap: anywhere; }
 
 /* the game: tray, board, rule book */
-.game { display: grid; grid-template-columns: 12.5rem minmax(0, 1fr) 21.5rem; grid-template-rows: auto auto 1fr; grid-template-areas: "tray stage side" "tray stretch side" "tray money side"; gap: 20px; align-items: start; }
+.game { display: grid; grid-template-columns: 12.5rem minmax(0, 1fr) 21.5rem; grid-template-rows: auto auto auto 1fr; grid-template-areas: "tray stage side" "tray stretch side" "tray day side" "tray money side"; gap: 20px; align-items: start; }
 .tray { grid-area: tray; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .tray .group { display: flex; flex-direction: column; gap: 4px; }
 .tray h2 { font: 600 .66rem/1.4 var(--display); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); }
@@ -223,6 +223,21 @@ p { margin: 0; }
 .chip.mark.sourced.accepted { color: var(--new); border-color: var(--new); }
 .chip.mark.mine { color: var(--flag); border-color: var(--flag); background: var(--flag-bg); }
 
+/* the day: one day of the people living here, hour by hour (ADR-0009) */
+.day { grid-area: day; }
+.daynow { font: 400 .9rem/1.45 var(--display); }
+.day details summary { cursor: pointer; font: 600 .8rem/1.4 var(--display); }
+.day table { border-collapse: collapse; width: 100%; font: 400 .84rem/1.35 var(--display); }
+.day th, .day td { text-align: left; padding: 3px 10px 3px 0; border-bottom: 1px solid var(--rule-2); }
+.day thead th { font: 600 .66rem/1.4 var(--display); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); border-bottom: 2px solid var(--ink); }
+.day tbody th { font-weight: 400; white-space: nowrap; }
+.day td.num, .day th.num { text-align: right; font-family: var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.day tr.peak th, .day tr.peak td { font-weight: 600; }
+.premises { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font: 400 .8rem/1.4 var(--display); }
+.premises .chip { margin-left: 6px; }
+.monthly { display: flex; gap: 6px; align-items: center; font: 400 .8rem/1.35 var(--display); color: var(--ink-2); }
+.peoplenow { font: 400 .84rem/1.4 var(--display); }
+
 /* the clock: the year, the twenty years as a strip, what is announced, and the work in hand */
 .clocknow { font: 400 .9rem/1.4 var(--display); }
 .clocknow b { font-weight: 800; }
@@ -240,10 +255,10 @@ p { margin: 0; }
 .keeprule { font: 400 .8rem/1.4 var(--body); color: var(--ink-2); }
 .recordbox summary { cursor: pointer; font: 600 .8rem/1.4 var(--display); }
 .tablescroll { overflow-x: auto; margin-top: 4px; }
-#record { border-collapse: collapse; width: 100%; font: 400 .76rem/1.35 var(--display); }
-#record th, #record td { text-align: left; padding: 3px 8px 3px 0; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
-#record th { font-weight: 600; color: var(--ink-2); }
-#record td.num { font-family: var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#record, #months { border-collapse: collapse; width: 100%; font: 400 .76rem/1.35 var(--display); }
+#record th, #record td, #months th, #months td { text-align: left; padding: 3px 8px 3px 0; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+#record th, #months th { font-weight: 600; color: var(--ink-2); }
+#record td.num, #months td.num, #months th.num { font-family: var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .work { list-style: none; margin: 0; padding: 0; max-height: 15.5rem; overflow: auto; border-top: 1px solid var(--rule); }
 .work li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--rule-2); }
 .joblabel { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; font: 600 .84rem/1.3 var(--display); color: var(--ink); min-width: 0; }
@@ -259,7 +274,7 @@ p { margin: 0; }
 #dump { width: 100%; min-height: 10rem; font: 400 .78rem/1.4 var(--data); background: var(--field); color: var(--ink); border: 1px solid var(--rule); padding: 8px; }
 
 @media (max-width: 1180px) {
-  .game { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "tray" "stage" "side" "stretch" "money"; }
+  .game { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "tray" "stage" "side" "stretch" "day" "money"; }
   .tray { flex-direction: row; overflow-x: auto; gap: 14px; padding-bottom: 6px; align-items: flex-start; }
   .tray .group { flex: 0 0 auto; }
   .tray .group .tools { display: flex; gap: 4px; }
@@ -327,10 +342,13 @@ p { margin: 0; }
         <ol class="years" id="years" aria-label="The twenty years of the run. Past years show a check if every line held, or the number of lines broken."></ol>
         <div class="row">
           <button class="btn primary" id="tick" type="button">Next year</button>
+          <button class="btn small" id="month" type="button" hidden>Next month</button>
           <button class="btn small" id="stop" type="button">Stop the clock</button>
           <button class="btn small" id="run" type="button">Run this city for 20 years</button>
           <button class="btn small" id="found" type="button">Found a city from nothing</button>
         </div>
+        <label class="monthly" id="monthlybox"><input type="checkbox" id="monthly"> People arrive month by month, at no more than Irvine's pace</label>
+        <p class="peoplenow" id="peoplenow" hidden></p>
         <ul class="notices" id="notices"></ul>
         <p class="keeprule" id="keeprule">Each of these is one of the four stretch tests come true. A city that holds all four cannot be broken by any of them.</p>
         <details class="recordbox" id="recordbox">
@@ -341,6 +359,19 @@ p { margin: 0; }
               <tbody id="recordrows"></tbody>
             </table>
           </div>
+        </details>
+        <details class="recordbox" id="monthbox" hidden>
+          <summary>The people, month by month</summary>
+          <div class="tablescroll">
+            <table id="months">
+              <thead><tr><th scope="col">Year</th><th scope="col">Month</th><th scope="col" class="num">People</th><th scope="col" class="num">Homes for</th><th scope="col" class="num">Moved in</th><th scope="col" class="num">Born</th><th scope="col" class="num">Died</th><th scope="col" class="num">Moved away</th></tr></thead>
+              <tbody id="monthrows"></tbody>
+            </table>
+          </div>
+        </details>
+        <details class="recordbox" id="popbox">
+          <summary>Who comes and goes, with each figure's mark</summary>
+          <ul class="premises" id="poppremises"></ul>
         </details>
       </section>
       <section class="card" id="inspector" aria-label="The tile you picked"></section>
@@ -366,6 +397,25 @@ p { margin: 0; }
       <h2 id="h-tests">Does it stretch?</h2>
       <p class="quiet">Line 18. The same board with the city pushed to the edge of its 20% band, or with one stretch of its mover line closed. These four are everything the clock can deal.</p>
       <ul class="tests" id="tests"></ul>
+    </section>
+
+    <section class="panel day" id="day" aria-labelledby="h-day">
+      <h2 id="h-day">One day, hour by hour</h2>
+      <p class="quiet">The day of the people living here now. Its trips add up to the day's, its busiest hour is the 10% the movers are sized for, and its highest power is the peak the reactors carry, so the day and the lines cannot disagree.</p>
+      <p class="daynow" id="daynow"></p>
+      <details id="daybox">
+        <summary>The 24 hours</summary>
+        <div class="tablescroll">
+          <table id="hours" aria-label="One day hour by hour: trips, rides, movers moving, power and pupils">
+            <thead><tr><th scope="col">Hour</th><th scope="col" class="num">Trips</th><th scope="col" class="num">On a mover</th><th scope="col" class="num">Movers moving</th><th scope="col" class="num">Power, MW</th><th scope="col" class="num">Pupils</th></tr></thead>
+            <tbody id="hourrows"></tbody>
+          </table>
+        </div>
+      </details>
+      <details id="dayprem">
+        <summary>The day's shape, with each figure's mark</summary>
+        <ul class="premises" id="daypremises"></ul>
+      </details>
     </section>
 
     <section class="panel money" id="money" aria-labelledby="h-money">
@@ -412,6 +462,7 @@ p { margin: 0; }
       <h2>How the clock runs</h2>
       <p>Ten crews, one job each. A neighborhood, a ring building, a high school or a plant unit takes two years. A smaller school, fields, a stretch of line or a further reactor module takes one. A reactor site with its first module takes three.</p>
       <p>People move in the year their homes are finished, and a school opens with its neighborhood. Each year the city is checked as it stands, and every broken line counts one line-year against the run.</p>
+      <p>With people arriving month by month, a finished neighborhood stands empty and fills at no more than 4,800 people a year across the city, Irvine's pace between 1980 and 1990. Each month people are born, die and move away at the national rates; half of those who move house leave the city. Crews still work by the year. A neighborhood still filling is a watch on its daily list, not a break.</p>
       <p>Five things happen in a run, each announced a year or two ahead: a housing squeeze, a wave of children that moves up a grade a year, a slump, and two closures of a stretch of line.</p>
     </section>
     <section>
@@ -434,7 +485,7 @@ p { margin: 0; }
     <section>
       <h2>Not in this version</h2>
       <ul>
-        <li>How fast people would come. Homes fill the year they are finished. Irvine, incorporated in 1971, had 62,134 people in 1980 and 110,330 in 1990, <a href="https://www.fullerton.edu/cdr/_resources/pdf/progressreport/Irvine.pdf">by the census</a>.</li>
+        <li>Seasons: births, deaths and moves are a twelfth of the year's each month. Days other than a summer weekday.</li>
         <li>Who pays: taxes, bonds, rent, fares and fees are a later decision. The board prices the city as a whole.</li>
         <li>Terrain, the world outside the site, and the paper and plastic rules of line 23.</li>
       </ul>

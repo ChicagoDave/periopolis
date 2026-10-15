@@ -6,7 +6,7 @@
  * Owner context: Board (adapter).
  */
 import type { Level } from '@city/ground';
-import { RULES, inHand, notices, stressAt } from '@city/run';
+import { RULES, inHand, notices, occupiedOf, stressAt } from '@city/run';
 import type { Game, Notice, WorkInHand } from '@city/run';
 import { RATES, assess } from '@city/site';
 import type { Assessment, TestId, TileKey } from '@city/site';
@@ -79,9 +79,11 @@ export function newSession(game: Game, store: GameStore): Session {
       s.news = clock ? notices(clock, RATES.band, RULES) : [];
       // While the clock runs the board shows the year as it is, so the look-ahead is switched off.
       if (clock) s.showing = null;
-      const options: { show?: TestId; now?: ReturnType<typeof stressAt> } = {};
+      const options: { show?: TestId; now?: ReturnType<typeof stressAt>; occupied?: Record<TileKey, number> } = {};
       if (s.showing) options.show = s.showing;
       if (clock) options.now = stressAt(clock, RATES.band);
+      // On a run with the month clock the board is checked for the people living there, not full homes (ADR-0009).
+      if (clock?.growth) options.occupied = occupiedOf(s.game.layout, clock.growth, RATES);
       s.ev = assess(s.game.layout, RATES, options);
       s.showing = s.ev.showing;
     },

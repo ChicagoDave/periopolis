@@ -1,6 +1,7 @@
 /**
- * @file The Board's six flows in a browser, on the built page: the opening city, two far neighborhoods, a founding run
- * through year 3, the ledger's city run to year 20, undo and storage, and a tile's ground zoomed into at both levels.
+ * @file The Board's flows in a browser, on the built page: the opening city, two far neighborhoods, a founding run
+ * through year 3, the ledger's city run to year 20, undo and storage, a tile's ground zoomed into at both levels, what
+ * the city needs, the city sized to its people, and a city founded month by month with its day hour by hour.
  * Owner context: Board (adapter), tests.
  */
 import { planNeighborhood, planRing } from '@city/ground';
@@ -311,4 +312,45 @@ test('the ledger\'s city sized to its people: one ring building and one reactor 
   await expect(page.locator('#needsnow')).toHaveText('The city needs nothing more to keep its lines whole.');
   await page.click('#undo');
   await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
+});
+
+test('a city founded month by month: homes fill at Irvine\'s pace, a month step moves the people, and the day lists 24 hours for them (ADR-0009)', async ({ page }) => {
+  // The opening city's day, every neighborhood full.
+  await expect(page.locator('#daynow')).toContainText('A summer weekday for 50,000 people: 147,727 trips');
+  await page.click('#daybox summary');
+  await expect(page.locator('#hourrows tr')).toHaveCount(24);
+  await expect(page.locator('#hourrows tr.peak th')).toHaveText('5 to 6 p.m.');
+  await page.click('#dayprem summary');
+  await expect(page.locator('#daypremises li')).toHaveCount(7);
+  await expect(page.locator('#daypremises .chip.mark')).toHaveCount(7);
+  await page.click('#popbox summary');
+  await expect(page.locator('#poppremises li')).toHaveCount(5);
+  await expect(page.locator('#poppremises li').last()).toContainText('Arrivals into empty homes: 4,800 people a year at most, citywide');
+
+  await page.check('#monthly');
+  await page.click('#found');
+  await expect(page.locator('#said')).toContainText('People arrive month by month; Next month steps one.');
+  await expect(page.locator('#monthlybox')).toBeHidden();
+  await expect(page.locator('#peoplenow')).toHaveText('The start of year 1. 0 people living in homes for 0.');
+  await expect(page.locator('#daynow')).toHaveText('A summer weekday, and nobody lives here yet: no trips, no power drawn, every mover parked.');
+  await place(page, 'hood', ['1,0', '2,-1']);
+  await page.click('#month');
+  await expect(page.locator('#said')).toHaveText('Year 1, month 1: no homes stand yet, so nobody lives here.');
+  await expect(page.locator('#peoplenow')).toHaveText('Year 1, month 1 of 12. 0 people living in homes for 0.');
+  // The rest of year 1, then year 2, when the two neighborhoods open empty and the first 400 move in.
+  await page.click('#tick');
+  await page.click('#tick');
+  await expect(page.locator('#clocknow')).toContainText('Year 2 of 20.');
+  await expect(page.locator('#peoplenow')).toHaveText('The start of year 3. 400 people living in homes for 10,000.');
+  await expect(page.locator('#daynow')).toContainText('A summer weekday for 400 people:');
+  await page.click('#month');
+  await expect(page.locator('#said')).toHaveText('Year 3, month 1: 799 people in homes for 10,000. 400 moved in, 0.4 born, 0.3 died and 1.5 moved away.');
+  await expect(page.locator('#peoplenow')).toHaveText('Year 3, month 1 of 12. 799 people living in homes for 10,000.');
+  await expect(page.locator('#daynow')).toContainText('A summer weekday for 799 people:');
+  await expect(page.locator('#hourrows tr')).toHaveCount(24);
+  await page.click('#monthbox summary');
+  await expect(page.locator('#monthrows tr')).toHaveCount(25);
+  // The month clock survives a reload.
+  await page.reload();
+  await expect(page.locator('#peoplenow')).toHaveText('Year 3, month 1 of 12. 799 people living in homes for 10,000.');
 });

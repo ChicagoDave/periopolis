@@ -1,11 +1,11 @@
 /**
  * @file The money card: what this city costs to build and to run, by layer, beside a car city of the same size; every
  * row with its premise and mark; and, while the clock runs, what the run has spent by layer and in all (ADR-0007).
- * Public interface: drawMoney.
+ * Public interface: drawMoney, markChip.
  * Owner context: Board (adapter).
  */
 import { LAYERS, RATES, costOf, kindOf } from '@city/site';
-import type { CostFigures, Layer } from '@city/site';
+import type { CostFigures, Layer, Mark } from '@city/site';
 import { RULES } from '@city/run';
 import { byId, el } from '../dom.ts';
 import { fmt, money } from '../format.ts';
@@ -23,6 +23,17 @@ function layerRow(label: string, mine: number, pop: number, car: number | null, 
   tr.append(el('th', '', label), cell(money(mine), 'num'), cell(pop > 0 ? money(mine / pop) : '–', 'num'), cell(car === null ? '–' : money(car), 'num'));
   tr.firstElementChild?.setAttribute('scope', 'row');
   return tr;
+}
+
+/**
+ * A mark as a chip, its words in the title: Yours, Sourced with its year (and accepted), or Mine.
+ * @param mark - the premise's mark
+ */
+export function markChip(mark: Mark): HTMLSpanElement {
+  const accepted = mark.kind === 'sourced' && mark.accepted ? ' accepted' : '';
+  const chip = el('span', `chip mark ${mark.kind}${accepted}`, markLabel(mark));
+  chip.title = markText(mark);
+  return chip;
 }
 
 export function drawMoney(page: Page): void {
@@ -71,11 +82,8 @@ export function drawMoney(page: Page): void {
       last = line.layer;
     }
     const tr = el('tr');
-    const accepted = line.mark.kind === 'sourced' && line.mark.accepted ? ' accepted' : '';
-    const chip = el('span', `chip mark ${line.mark.kind}${accepted}`, markLabel(line.mark));
-    chip.title = markText(line.mark);
     const markCell = el('td');
-    markCell.append(chip);
+    markCell.append(markChip(line.mark));
     tr.append(cell(COST_ROW_NAME[line.id]), cell(lineAt(line), 'at'), cell(money(line.cost), 'num'), markCell);
     rows.append(tr);
   }
