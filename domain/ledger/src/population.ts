@@ -24,6 +24,9 @@ export interface PopulationPremises {
   readonly leavingShare: Marked;
   /** Most people who arrive in a year, citywide, however many homes stand empty. */
   readonly arrivalsPerYear: Marked;
+  /** Share of people who live in households with no school-age children: who may move into a neighborhood whose
+   * pupils have no seats yet (ADR-0012 Decision 3). */
+  readonly childlessShare: Marked;
 }
 
 /** The rates as sourced in `docs/brainstorm/future-city/population.md` and decided on 2026-10-14. */
@@ -47,6 +50,9 @@ export const POPULATION: PopulationPremises = {
     value: 4800,
     mark: accept(sourced('Census: Irvine, CA grew from 62,134 (1980) to 110,330 (1990), about 4,800 a year', 1990, 'https://www.census.gov/')),
   },
+  // Mine until a source is accepted (ADR-0012 Decision 3). The figure to find is the Census ACS count of people living
+  // in households with no member aged 5 to 17, over all people in households.
+  childlessShare: { value: 0.6, mark: { kind: 'mine' } },
 };
 
 /** One month of a city's people. */

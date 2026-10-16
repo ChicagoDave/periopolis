@@ -97,15 +97,17 @@ describe("David's founding, built in order (city-261015)", () => {
     expect(g.clock?.jobs.filter((j) => j.what === 'line')).toHaveLength(STRETCHES.length - 1);
   });
 
-  it('by year 20 the same city stands either way, and what it took to build is the same', () => {
+  it('by year 20 the same city stands either way, and each paid to build exactly what stands', () => {
+    // What stands is priced for the people living there (ADR-0007), and in order nobody may live in this city (one
+    // module cannot carry a peak with one down), so the two runs pay differently; each pays for what it built.
     const a = tickTo(founding(true), RULES.years);
     const b = tickTo(founding(false), RULES.years);
     expect(a.layout).toEqual(b.layout);
-    const built = (g: Game): number => {
+    for (const g of [a, b]) {
       const t = totalSpend(g.clock?.record ?? []);
-      return t.byLayer.groundworks + t.byLayer.buildings;
-    };
-    expect(built(a)).toBeCloseTo(built(b), 2);
+      const last = g.clock?.record[RULES.years];
+      expect(t.byLayer.groundworks + t.byLayer.buildings).toBeCloseTo((last?.standing.groundworks ?? 0) + (last?.standing.buildings ?? 0), 2);
+    }
   });
 });
 

@@ -164,6 +164,7 @@ describe('the month clock, worded (ADR-0009)', () => {
       'People who move house: 8.7% a year',
       'Movers who leave the city: 50% of them',
       'Arrivals into empty homes: 4,800 people a year at most, citywide',
+      'People in homes with no school-age children: 60% of people',
     ]);
   });
 });

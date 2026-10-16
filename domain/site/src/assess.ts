@@ -51,7 +51,10 @@ function cappedNeed(rates: SiteRates, id: SchoolKind): CappedNeed {
  * @param stress - what is happening to the city this year
  * @param rates - the ledger's rates
  * @param occupied - people living in each neighborhood before the stress (ADR-0009); a neighborhood left out holds its
- *   capacity, `rates.hood`, so leaving this out is the sketch's city of full neighborhoods
+ *   capacity, `rates.hood`, so leaving this out is the sketch's city of full neighborhoods. A neighborhood given as 0
+ *   has nobody living there: its stop and its schools are a watch, not a break (ADR-0012 Decisions 8 and 9).
+ * @param childless - neighborhoods held to households with no school-age children (ADR-0012 Decision 3): they send no
+ *   pupils. Empty, as on the sketch's clock, every neighborhood sends its pupils.
  * @throws RangeError when a neighborhood's occupancy is negative or not a number
  */
 export function assessCore(
@@ -59,6 +62,7 @@ export function assessCore(
   stress: Stress,
   rates: SiteRates,
   occupied: Readonly<Record<TileKey, number>> = {},
+  childless: readonly TileKey[] = [],
 ): Core {
   const tiles = layout.tiles;
   const keys = Object.keys(tiles);
@@ -78,11 +82,14 @@ export function assessCore(
   const people: Record<TileKey, number> = {};
   // A neighborhood still filling holds fewer people than its homes; its shops open as people arrive (ADR-0009).
   const filling: Record<TileKey, true> = {};
+  // A neighborhood nobody lives in fails nobody: its own breaks are a watch (ADR-0012 Decision 8).
+  const empty: Record<TileKey, true> = {};
   for (const h of hoods) {
     const o = occupied[h] ?? rates.hood;
     if (!(o >= 0)) throw new RangeError(`occupancy of ${h} must be zero or more, not ${o}`);
     people[h] = o * (1 + stress.people);
     if (o < rates.hood - TINY) filling[h] = true;
+    if (o <= TINY) empty[h] = true;
   }
   const occ = (h: TileKey): number => people[h] ?? 0;
   const pop = hoods.reduce((t, h) => t + occ(h), 0);
@@ -227,9 +234,13 @@ export function assessCore(
       const r = draft(h).ring;
       return r ? r.segments === null : !stop(h);
     });
-    for (const h of without) flag(h, 'bad', stop(h) ? { kind: 'lineMissesRing' } : { kind: 'noStop' });
+    const failed = without.filter((h) => !empty[h]);
+    const waiting = without.filter((h) => empty[h]);
+    for (const h of failed) flag(h, 'bad', stop(h) ? { kind: 'lineMissesRing' } : { kind: 'noStop' });
+    for (const h of waiting) flag(h, 'warn', stop(h) ? { kind: 'lineMissesRing' } : { kind: 'noStop' });
     if (!some) check('stops', [6], 'idle', { check: 'stops', case: 'idle' });
-    else if (without.length) check('stops', [6], 'bad', { check: 'stops', case: 'without', count: without.length }, without);
+    else if (failed.length) check('stops', [6], 'bad', { check: 'stops', case: 'without', count: failed.length }, failed);
+    else if (waiting.length) check('stops', [6], 'warn', { check: 'stops', case: 'waiting', count: waiting.length }, waiting);
     else check('stops', [6], 'ok', { check: 'stops', case: 'all' });
   }
 
@@ -238,7 +249,7 @@ export function assessCore(
     // A wave of children can sit in some grades only.
     const more = stress.kids ? stress.kids[kind] : stress.children;
     const spec = cappedNeed(rates, kind);
-    const eachOf = (h: TileKey): number => occ(h) * spec.grades * shared.gradeShare * (1 + more);
+    const eachOf = (h: TileKey): number => (childless.includes(h) ? 0 : occ(h) * spec.grades * shared.gradeShare * (1 + more));
     const places = hoods.filter((h) => hoodAt(h)?.has[kind]).map((h) => ({ key: h, cap: spec.cap }));
     const res = seat(
       hoods.map((h) => ({ key: h, amount: eachOf(h) })),
@@ -251,8 +262,11 @@ export function assessCore(
     const out = hoods.filter((h) => (res.left[h] ?? 0) > 0.5);
     const missing = out.reduce((t, h) => t + (res.left[h] ?? 0), 0);
     for (const h of out) flag(h, 'bad', { kind: 'pupilsUnseated', school: kind, pupils: res.left[h] ?? 0 });
+    const pupils = hoods.reduce((t, h) => t + eachOf(h), 0);
     if (!some) check(kind, [15, 16], 'idle', { check: kind, case: 'idle', cap: spec.cap });
-    else if (!places.length) check(kind, [15, 16], 'bad', { check: kind, case: 'none', pupils: hoods.reduce((t, h) => t + eachOf(h), 0) }, out);
+    // No school of the kind, and no pupil yet: the neighborhoods wait for it (ADR-0012 Decision 9).
+    else if (!places.length && pupils <= 0.5) check(kind, [15, 16], 'warn', { check: kind, case: 'waiting', hoods: hoods.length }, hoods);
+    else if (!places.length) check(kind, [15, 16], 'bad', { check: kind, case: 'none', pupils }, out);
     else if (out.length) {
       check(kind, [15, 16], 'bad', { check: kind, case: 'unseated', missing, hoods: out.length, cap: spec.cap }, out);
     } else {

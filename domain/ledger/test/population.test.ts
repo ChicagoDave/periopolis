@@ -58,7 +58,7 @@ describe('one month of a city\'s people', () => {
     expect(() => monthOf(100, -5)).toThrow(new RangeError('capacity must be zero or more, not -5'));
   });
 
-  it('every population premise carries a mark; the Sourced ones are accepted and half leaving stays Mine', () => {
+  it('every population premise carries a mark; the Sourced ones are accepted; half leaving and the childless share stay Mine', () => {
     const marks = Object.entries(POPULATION).map(([id, p]) => [id, p.mark.kind, p.mark.kind === 'sourced' ? p.mark.accepted : null]);
     expect(marks).toEqual([
       ['birthsPerThousand', 'sourced', true],
@@ -66,6 +66,7 @@ describe('one month of a city\'s people', () => {
       ['movingShare', 'sourced', true],
       ['leavingShare', 'mine', null],
       ['arrivalsPerYear', 'sourced', true],
+      ['childlessShare', 'mine', null],
     ]);
   });
 });

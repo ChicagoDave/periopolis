@@ -57,8 +57,13 @@ export type Facts =
   | { readonly check: 'stops'; readonly case: 'idle' }
   | { readonly check: 'stops'; readonly case: 'without'; readonly count: number }
   | { readonly check: 'stops'; readonly case: 'all' }
+  /** Lacking a stop only in neighborhoods nobody lives in: a watch, not a break (ADR-0012 Decision 8). */
+  | { readonly check: 'stops'; readonly case: 'waiting'; readonly count: number }
   | { readonly check: SchoolKind; readonly case: 'idle'; readonly cap: number }
   | { readonly check: SchoolKind; readonly case: 'none'; readonly pupils: number }
+  /** No school of the kind and no pupil yet: the neighborhoods are empty or held to households with no school-age
+   * children (ADR-0012 Decision 9). A watch. */
+  | { readonly check: SchoolKind; readonly case: 'waiting'; readonly hoods: number }
   | { readonly check: SchoolKind; readonly case: 'unseated'; readonly missing: number; readonly hoods: number; readonly cap: number }
   | {
       readonly check: SchoolKind;

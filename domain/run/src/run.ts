@@ -4,14 +4,16 @@
  * Public interface: Game, RunOptions, startRun, stopRun, tick, tickMonth, seenIn, restoreClock.
  * Owner context: Run (domain).
  */
-import { LAYERS, adjacent, allTiles, assess, costOf, edgeEnds } from '@city/site';
-import type { CheckId, CheckStatus, Layer, Layout, SiteRates, Stress, TileKey } from '@city/site';
+import { LAYERS, PLANTS, SCHOOLS, adjacent, allTiles, assess, costOf, edgeEnds } from '@city/site';
+import type { CheckId, CheckStatus, Layer, Layout, PlantKind, SchoolKind, SiteRates, Stress, TileKey } from '@city/site';
 
 import { growthOn, monthStep, occupiedOf } from './growth.ts';
-import type { Growth, MonthRow } from './growth.ts';
+import type { Growth, MonthRow, MoveIn } from './growth.ts';
 
-import { crewed } from './crews.ts';
+import { crewed, emergencyOf } from './crews.ts';
 import type { Job } from './jobs.ts';
+import { admit, childlessOf, limitsOf } from './movein.ts';
+import type { Admission, HeldBack, Residence } from './movein.ts';
 import { addPiece, draftOf, planned } from './pieces.ts';
 import { PIECES } from './rules.ts';
 import type { PieceKind, RunRules } from './rules.ts';
@@ -37,7 +39,10 @@ const EXTRA_KINDS: readonly string[] = ['elementary', 'middle', 'high', 'fields'
  * @param opened - what opened this year
  * @param rates - the ledger's rates
  * @param before - what stood a year before, by layer; null for year 0, which spends nothing
- * @param occupied - people living in each neighborhood, on a run with growth; absent, every neighborhood is full
+ * @param occupied - people living in each neighborhood, on a run with growth or built in order; absent, every
+ *   neighborhood is full
+ * @param admission - on a clock built in order (ADR-0012): who may live where and what holds the rest back; the
+ *   childless share sends no pupils, and the row carries what is held back
  */
 export function seenIn(
   layout: Layout,
@@ -47,8 +52,10 @@ export function seenIn(
   rates: SiteRates,
   before: Money | null = null,
   occupied?: Readonly<Record<TileKey, number>>,
+  admission?: Admission,
 ): RecordRow {
-  const a = assess(layout, rates, occupied ? { now: stress, occupied } : { now: stress });
+  const childless = admission ? childlessOf(layout, admission.lived, rates) : [];
+  const a = assess(layout, rates, occupied ? { now: stress, occupied, childless } : { now: stress });
   const t: Record<CheckStatus, number> = { ok: 0, warn: 0, bad: 0, idle: 0 };
   for (const c of a.checks) t[c.status]++;
   const broken: CheckId[] = a.checks.filter((c) => c.status === 'bad').map((c) => c.id);
@@ -64,6 +71,7 @@ export function seenIn(
     opened,
     standing,
     spend: spendOf(before, standing),
+    ...(admission ? { heldBack: admission.held } : {}),
   };
 }
 
@@ -72,14 +80,14 @@ export interface RunOptions {
   /** Run the month clock (ADR-0009): homes fill at the citywide pace and people come and go. Absent or false, homes
    * fill the year they finish, as in the sketch. */
   readonly growth?: boolean;
-  /** Crews take what the city needs first (ADR-0012). Absent or false, jobs are crewed in the order they stand, as in
-   * the sketch. */
+  /** Crews take what the city needs first, and people move in only when they are served (ADR-0012). Absent or false,
+   * jobs are crewed in the order they stand and homes fill when finished, as in the sketch. */
   readonly inOrder?: boolean;
 }
 
 /**
  * Start a run on whatever stands. Year 0 is noted in the record, and does not count. With growth, what already stands
- * is lived in, full.
+ * is lived in, full. In order, a neighborhood already standing is admitted by the same rule as one that opens.
  * @param layout - what stands
  * @param seed - the run's seed
  * @param rates - the ledger's rates
@@ -88,13 +96,17 @@ export interface RunOptions {
  */
 export function startRun(layout: Layout, seed: number, rates: SiteRates, rules: RunRules, options: RunOptions = {}): Game {
   const dealt = beginClock(seed, rules);
-  const clock: Clock = options.inOrder ? { ...dealt, inOrder: true } : dealt;
+  const stress = stressAt(dealt, rates.band);
+  const admission = options.inOrder ? admit(layout, {}, rates, stress) : null;
+  const clock: Clock = admission ? { ...dealt, inOrder: true, lived: admission.lived } : dealt;
   if (!options.growth) {
-    const record = [seenIn(layout, stressAt(clock, rates.band), 0, {}, rates, null)];
+    const record = admission
+      ? [seenIn(layout, stress, 0, {}, rates, null, limitsOf(layout, admission.lived, rates), admission)]
+      : [seenIn(layout, stress, 0, {}, rates, null)];
     return { layout, clock: { ...clock, record } };
   }
-  const growth = growthOn(layout, rates);
-  const record = [seenIn(layout, stressAt(clock, rates.band), 0, {}, rates, null, occupiedOf(layout, growth, rates))];
+  const growth = growthOn(layout, rates, admission ? limitsOf(layout, admission.lived, rates) : undefined);
+  const record = [seenIn(layout, stress, 0, {}, rates, null, occupiedOf(layout, growth, rates), admission ?? undefined)];
   return { layout, clock: { ...clock, record, growth } };
 }
 
@@ -144,19 +156,28 @@ export function tickMonth(game: Game, rates: SiteRates, rules: RunRules): Game {
   if (!clock || !clock.growth || clock.year >= rules.years) return game;
   const growth = clock.growth;
   if (growth.month < 11) {
-    const next = monthStep(game.layout, growth, clock.year + 1, stressAt(clock, rates.band, clock.year + 1), rates);
-    return { layout: game.layout, clock: { ...clock, growth: next } };
+    const stress = stressAt(clock, rates.band, clock.year + 1);
+    const admission = clock.inOrder ? admit(game.layout, clock.lived ?? {}, rates, stress) : null;
+    const next = monthStep(game.layout, growth, clock.year + 1, stress, rates, null, moveInOf(game.layout, admission, rates));
+    return { layout: game.layout, clock: { ...clock, growth: next, ...(admission ? { lived: admission.lived } : {}) } };
   }
   return yearPasses(game, clock, rates, rules, growth);
 }
 
-/** The year's end: the crews work, what is finished opens, and the year is recorded; with growth, month 12 passes. */
+/** Who arrivals may move in with this month, on a clock built in order; undefined on the sketch's. */
+function moveInOf(layout: Layout, admission: Admission | null, rates: SiteRates): MoveIn | undefined {
+  if (!admission) return undefined;
+  return { limits: limitsOf(layout, admission.lived, rates), childless: childlessOf(layout, admission.lived, rates), held: admission.held };
+}
+
+/** The year's end: the crews work, what is finished opens, and the year is recorded; with growth, month 12 passes.
+ * Built in order, what opened is admitted as the city can carry it, and people already living there stay. */
 function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules, growth: Growth | null): Game {
   const year = clock.year + 1;
   const draft = draftOf(game.layout);
   const jobs: { what: PieceKind; at: string; left: number; total: number }[] = clock.jobs.map((j) => ({ ...j }));
   const opened: Partial<Record<PieceKind, number>> = {};
-  const working = crewed(jobs, rules.crews, clock.inOrder === true);
+  const working = crewed(jobs, rules.crews, clock.inOrder === true, emergencyOf(clock));
   jobs.forEach((j, i) => {
     if (working[i]) j.left -= 1;
   });
@@ -184,30 +205,35 @@ function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules,
   const next: Clock = { ...clock, year, jobs: still, events, record: clock.record, lineYears: clock.lineYears };
   const last = clock.record[clock.record.length - 1];
   const stress = stressAt(next, rates.band);
+  const admission = clock.inOrder ? admit(layout, clock.lived ?? {}, rates, stress) : null;
+  const lived = admission ? { lived: admission.lived } : {};
   if (!growth) {
-    const row = seenIn(layout, stress, year, opened, rates, last ? last.standing : null);
+    const row = admission
+      ? seenIn(layout, stress, year, opened, rates, last ? last.standing : null, limitsOf(layout, admission.lived, rates), admission)
+      : seenIn(layout, stress, year, opened, rates, last ? last.standing : null);
     return {
       layout,
-      clock: { ...next, record: [...clock.record, row], lineYears: clock.lineYears + row.bad },
+      clock: { ...next, ...lived, record: [...clock.record, row], lineYears: clock.lineYears + row.bad },
     };
   }
   // Month 12 on the year's new layout: what opened stands empty, ready for arrivals; then the year is recorded under
   // the people living there, and month 12 carries the year's change in what stands.
-  const lived = monthStep(layout, growth, year, stress, rates);
-  const row = seenIn(layout, stress, year, opened, rates, last ? last.standing : null, occupiedOf(layout, lived, rates));
-  const months = lived.months.slice(0, -1);
-  const twelfth = lived.months[lived.months.length - 1];
+  const month12 = monthStep(layout, growth, year, stress, rates, null, moveInOf(layout, admission, rates));
+  const row = seenIn(layout, stress, year, opened, rates, last ? last.standing : null, occupiedOf(layout, month12, rates), admission ?? undefined);
+  const months = month12.months.slice(0, -1);
+  const twelfth = month12.months[month12.months.length - 1];
   const capital = {} as Record<Layer, number>;
   for (const layer of LAYERS) capital[layer] = twelfth ? twelfth.spend[layer] : 0;
   for (const layer of ['groundworks', 'buildings', 'fleet'] as const) capital[layer] = row.spend[layer];
-  const closed = twelfth ? [...months, { ...twelfth, spend: capital }] : lived.months;
+  const closed = twelfth ? [...months, { ...twelfth, spend: capital }] : month12.months;
   return {
     layout,
     clock: {
       ...next,
+      ...lived,
       record: [...clock.record, row],
       lineYears: clock.lineYears + row.bad,
-      growth: { month: 0, occupied: lived.occupied, months: closed },
+      growth: { month: 0, occupied: month12.occupied, months: closed },
     },
   };
 }
@@ -314,6 +340,7 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
       opened,
       standing: moneyOf(r['standing']),
       spend: moneyOf(r['spend']),
+      ...(Array.isArray(r['heldBack']) ? { heldBack: heldBackOf(r['heldBack'], layout) } : {}),
     });
   }
   const base: Clock = {
@@ -324,7 +351,7 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
     record,
     lineYears: record.filter((r) => r.year > 0).reduce((t, r) => t + r.bad, 0),
   };
-  const clock: Clock = raw['inOrder'] === true ? { ...base, inOrder: true } : base;
+  const clock: Clock = raw['inOrder'] === true ? { ...base, inOrder: true, lived: livedOf(raw['lived'], layout) } : base;
   const growth = growthOf(raw['growth'], layout, rates, rules);
   return growth ? { ...clock, growth } : clock;
 }
@@ -350,9 +377,45 @@ function growthOf(raw: unknown, layout: Layout, rates: SiteRates, rules: RunRule
     if (!isRecord(m) || !whole(m['year'], 1, rules.years) || !whole(m['month'], 1, 12)) continue;
     const { births, deaths, left, arrived, people, homes } = m;
     if (!num(births) || !num(deaths) || !num(left) || !num(arrived) || !num(people) || !num(homes)) continue;
-    months.push({ year: m['year'] as number, month: m['month'] as number, births, deaths, left, arrived, people, homes, spend: moneyOf(m['spend']) });
+    months.push({
+      year: m['year'] as number,
+      month: m['month'] as number,
+      births,
+      deaths,
+      left,
+      arrived,
+      people,
+      homes,
+      spend: moneyOf(m['spend']),
+      ...(Array.isArray(m['heldBack']) ? { heldBack: heldBackOf(m['heldBack'], layout) } : {}),
+    });
   }
   return { month: raw['month'] as number, occupied, months };
 }
 
+const RESIDENCES: readonly Residence[] = ['all', 'childless'];
 
+/** Who may live where, read back from storage: standing neighborhoods only, each everyone or the childless share. */
+function livedOf(raw: unknown, layout: Layout): Record<TileKey, Residence> {
+  const out: Record<TileKey, Residence> = {};
+  if (!isRecord(raw)) return out;
+  for (const k of Object.keys(raw)) {
+    const r = raw[k];
+    if (layout.tiles[k]?.kind === 'hood' && typeof r === 'string' && (RESIDENCES as readonly string[]).includes(r)) out[k] = r as Residence;
+  }
+  return out;
+}
+
+/** What held neighborhoods back, read back from storage: standing neighborhoods, known services and schools only. */
+function heldBackOf(raw: readonly unknown[], layout: Layout): HeldBack[] {
+  const out: HeldBack[] = [];
+  const known = <T extends string>(x: unknown, from: readonly T[]): T[] =>
+    Array.isArray(x) ? (x.filter((v) => typeof v === 'string' && (from as readonly string[]).includes(v)) as T[]) : [];
+  for (const h of raw) {
+    if (!isRecord(h)) continue;
+    const hood = h['hood'];
+    if (typeof hood !== 'string' || layout.tiles[hood]?.kind !== 'hood') continue;
+    out.push({ hood, short: known<PlantKind>(h['short'], PLANTS), seats: known<SchoolKind>(h['seats'], SCHOOLS) });
+  }
+  return out;
+}

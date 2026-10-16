@@ -2,8 +2,9 @@
  * @file The month clock (ADR-0009): who lives in the finished neighborhoods, month by month. Each month the city's
  * people change by the Ledger's `monthOf` (births, deaths, movers who leave, arrivals into empty homes at no more than
  * the citywide pace); the change is shared among the neighborhoods, and arrivals fill empty homes in the board's tile
- * order. Construction stays a yearly step; a month records its people and its share of the running bill.
- * Public interface: Growth, MonthRow, growthOn, monthStep, occupiedOf, homesOf.
+ * order. Construction stays a yearly step; a month records its people and its share of the running bill. On a clock built
+ * in order (ADR-0012) arrivals fill only the neighborhoods admitted, up to what each may hold.
+ * Public interface: Growth, MonthRow, MoveIn, growthOn, monthStep, occupiedOf, homesOf.
  * Owner context: Run (domain).
  *
  * Nothing here is random: the same layout and rates give the same months. A clock without growth is the sketch's
@@ -12,6 +13,7 @@
 import { LAYERS, allTiles, assessCore, costOf, kindOf, monthOf } from '@city/site';
 import type { Layer, Layout, PopulationMonth, SiteRates, Stress, TileKey } from '@city/site';
 
+import type { HeldBack } from './movein.ts';
 import type { Money } from './spend.ts';
 
 /** One month of the city's people, and what the month spent. */
@@ -30,6 +32,18 @@ export interface MonthRow {
   /** The month's spend by layer: a twelfth of the running bill for the people living there, and, in month 12, the
    * year's change in what stands. */
   readonly spend: Money;
+  /** On a clock built in order: the neighborhoods standing empty or held to the childless share, and what each lacks. */
+  readonly heldBack?: readonly HeldBack[];
+}
+
+/** Who arrivals may move in with, on a clock built in order (ADR-0012). */
+export interface MoveIn {
+  /** The most people each neighborhood may hold; one left out holds nobody. */
+  readonly limits: Readonly<Record<TileKey, number>>;
+  /** Neighborhoods held to households with no school-age children: they send no pupils. */
+  readonly childless: readonly TileKey[];
+  /** What holds the rest back, recorded on the month. */
+  readonly held: readonly HeldBack[];
 }
 
 /** The month clock on a run. */
@@ -60,10 +74,11 @@ export function homesOf(layout: Layout, rates: SiteRates): number {
  * Growth starting on what stands: every neighborhood that already stands is lived in, full; the clock starts at month 0.
  * @param layout - what stands when the run starts
  * @param rates - the ledger's rates
+ * @param limits - on a clock built in order, the most each neighborhood may hold: it starts that full
  */
-export function growthOn(layout: Layout, rates: SiteRates): Growth {
+export function growthOn(layout: Layout, rates: SiteRates, limits?: Readonly<Record<TileKey, number>>): Growth {
   const occupied: Record<TileKey, number> = {};
-  for (const h of hoodsOf(layout, rates)) occupied[h] = rates.hood;
+  for (const h of hoodsOf(layout, rates)) occupied[h] = limits ? (limits[h] ?? 0) : rates.hood;
   return { month: 0, occupied, months: [] };
 }
 
@@ -80,8 +95,14 @@ export function occupiedOf(layout: Layout, growth: Growth, rates: SiteRates): Re
 }
 
 /** The running layers of what stands, for the people living there under this stress. */
-function billOf(layout: Layout, occupied: Readonly<Record<TileKey, number>>, stress: Stress, rates: SiteRates): Record<Layer, number> {
-  const core = assessCore(layout, stress, rates, occupied);
+function billOf(
+  layout: Layout,
+  occupied: Readonly<Record<TileKey, number>>,
+  stress: Stress,
+  rates: SiteRates,
+  childless: readonly TileKey[],
+): Record<Layer, number> {
+  const core = assessCore(layout, stress, rates, occupied, childless);
   return { ...costOf(layout, core, rates).layers };
 }
 
@@ -94,6 +115,7 @@ function billOf(layout: Layout, occupied: Readonly<Record<TileKey, number>>, str
  * @param stress - this year's stress, for the month's bill
  * @param rates - the ledger's rates
  * @param capital - the year's change in what stands, paid in month 12; nothing in other months
+ * @param moveIn - on a clock built in order, who arrivals may move in with; absent, every empty home is open
  * @returns the month clock after the month, with the month's row appended
  * @throws Error when the month clock has already completed the year (month 12 belongs to the yearly step)
  */
@@ -104,13 +126,16 @@ export function monthStep(
   stress: Stress,
   rates: SiteRates,
   capital: Money | null = null,
+  moveIn?: MoveIn,
 ): Growth {
   if (growth.month >= 12) throw new Error(`the year is complete at month ${growth.month}; start the next year first`);
   const hoods = hoodsOf(layout, rates);
   const before = occupiedOf(layout, growth, rates);
   const people = hoods.reduce((t, h) => t + (before[h] ?? 0), 0);
   const homes = hoods.length * rates.hood;
-  const m: PopulationMonth = monthOf(people, homes);
+  // Arrivals come for the homes open to them: on a clock built in order, only what the admitted may hold.
+  const open = moveIn ? hoods.reduce((t, h) => t + (moveIn.limits[h] ?? 0), 0) : homes;
+  const m: PopulationMonth = monthOf(people, open);
   // Births, deaths and leavers fall on each neighborhood by its share of the people.
   const kept = people > 0 ? (people + m.births - m.deaths - m.left) / people : 0;
   const occupied: Record<TileKey, number> = {};
@@ -118,12 +143,12 @@ export function monthStep(
   let toPlace = m.arrived;
   for (const h of hoods) {
     if (toPlace <= 0) break;
-    const room = Math.max(0, rates.hood - (occupied[h] ?? 0));
+    const room = Math.max(0, (moveIn ? (moveIn.limits[h] ?? 0) : rates.hood) - (occupied[h] ?? 0));
     const take = Math.min(room, toPlace);
     occupied[h] = (occupied[h] ?? 0) + take;
     toPlace -= take;
   }
-  const bill = billOf(layout, occupied, stress, rates);
+  const bill = billOf(layout, occupied, stress, rates, moveIn ? moveIn.childless : []);
   const spend = {} as Record<Layer, number>;
   for (const layer of LAYERS) spend[layer] = kindOf(layer) === 'capital' ? (capital ? capital[layer] : 0) : bill[layer] / 12;
   const month = growth.month + 1;
@@ -133,10 +158,11 @@ export function monthStep(
     births: m.births,
     deaths: m.deaths,
     left: m.left,
-    arrived: m.arrived,
+    arrived: m.arrived - toPlace,
     people: hoods.reduce((t, h) => t + (occupied[h] ?? 0), 0),
     homes,
     spend,
+    ...(moveIn ? { heldBack: moveIn.held } : {}),
   };
   return { month, occupied, months: [...growth.months, row] };
 }

@@ -64,8 +64,15 @@ function isExtra(what: PieceKind): what is ExtraKind {
  * @param jobs - the work in hand, or null when the clock is stopped
  * @param rules - the clock's rules
  * @param inOrder - whether the clock crews what the city needs first
+ * @param emergency - pieces restoring a service people living there are short of (`emergencyOf`), crewed first
  */
-export function inHand(layout: Layout, jobs: readonly Job[] | null, rules: RunRules, inOrder = false): WorkInHand {
+export function inHand(
+  layout: Layout,
+  jobs: readonly Job[] | null,
+  rules: RunRules,
+  inOrder = false,
+  emergency: readonly PieceKind[] = [],
+): WorkInHand {
   const sites: Record<TileKey, { kind: PieceKind; n: number; left: number; status: JobStatus }> = {};
   const extras: Record<TileKey, Partial<Record<ExtraKind, JobItem>>> = {};
   const more: Record<TileKey, number> = {};
@@ -74,7 +81,7 @@ export function inHand(layout: Layout, jobs: readonly Job[] | null, rules: RunRu
   let working = 0;
   let waiting = 0;
   if (jobs) {
-    const crew = crewed(jobs, rules.crews, inOrder);
+    const crew = crewed(jobs, rules.crews, inOrder, emergency);
     jobs.forEach((j, index) => {
       const status: JobStatus = j.left <= 0 ? 'ready' : crew[index] ? 'working' : 'waiting';
       if (status === 'working') working++;

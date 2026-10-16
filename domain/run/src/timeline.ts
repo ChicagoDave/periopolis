@@ -6,12 +6,13 @@
  * Owner context: Run (domain).
  */
 import { closable, SCHOOLS } from '@city/site';
-import type { CheckId, EdgeKey, Layout, SchoolKind, Stress } from '@city/site';
+import type { CheckId, EdgeKey, Layout, SchoolKind, Stress, TileKey } from '@city/site';
 import { dice } from './dice.ts';
 import type { Job } from './jobs.ts';
 import { GRADES } from './rules.ts';
 import type { PieceKind, RunRules } from './rules.ts';
 import type { Growth } from './growth.ts';
+import type { HeldBack, Residence } from './movein.ts';
 import type { Money } from './spend.ts';
 
 /** What can happen: a housing squeeze, a stretch of line closed, a wave of young families, a slump. */
@@ -45,6 +46,9 @@ export interface RecordRow {
   readonly standing: Money;
   /** The year's outlay by layer: capital as the change in what stands, running as the year's bill. Year 0 spends nothing. */
   readonly spend: Money;
+  /** On a clock built in order (ADR-0012 Decision 5): the finished neighborhoods standing empty or held to the
+   * childless share at the year's end, and what each lacks. Absent on the sketch's clock. */
+  readonly heldBack?: readonly HeldBack[];
 }
 
 /** The clock: the year, the work in hand, the events and the record. */
@@ -60,6 +64,8 @@ export interface Clock {
   readonly growth?: Growth;
   /** Crews take what the city needs first (ADR-0012), when the run was started in order; absent, the sketch's order. */
   readonly inOrder?: true;
+  /** Who may live in each finished neighborhood (ADR-0012), on a clock built in order; one left out holds nobody. */
+  readonly lived?: Readonly<Record<TileKey, Residence>>;
 }
 
 /**

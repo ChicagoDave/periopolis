@@ -320,6 +320,7 @@ export function checkDetail(facts: Facts, rates: SiteRates): string {
     case 'stops':
       if (facts.case === 'idle') return 'A stop sits under the center of any tile the mover line touches.';
       if (facts.case === 'without') return `${count(facts.count, 'neighborhood has', 'neighborhoods have')} no stop on a line to the ring. Draw the mover line through ${facts.count === 1 ? 'it' : 'them'}.`;
+      if (facts.case === 'waiting') return `${count(facts.count, 'neighborhood nobody lives in yet has', 'neighborhoods nobody lives in yet have')} no stop on a line to the ring.`;
       return 'Every neighborhood has a stop under its center, on a line to the ring.';
     case 'elementary':
     case 'middle':
@@ -327,6 +328,7 @@ export function checkDetail(facts: Facts, rates: SiteRates): string {
       const noun = SITE_NAME[facts.check].toLowerCase();
       if (facts.case === 'idle') return `A school of this kind holds at most ${num(facts.cap)} pupils.`;
       if (facts.case === 'none') return `There is no ${noun} yet. ${num(facts.pupils)} pupils have nowhere to go.`;
+      if (facts.case === 'waiting') return `There is no ${noun} yet. No pupils live here yet.`;
       if (facts.case === 'unseated') return `${num(facts.missing)} pupils in ${count(facts.hoods, 'neighborhood', 'neighborhoods')} have no seat within a 30-minute walk. A school holds at most ${num(facts.cap)}.`;
       return `${count(facts.schools, 'school', 'schools')} for ${num(facts.pupils)} pupils. The fullest has ${num(facts.fullest)} of ${num(facts.cap)} seats, and the longest walk is ${num(facts.longestMin)} minutes.`;
     }
@@ -620,6 +622,7 @@ export const POPULATION_PREMISE: Readonly<Record<keyof PopulationPremises, { rea
   movingShare: { name: 'People who move house', value: (v) => `${num(100 * v, 1)}% a year` },
   leavingShare: { name: 'Movers who leave the city', value: (v) => `${num(100 * v)}% of them` },
   arrivalsPerYear: { name: 'Arrivals into empty homes', value: (v) => `${num(v)} people a year at most, citywide` },
+  childlessShare: { name: 'People in homes with no school-age children', value: (v) => `${num(100 * v)}% of people` },
 };
 
 /** "5 p.m.", "midnight", "noon": a clock hour's start. */

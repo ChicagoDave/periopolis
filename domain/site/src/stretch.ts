@@ -64,6 +64,8 @@ export interface AssessOptions {
   readonly now?: Stress | null;
   /** People living in each neighborhood before the stress (ADR-0009). Absent means every neighborhood is full. */
   readonly occupied?: Readonly<Record<TileKey, number>>;
+  /** Neighborhoods held to households with no school-age children (ADR-0012): they send no pupils. */
+  readonly childless?: readonly TileKey[];
 }
 
 /**
@@ -75,8 +77,9 @@ export interface AssessOptions {
  */
 export function assess(layout: Layout, rates: SiteRates, options: AssessOptions = {}): Assessment {
   const occupied = options.occupied ?? {};
-  const plain = assessCore(layout, NO_STRESS, rates, occupied);
-  const today = options.now ? assessCore(layout, options.now, rates, occupied) : plain;
+  const childless = options.childless ?? [];
+  const plain = assessCore(layout, NO_STRESS, rates, occupied, childless);
+  const today = options.now ? assessCore(layout, options.now, rates, occupied, childless) : plain;
   const was: Partial<Record<CheckId, number>> = {};
   for (const c of plain.checks) was[c.id] = RANK[c.status];
   // A line gives when the stretch leaves it worse off than it is in an ordinary year.
@@ -86,7 +89,7 @@ export function assess(layout: Layout, rates: SiteRates, options: AssessOptions 
       .map((c) => ({ id: c.id, status: c.status, facts: c.facts }));
   const stretched: Partial<Record<TestId, Core>> = {};
   const tests: StretchTest[] = bandTests(rates.band).map((t) => {
-    const then = assessCore(layout, t.stress, rates, occupied);
+    const then = assessCore(layout, t.stress, rates, occupied, childless);
     stretched[t.id] = then;
     return { id: t.id, gives: given(then) };
   });
@@ -94,7 +97,7 @@ export function assess(layout: Layout, rates: SiteRates, options: AssessOptions 
   const weak = bridges(layout);
   let hit: { then: Core; gives: Given[]; edge: EdgeKey } | null = null;
   for (const w of weak) {
-    const then = assessCore(layout, { people: 0, children: 0, closed: [w.edge] }, rates, occupied);
+    const then = assessCore(layout, { people: 0, children: 0, closed: [w.edge] }, rates, occupied, childless);
     const gives = given(then);
     if (gives.length) {
       hit = { then, gives, edge: w.edge };

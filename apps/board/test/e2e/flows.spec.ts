@@ -335,8 +335,9 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
   await expect(page.locator('#daypremises li')).toHaveCount(7);
   await expect(page.locator('#daypremises .chip.mark')).toHaveCount(7);
   await page.click('#popbox summary');
-  await expect(page.locator('#poppremises li')).toHaveCount(5);
-  await expect(page.locator('#poppremises li').last()).toContainText('Arrivals into empty homes: 4,800 people a year at most, citywide');
+  await expect(page.locator('#poppremises li')).toHaveCount(6);
+  await expect(page.locator('#poppremises li').nth(4)).toContainText('Arrivals into empty homes: 4,800 people a year at most, citywide');
+  await expect(page.locator('#poppremises li').last()).toContainText('People in homes with no school-age children: 60% of people');
 
   await page.check('#monthly');
   await page.click('#found');
