@@ -1,7 +1,7 @@
 # Session Plan: Build in order, and say line 6 is under construction
 
 **Created**: 2026-10-15
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Make the Run build what the city needs first (mover line and plants before homes) and keep a finished neighborhood empty until the city can carry it (mover stop, water, sewage, waste, power, school seats); word line 6 as "under construction" while its stretches are ordered but not built. This changes Run behaviour pinned by the sketch's parity fixtures, so an ADR comes first.
 **Bounded contexts touched**: Run (crews, move-in), Site (a read of what a neighborhood needs to be lived in, no new arithmetic), Board (wording only). Ledger and Ground unchanged.
 **Key domain language**: crews, job (ordered piece), build order, occupancy / move-in (ADR-0009), line 6 (mover stop), neighborhood standing empty, under construction (a fact the Board words, ADR-0004)
