@@ -197,14 +197,14 @@ function start(data: { game?: unknown }): void {
   const byMonth = (): string => (monthly() ? ' People arrive month by month; Next month steps one.' : '');
   byId('run').addEventListener('click', () =>
     page.swap(
-      startRun(s.game.layout, seed(), RATES, RULES, { growth: monthly() }),
+      startRun(s.game.layout, seed(), RATES, RULES, { growth: monthly(), inOrder: true }),
       `The clock is running on this city: year 0 of ${RULES.years}. What you place now is an order for the ${RULES.crews} crews. Press Next year when your orders are in.${byMonth()}`,
     ),
   );
   byId('found').addEventListener('click', () => {
     s.picked = null;
     page.swap(
-      startRun(emptyLayout(), seed(), RATES, RULES, { growth: monthly() }),
+      startRun(emptyLayout(), seed(), RATES, RULES, { growth: monthly(), inOrder: true }),
       `An empty site, year 0, ${RULES.crews} crews. Place your first orders, then press Next year. Undo brings the old city back.${byMonth()}`,
     );
   });

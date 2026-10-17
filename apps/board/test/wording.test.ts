@@ -1,15 +1,17 @@
 /**
- * @file The Board's wording against the sketch's sentences, recorded in the Site's and the Run's parity fixtures.
+ * @file The Board's wording against the sketch's sentences, recorded in the Site's and the Run's parity fixtures, and
+ * the sentences built in order adds (ADR-0012): line 6 under construction, and who is held back.
  * Owner context: Board (adapter), tests.
  */
 import { describe, expect, it } from 'vitest';
 import { DAYS, POPULATION, RATES, assess, dayOf, emptyLayout, needsOf, placeNeighborhood, sizedLayout, starterLayout } from '@city/site';
-import type { DayPremises, Layout, PopulationPremises, Stress, TestId, TileKey } from '@city/site';
+import type { DayPremises, Facts, Layout, LineCheck, PopulationPremises, Stress, TestId, TileKey } from '@city/site';
 import { RULES, notices, startRun, tick, tickMonth } from '@city/run';
-import type { Game } from '@city/run';
+import type { Game, HeldBack, MonthRow } from '@city/run';
+import { yearLine } from '../src/draw/clock.ts';
 import { move } from '../src/moves.ts';
 import type { ToolId } from '../src/wording.ts';
-import { checkDetail, checkTitle, issueText, linesLabel, needText, noticeText, testLabel } from '../src/wording.ts';
+import { checkDetail, checkTitle, heldBackLine, heldHere, issueText, linesLabel, needText, noticeText, stopsInHand, testLabel } from '../src/wording.ts';
 import { DAY_NAME, DAY_PREMISE, POPULATION_PREMISE, dayCaption, hourLabel, monthLine, peopleNow } from '../src/wording.ts';
 import siteRecorded from '../../../domain/site/test/fixtures/parity.json';
 import runRecorded from '../../../domain/run/test/fixtures/parity.json';
@@ -208,5 +210,71 @@ describe('the day, worded (ADR-0009)', () => {
       'School starts: 8 a.m.',
       'The school day: 6.5 hours',
     ]);
+  });
+});
+
+describe('built in order, worded (ADR-0012)', () => {
+  const stops = (facts: Facts): LineCheck => ({ id: 'stops', lines: [6], status: 'bad', facts, tiles: ['1,0', '2,0', '3,0'] });
+  const without: Facts = { check: 'stops', case: 'without', count: 3 };
+  const waiting: Facts = { check: 'stops', case: 'waiting', count: 3 };
+
+  it('line 6 counts only its own neighborhoods as under construction', () => {
+    expect(stopsInHand(stops(without), ['2,0', '3,0', '9,9'])).toBe(2);
+    expect(stopsInHand({ ...stops(without), id: 'ways' }, ['2,0'])).toBe(0);
+  });
+
+  it('with none in hand line 6 keeps its old words; with some, the line is under construction', () => {
+    expect(checkDetail(without, RATES)).toBe('3 neighborhoods have no stop on a line to the ring. Draw the mover line through them.');
+    expect(checkDetail(without, RATES, 3)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to them is under construction.');
+    expect(checkDetail(without, RATES, 2)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to 2 of them is under construction. Draw it through the other one.');
+    expect(checkDetail(without, RATES, 1)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to 1 of them is under construction. Draw it through the other 2.');
+    expect(checkDetail({ check: 'stops', case: 'without', count: 1 }, RATES, 1)).toBe('1 neighborhood has no stop on a line to the ring. The mover line to it is under construction.');
+  });
+
+  it('a neighborhood nobody lives in yet is under construction too, with nothing to draw', () => {
+    expect(checkDetail(waiting, RATES)).toBe('3 neighborhoods nobody lives in yet have no stop on a line to the ring.');
+    expect(checkDetail(waiting, RATES, 3)).toBe('3 neighborhoods nobody lives in yet have no stop on a line to the ring. The mover line to them is under construction.');
+    expect(checkDetail(waiting, RATES, 1)).toBe('3 neighborhoods nobody lives in yet have no stop on a line to the ring. The mover line to 1 of them is under construction.');
+  });
+
+  const empty: HeldBack = { hood: '1,0', short: ['power'], seats: ['elementary'] };
+  const dry: HeldBack = { hood: '2,0', short: ['power', 'water', 'sewage', 'waste'], seats: [] };
+  const share: HeldBack = { hood: '3,0', short: [], seats: ['middle', 'high'] };
+
+  it('held-back neighborhoods are grouped by what they wait for: empty for a service, the childless share for seats', () => {
+    expect(heldBackLine([])).toBe('');
+    expect(heldBackLine([empty, { ...empty, hood: '4,0' }, dry, share])).toBe(
+      '2 neighborhoods stand empty, waiting for power. ' +
+        '1 neighborhood stands empty, waiting for power, drinking water, sewage treatment and waste handling. ' +
+        '1 neighborhood holds only households with no school-age children, waiting for middle-school and high-school seats.',
+    );
+  });
+
+  it('a neighborhood short of a service is worded empty whatever seats it also lacks; a month with no homes names none', () => {
+    expect(heldBackLine([empty])).toBe('1 neighborhood stands empty, waiting for power.');
+    const bare: MonthRow = { year: 1, month: 1, people: 0, homes: 0, arrived: 0, births: 0, deaths: 0, left: 0, spend: {} as MonthRow['spend'], heldBack: [empty] };
+    expect(monthLine(bare)).toBe('Year 1, month 1: no homes stand yet, so nobody lives here.');
+  });
+
+  it('one held-back neighborhood, for the inspector', () => {
+    expect(heldHere(empty)).toBe('Nobody lives here yet. It waits for power.');
+    expect(heldHere(share)).toBe('Only households with no school-age children live here. It waits for middle-school and high-school seats.');
+  });
+
+  it("the year and the month say what holds neighborhoods back; the sketch's clock says nothing of it", () => {
+    const alone = placeNeighborhood(emptyLayout(), '0,0', RATES);
+    if (!alone.ok) throw new Error(alone.rejection.reason);
+    const year = tick(startRun(alone.layout, 7, RATES, RULES, { inOrder: true }), RATES, RULES).clock?.record[1];
+    if (!year) throw new Error('no year');
+    expect(yearLine(year)).toContain('Year 1: 0 people.');
+    expect(yearLine(year)).toContain('1 neighborhood stands empty, waiting for power, drinking water, sewage treatment and waste handling.');
+    const sketch = tick(startRun(alone.layout, 7, RATES, RULES), RATES, RULES).clock?.record[1];
+    if (!sketch) throw new Error('no year');
+    expect(yearLine(sketch)).not.toContain('stands empty');
+    const month = tickMonth(startRun(alone.layout, 7, RATES, RULES, { growth: true, inOrder: true }), RATES, RULES).clock?.growth?.months[0];
+    if (!month) throw new Error('no month');
+    expect(monthLine(month)).toBe(
+      'Year 1, month 1: 0 people in homes for 5,000. Nobody came or went. 1 neighborhood stands empty, waiting for power, drinking water, sewage treatment and waste handling.',
+    );
   });
 });

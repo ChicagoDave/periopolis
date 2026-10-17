@@ -12,7 +12,7 @@ import type { Layout, PopulationPremises } from '@city/site';
 import { button, byId, el } from '../dom.ts';
 import { cap, fmt, low, money, years } from '../format.ts';
 import type { Page } from '../page.ts';
-import { PIECE_NAME, POPULATION_PREMISE, checkTitle, noticeText, openedSentence, peopleNow } from '../wording.ts';
+import { PIECE_NAME, POPULATION_PREMISE, checkTitle, heldBackLine, noticeText, openedSentence, peopleNow } from '../wording.ts';
 import { RATES } from '@city/site';
 import { markChip } from './money.ts';
 
@@ -21,6 +21,7 @@ export function yearLine(row: RecordRow): string {
   const parts = [`Year ${row.year}: ${fmt(row.pop)} people.`];
   if (row.bad) parts.push(`${row.bad}${row.bad === 1 ? ' line broken: ' : ' lines broken: '}${row.broken.map((id) => low(checkTitle(id))).join('; ')}.`);
   else parts.push(row.pop ? 'Every line held.' : 'Nobody lives here yet.');
+  if (row.heldBack?.length) parts.push(heldBackLine(row.heldBack));
   if (Object.keys(row.opened).length) parts.push(`Opened: ${openedSentence(row.opened)}.`);
   return parts.join(' ');
 }

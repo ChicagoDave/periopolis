@@ -1,11 +1,14 @@
 /**
  * @file The session and the storage adapter: what is saved, what undo brings back, what a bad save becomes, and the
- * view: the map or one tile's ground, never saved, back to the map when the ground goes.
+ * view: the map or one tile's ground, never saved, back to the map when the ground goes; and on a run built in order
+ * (ADR-0012), the people admitted, what holds the rest back, stops under construction and the crew order.
  * Owner context: Board (adapter), tests.
  */
 import { describe, expect, it } from 'vitest';
-import { RULES, startRun } from '@city/run';
-import { RATES, emptyLayout, placeNeighborhood, starterLayout } from '@city/site';
+import { RULES, placeOrder, startRun, stopRun, tick } from '@city/run';
+import type { Game } from '@city/run';
+import { RATES, addPlantUnit, addRingBuilding, assess, emptyLayout, layStretch, placeNeighborhood, starterLayout } from '@city/site';
+import type { Layout, Outcome } from '@city/site';
 import { move } from '../src/moves.ts';
 import { newSession } from '../src/session.ts';
 import { memoryStore, restoreGame } from '../src/storage.ts';
@@ -148,5 +151,89 @@ describe('the view', () => {
     s.refresh();
     expect(s.game.layout.tiles['1,0']?.kind).toBe('hood');
     expect(s.view).toEqual({ at: 'map' });
+  });
+});
+
+describe('a run built in order (ADR-0012)', () => {
+  const built = (layout: Layout, ...commands: ((l: Layout) => Outcome)[]): Layout =>
+    commands.reduce((l, c) => {
+      const o = c(l);
+      if (!o.ok) throw new Error(o.rejection.reason);
+      return o.layout;
+    }, layout);
+  const order = (game: Game, command: (plan: Layout) => Outcome): Game => {
+    const out = placeOrder(game, command, RULES);
+    if (!out.ok) throw new Error(out.rejection.reason);
+    return out.game;
+  };
+  const served = built(
+    emptyLayout(),
+    (l) => placeNeighborhood(l, '0,0', RATES),
+    (l) => addPlantUnit(l, '3,-1', 'power', RATES),
+    (l) => addPlantUnit(l, '3,-1', 'power', RATES),
+    (l) => addPlantUnit(l, '3,-2', 'water', RATES),
+    (l) => addPlantUnit(l, '-3,1', 'sewage', RATES),
+    (l) => addPlantUnit(l, '-3,2', 'waste', RATES),
+  );
+
+  it('shows the board for the people admitted, and what holds them back; off the clock everyone lives there', () => {
+    const s = newSession(startRun(served, 7, RATES, RULES, { inOrder: true }), memoryStore());
+    s.refresh();
+    expect(s.ev.score.pop).toBeCloseTo(RATES.hood * 0.6, 6);
+    expect(s.occupied).toEqual({ '0,0': RATES.hood * 0.6 });
+    expect(s.held).toEqual([{ hood: '0,0', short: [], seats: ['elementary', 'middle', 'high'] }]);
+    // The childless share sends no pupils, so with no school the line waits; counted with children it would break.
+    expect(s.ev.checks.find((c) => c.id === 'elementary')?.facts).toEqual({ check: 'elementary', case: 'waiting', hoods: 1 });
+    expect(assess(served, RATES, { occupied: { '0,0': RATES.hood * 0.6 } }).checks.find((c) => c.id === 'elementary')?.status).toBe('bad');
+    s.game = stopRun(s.game);
+    s.refresh();
+    expect(s.ev.score.pop).toBe(RATES.hood);
+    expect(s.occupied).toBeNull();
+    expect(s.held).toEqual([]);
+  });
+
+  it('names the neighborhoods whose stop is under construction, and none once the clock stops', () => {
+    const ringed = built(emptyLayout(), (l) => addRingBuilding(l, '0,0', RATES), (l) => placeNeighborhood(l, '1,0', RATES));
+    const s = newSession(order(startRun(ringed, 7, RATES, RULES, { inOrder: true }), (p) => layStretch(p, '0,0', '1,0', RATES)), memoryStore());
+    s.refresh();
+    expect(s.building).toEqual(['1,0']);
+    expect(s.ev.checks.find((c) => c.id === 'stops')?.tiles).toEqual(['1,0']);
+    s.game = tick(s.game, RATES, RULES);
+    s.refresh();
+    expect(s.building).toEqual([]);
+    expect(s.ev.checks.find((c) => c.id === 'stops')?.status).toBe('ok');
+    s.game = order(s.game, (p) => layStretch(p, '1,0', '2,0', RATES));
+    s.game = { layout: s.game.layout, clock: null };
+    s.refresh();
+    expect(s.building).toEqual([]);
+  });
+
+  it('lists a unit of a service the city is short of as working ahead of the stretches (ADR-0012 Decision 7)', () => {
+    let g = startRun(emptyLayout(), 7, RATES, RULES, { inOrder: true });
+    for (let q = -5; q < 5; q++) g = order(g, (p) => layStretch(p, `${q},0`, `${q + 1},0`, RATES));
+    g = order(g, (p) => addPlantUnit(p, '3,-2', 'water', RATES));
+    const water = (game: Game): string | undefined => {
+      const s = newSession(game, memoryStore());
+      s.refresh();
+      return s.hand.list.find((j) => j.what === 'water')?.status;
+    };
+    expect(water(g)).toBe('waiting');
+    const clock = g.clock;
+    if (!clock) throw new Error('no clock');
+    const row = clock.record[0];
+    if (!row) throw new Error('no year');
+    expect(water({ layout: g.layout, clock: { ...clock, record: [{ ...row, broken: ['water'] }] } })).toBe('working');
+  });
+
+  it('lists the work in hand in the crew order: a home ordered before ten stretches waits for them', () => {
+    const hand = (inOrder: boolean): string | undefined => {
+      let g = order(startRun(emptyLayout(), 7, RATES, RULES, { inOrder }), (p) => placeNeighborhood(p, '0,-2', RATES));
+      for (let q = -5; q < 5; q++) g = order(g, (p) => layStretch(p, `${q},0`, `${q + 1},0`, RATES));
+      const s = newSession(g, memoryStore());
+      s.refresh();
+      return s.hand.list.find((j) => j.what === 'hood')?.status;
+    };
+    expect(hand(true)).toBe('waiting');
+    expect(hand(false)).toBe('working');
   });
 });

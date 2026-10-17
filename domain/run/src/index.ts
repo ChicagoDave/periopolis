@@ -1,7 +1,7 @@
 /**
  * @file The Run. Twenty years on the clock: crews, jobs and the work in hand; the timeline of five announced events;
  * the yearly record and its line-years.
- * Public interface: startRun, stopRun, tick, tickMonth, the month clock (growth), placeOrder, cancelJob, putFirst, inHand, the crew order (classOf, crewed, emergencyOf), who may live where (admit, limitsOf, childlessOf), notices, stressAt, restoreClock,
+ * Public interface: startRun, stopRun, tick, tickMonth, the month clock (growth), placeOrder, cancelJob, putFirst, inHand, the crew order (classOf, crewed, emergencyOf), who may live where (admit, limitsOf, childlessOf), who the board is checked for (livingOf), stops under construction (stopsBuilding), notices, stressAt, restoreClock,
  * totalSpend, the rules, and the types of games, clocks, jobs, events, records and money.
  * Owner context: Run (domain). Depends on @city/site alone.
  */
@@ -17,6 +17,9 @@ export { inHand, cancelJob, putFirst } from './jobs.ts';
 export { classOf, crewed, emergencyOf } from './crews.ts';
 export { admit, limitsOf, childlessOf } from './movein.ts';
 export type { Admission, HeldBack, Residence } from './movein.ts';
+export { livingOf } from './living.ts';
+export type { Living } from './living.ts';
+export { stopsBuilding } from './building.ts';
 export type { PieceClass } from './crews.ts';
 export type { Job, JobStatus, JobItem, SiteInHand, WorkInHand } from './jobs.ts';
 export { beginClock, waveIn, isActive, isAnnounced, stressAt, notices, pickEdge } from './timeline.ts';

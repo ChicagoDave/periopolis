@@ -71,4 +71,4 @@
 - **Exit state**: Board shows "under construction" for line 6 when stretches are in hand and the old text when none are ordered; tests green; published (ADR-0011).
 - **Demonstration**: `pnpm --filter @city/board test` and `test:e2e` pass; `BOARD_URL=https://periopolis.city pnpm --filter @city/board test:e2e` passes after the workflow deploys.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: CURRENT (since 2026-10-16)

@@ -7,7 +7,7 @@ import { RATES } from '@city/site';
 import { button, byId, el } from '../dom.ts';
 import { cap, low } from '../format.ts';
 import type { Page } from '../page.ts';
-import { STATUS, checkDetail, checkTitle, linesLabel, testLabel } from '../wording.ts';
+import { STATUS, checkDetail, checkTitle, linesLabel, stopsInHand, testLabel } from '../wording.ts';
 import { tally } from './score.ts';
 
 export function drawRules(page: Page): void {
@@ -19,7 +19,7 @@ export function drawRules(page: Page): void {
     const words = el('span');
     b.type = 'button';
     b.id = `rule-${r.id}`;
-    words.append(el('span', 'title', checkTitle(r.id)), el('span', 'ref', linesLabel(r.lines)), el('span', 'detail', checkDetail(r.facts, RATES)));
+    words.append(el('span', 'title', checkTitle(r.id)), el('span', 'ref', linesLabel(r.lines)), el('span', 'detail', checkDetail(r.facts, RATES, stopsInHand(r, page.s.building))));
     b.append(el('span', `chip ${r.status}`, STATUS[r.status]), words);
     b.addEventListener('click', () => {
       if (r.tiles.length) {

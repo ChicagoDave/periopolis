@@ -1,7 +1,8 @@
 /**
  * @file The Board's flows in a browser, on the built page: the front door, the opening city, two far neighborhoods, a founding run
  * through year 3, the ledger's city run to year 20, undo and storage, a tile's ground zoomed into at both levels, what
- * the city needs, the city sized to its people, and a city founded month by month with its day hour by hour.
+ * the city needs, the city sized to its people, a city founded month by month with its day hour by hour, and a
+ * neighborhood standing empty while its line is under construction (ADR-0012).
  * Owner context: Board (adapter), tests.
  */
 import { planNeighborhood, planRing } from '@city/ground';
@@ -132,16 +133,19 @@ test('founding a city from nothing: orders, three years, a building site and the
   await place(page, 'high', ['2,-1']);
   await place(page, 'fields', ['2,-1']);
   await expect(page.locator('#worknow')).toHaveText('10 of 10 crews working, 2 jobs waiting for a crew.');
+  // Built in order (ADR-0012), the homes come last in the work in hand; putting one first puts it first among the homes.
   await page.locator('#work button[id^="first-"]').last().click();
-  await expect(page.locator('#said')).toHaveText('Playing fields goes first. Whatever lost its crew keeps the work done on it.');
+  await expect(page.locator('#said')).toHaveText('Neighborhood goes first. Whatever lost its crew keeps the work done on it.');
   await page.click('#tool-inspect');
   await tile(page, '1,0').click();
   await expect(page.locator('#inspector h2')).toHaveText('Building site');
   await expect(page.locator('#board .tile.site')).toHaveCount(7);
   await page.click('#tick');
   await page.click('#tick');
+  // The plants, the ring and the schools take the crews before the homes do (ADR-0012), so at year 3 the homes are
+  // still building.
   await expect(page.locator('#clocknow')).toContainText('Year 3 of 20.');
-  await expect(page.locator('#clocknow')).toContainText('Homes for 10,000 people.');
+  await expect(page.locator('#clocknow')).toContainText('Homes for 0 people.');
   await page.click('#yr-2');
   await expect(page.locator('#said')).toContainText('Year 2:');
   await page.click('#stop');
@@ -152,6 +156,12 @@ test('founding a city from nothing: orders, three years, a building site and the
 test("the ledger's city run to year 20 records every year, survives a reload and exports its clock", async ({ page }) => {
   await page.click('#run');
   await expect(page.locator('#clocknow')).toContainText('Year 0 of 20.');
+  // The run is built in order (ADR-0012), and the ledger's city is served, so everyone lives there and nothing is held.
+  expect(await page.evaluate(() => localStorage.getItem('future-city-builder-v1'))).toContain('"inOrder":true');
+  await page.click('#tool-inspect');
+  await tile(page, '1,0').click();
+  await expect(page.locator('#inspector .facts dd').first()).toHaveText('5,000');
+  await expect(page.locator('#inspector .held')).toHaveCount(0);
   let announced = false;
   for (let y = 1; y <= 20; y++) {
     await page.click('#tick');
@@ -345,24 +355,64 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
   await expect(page.locator('#monthlybox')).toBeHidden();
   await expect(page.locator('#peoplenow')).toHaveText('The start of year 1. 0 people living in homes for 0.');
   await expect(page.locator('#daynow')).toHaveText('A summer weekday, and nobody lives here yet: no trips, no power drawn, every mover parked.');
+  // People move in only when the city carries them (ADR-0012): two reactor modules, so the peak holds with one down,
+  // and a unit of water, sewage and waste. With no school, only the childless share may live there.
+  await place(page, 'power', ['3,-1', '3,-1']);
+  await place(page, 'water', ['3,-2']);
+  await place(page, 'sewage', ['-3,1']);
+  await place(page, 'waste', ['-3,2']);
   await place(page, 'hood', ['1,0', '2,-1']);
   await page.click('#month');
   await expect(page.locator('#said')).toHaveText('Year 1, month 1: no homes stand yet, so nobody lives here.');
   await expect(page.locator('#peoplenow')).toHaveText('Year 1, month 1 of 12. 0 people living in homes for 0.');
-  // The rest of year 1, then year 2, when the two neighborhoods open empty and the first 400 move in.
+  // The rest of year 1, then year 2, when the two neighborhoods open and stand empty: the reactor site takes 3 years,
+  // and the second module, finished, waits for it.
   await page.click('#tick');
   await page.click('#tick');
   await expect(page.locator('#clocknow')).toContainText('Year 2 of 20.');
-  await expect(page.locator('#peoplenow')).toHaveText('The start of year 3. 400 people living in homes for 10,000.');
+  await expect(page.locator('#said')).toContainText('2 neighborhoods stand empty, waiting for power.');
+  await expect(page.locator('#peoplenow')).toHaveText('The start of year 3. 0 people living in homes for 10,000.');
+  // Year 3, when both modules open and the first 400 move in.
+  await page.click('#tick');
+  await expect(page.locator('#clocknow')).toContainText('Year 3 of 20.');
+  await expect(page.locator('#peoplenow')).toHaveText('The start of year 4. 400 people living in homes for 10,000.');
   await expect(page.locator('#daynow')).toContainText('A summer weekday for 400 people:');
   await page.click('#month');
-  await expect(page.locator('#said')).toHaveText('Year 3, month 1: 799 people in homes for 10,000. 400 moved in, 0.4 born, 0.3 died and 1.5 moved away.');
-  await expect(page.locator('#peoplenow')).toHaveText('Year 3, month 1 of 12. 799 people living in homes for 10,000.');
+  await expect(page.locator('#said')).toHaveText(
+    'Year 4, month 1: 799 people in homes for 10,000. 400 moved in, 0.4 born, 0.3 died and 1.5 moved away. ' +
+      '2 neighborhoods hold only households with no school-age children, waiting for elementary, middle-school and high-school seats.',
+  );
+  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 799 people living in homes for 10,000.');
   await expect(page.locator('#daynow')).toContainText('A summer weekday for 799 people:');
+  await page.click('#tool-inspect');
+  await tile(page, '1,0').click();
+  await expect(page.locator('#inspector .held')).toHaveText('Only households with no school-age children live here. It waits for elementary, middle-school and high-school seats.');
   await expect(page.locator('#hourrows tr')).toHaveCount(24);
   await page.click('#monthbox summary');
-  await expect(page.locator('#monthrows tr')).toHaveCount(25);
+  await expect(page.locator('#monthrows tr')).toHaveCount(37);
   // The month clock survives a reload.
   await page.reload();
-  await expect(page.locator('#peoplenow')).toHaveText('Year 3, month 1 of 12. 799 people living in homes for 10,000.');
+  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 799 people living in homes for 10,000.');
+});
+
+test('a neighborhood stands empty until the city carries it, and line 6 says when its line is under construction (ADR-0012)', async ({ page }) => {
+  await page.click('#found');
+  await place(page, 'ring', ['0,0']);
+  await place(page, 'hood', ['1,0']);
+  await page.click('#tick');
+  await page.click('#tick');
+  // The homes stand at year 2 with nothing to serve them: nobody moves in, and the year says why.
+  await expect(page.locator('#said')).toContainText('Year 2: 0 people.');
+  await expect(page.locator('#said')).toContainText('1 neighborhood stands empty, waiting for power, drinking water, sewage treatment and waste handling.');
+  await expect(page.locator('#rule-stops .chip')).toHaveText('Watch');
+  await expect(page.locator('#rule-stops .detail')).toHaveText('1 neighborhood nobody lives in yet has no stop on a line to the ring.');
+  await page.click('#tool-inspect');
+  await tile(page, '1,0').click();
+  await expect(page.locator('#inspector .held')).toHaveText('Nobody lives here yet. It waits for power, drinking water, sewage treatment and waste handling.');
+  await expect(page.locator('#inspector .facts dd').first()).toHaveText('0');
+  // Ordering the stretch puts line 6 under construction; when it opens, the neighborhood has its stop.
+  await place(page, 'line', ['0,0', '1,0']);
+  await expect(page.locator('#rule-stops .detail')).toHaveText('1 neighborhood nobody lives in yet has no stop on a line to the ring. The mover line to it is under construction.');
+  await page.click('#tick');
+  await expect(page.locator('#rule-stops .detail')).toHaveText('Every neighborhood has a stop under its center, on a line to the ring.');
 });

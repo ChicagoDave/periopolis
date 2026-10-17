@@ -8,7 +8,7 @@ import type { ExtraKind, TileKey } from '@city/site';
 import { button, byId, el } from '../dom.ts';
 import { fmt, years } from '../format.ts';
 import type { Page } from '../page.ts';
-import { SITE_NAME, issueText, planCaption } from '../wording.ts';
+import { SITE_NAME, heldHere, issueText, planCaption } from '../wording.ts';
 import { planAt } from './ground.ts';
 import { TOOLS, toolCalled } from './tray.ts';
 
@@ -83,7 +83,7 @@ export function drawInspector(page: Page): void {
     box.append(look);
   }
   if (t.kind === 'hood') {
-    const rows: (readonly [string, string, boolean?])[] = [['People', fmt(s.ev.pop1)]];
+    const rows: (readonly [string, string, boolean?])[] = [['People', fmt(s.occupied ? (s.occupied[picked] ?? 0) : s.ev.pop1)]];
     const ring = info?.ring;
     if (ring) {
       rows.push(['Walk to the ring', `${fmt(ring.walkMin)} min`]);
@@ -99,7 +99,10 @@ export function drawInspector(page: Page): void {
       if (own) rows.push(['the school here', `${fmt(own.load)} of ${fmt(own.cap)} seats`, true]);
     }
     rows.push(['Playing fields', info?.fields ? `${fmt(info.fields.walkMin)} min walk` : 'none yet']);
-    box.append(facts(rows), extraButtons(page, picked, t.has));
+    box.append(facts(rows));
+    const held = s.held.find((h) => h.hood === picked);
+    if (held) box.append(el('p', 'quiet held', heldHere(held)));
+    box.append(extraButtons(page, picked, t.has));
   } else if (t.kind === 'ring') {
     const rows: (readonly [string, string, boolean?])[] = [
       ['Buildings of 25 stories', String(t.n)],

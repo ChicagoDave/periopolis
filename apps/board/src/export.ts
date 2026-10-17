@@ -4,17 +4,18 @@
  * Public interface: asText.
  * Owner context: Board (adapter).
  */
-import { RULES, stressAt } from '@city/run';
+import { RULES } from '@city/run';
 import { EXTRAS, LAYERS, RATES, allTiles, assess, costOf } from '@city/site';
 import { yearLine } from './draw/clock.ts';
 import { cap, fmt, money, pct } from './format.ts';
 import { linesOf, spentSoFar } from './money.ts';
 import type { Session } from './session.ts';
-import { COST_ROW_NAME, LAYER_NAME, PIECE_NAME, STATUS, checkDetail, checkTitle, lineAt, linesLabel, markLabel, noticeText, testLabel } from './wording.ts';
+import { COST_ROW_NAME, LAYER_NAME, PIECE_NAME, STATUS, checkDetail, checkTitle, heldBackLine, lineAt, linesLabel, markLabel, noticeText, stopsInHand, testLabel } from './wording.ts';
 
 export function asText(s: Session): string {
   const clock = s.game.clock;
-  const today = assess(s.game.layout, RATES, clock ? { now: stressAt(clock, RATES.band) } : {});
+  // On a clock the board as shown is today, checked for the people living there; off it, today without a look-ahead.
+  const today = clock ? s.ev : assess(s.game.layout, RATES);
   const sc = today.score;
   const out = ['FUTURE CITY BUILDER', ''];
   out.push(`People: ${fmt(sc.pop)} in ${sc.hoods} neighborhoods`);
@@ -26,7 +27,7 @@ export function asText(s: Session): string {
   );
   if (sc.car) out.push(`Car city of the same size: ${fmt(sc.car.acres)} acres, ${fmt(sc.car.vehicles)} cars, ${pct(sc.car.ride)} of trips by car.`);
   out.push('', 'LINES');
-  for (const r of today.checks) out.push(`[${STATUS[r.status]}] ${linesLabel(r.lines)}: ${checkTitle(r.id)}. ${checkDetail(r.facts, RATES)}`);
+  for (const r of today.checks) out.push(`[${STATUS[r.status]}] ${linesLabel(r.lines)}: ${checkTitle(r.id)}. ${checkDetail(r.facts, RATES, stopsInHand(r, s.building))}`);
   out.push('', 'STRETCH');
   for (const t of today.tests) {
     out.push(`${t.gives.length ? '[Gives] ' : '[Holds] '}${cap(testLabel(t.id, RATES.band))}${t.gives.length ? `: ${t.gives.map((g) => checkTitle(g.id)).join('; ')}` : ''}`);
@@ -36,6 +37,7 @@ export function asText(s: Session): string {
     out.push('', 'CLOCK', `Year ${clock.year} of ${RULES.years}. Homes for ${fmt(last?.homes ?? 0)} people. Broken line-years: ${clock.lineYears}.`);
     for (const n of s.news) out.push(`${n.when === 'now' ? 'Now: ' : 'Announced: '}${noticeText(n, RATES.band, RULES)}`);
     for (const r of clock.record) out.push(yearLine(r));
+    if (s.held.length) out.push(`Held back now: ${heldBackLine(s.held)}`);
     if (s.hand.list.length) out.push(`Work in hand: ${s.hand.list.map((j) => `${PIECE_NAME[j.what]} at ${j.at} (${j.status === 'working' ? `${j.left} yr` : j.status})`).join('; ')}`);
   }
   const cost = costOf(s.game.layout, today, RATES);

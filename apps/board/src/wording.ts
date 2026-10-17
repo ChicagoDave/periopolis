@@ -2,17 +2,17 @@
  * @file Every sentence the page shows, worded from the domain's typed facts and events (ADR-0004). Nothing else in the
  * Board builds a sentence from rule state. The sketch's sentences are the oracle; test/wording.test.ts holds them to it.
  * Public interface: SITE_NAME, PIECE_NAME, PIECE_MANY, STATUS, LEVEL_NAME, PLACEHOLDER_TEXT, LAYER_NAME, COST_ROW_NAME,
- * PREMISE_UNIT, linesLabel, checkTitle, checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText,
+ * PREMISE_UNIT, linesLabel, checkTitle, stopsInHand, checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText,
  * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText, proposalPrice, needsNow,
  * addedSaid; and the month clock and the day (ADR-0009): POPULATION_PREMISE, DAY_PREMISE, DAY_NAME, monthLine,
- * peopleNow, hourLabel, dayCaption.
+ * peopleNow, hourLabel, dayCaption; and who is held back (ADR-0012): heldBackLine, heldHere.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
-import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, Proposal, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue } from '@city/site';
+import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, Proposal, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue, TileKey } from '@city/site';
 import type { Day, DayPremises, DayType, PopulationPremises } from '@city/site';
 import type { Layer as MoneyLayer } from '@city/site';
-import type { MonthRow, Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
+import type { HeldBack, MonthRow, Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
 import { cap, count, fmt, list, low, money, num, years } from './format.ts';
 
 /** The six layers of money (ADR-0007), named. */
@@ -283,8 +283,32 @@ export function checkTitle(id: LineCheck['id']): string {
   }
 }
 
-/** A check's detail sentence, from its facts. */
-export function checkDetail(facts: Facts, rates: SiteRates): string {
+/**
+ * How many of the neighborhoods a check counts have a stop under construction (ADR-0012 Decision 6); 0 for any check
+ * but line 6.
+ * @param check - the check
+ * @param building - the neighborhoods whose stop the work in hand will give them
+ */
+export function stopsInHand(check: LineCheck, building: readonly TileKey[]): number {
+  if (check.id !== 'stops') return 0;
+  return check.tiles.filter((k) => building.includes(k)).length;
+}
+
+/** Line 6's neighborhoods whose stop is under construction, after the sentence naming them; draw the rest if asked. */
+function underConstruction(n: number, building: number, drawRest: boolean): string {
+  if (building >= n) return ` The mover line to ${n === 1 ? 'it' : 'them'} is under construction.`;
+  const rest = n - building;
+  const draw = drawRest ? ` Draw it through the other ${rest === 1 ? 'one' : String(rest)}.` : '';
+  return ` The mover line to ${building} of them is under construction.${draw}`;
+}
+
+/**
+ * A check's detail sentence, from its facts.
+ * @param facts - the check's facts
+ * @param rates - the ledger's rates
+ * @param building - on line 6, how many of the neighborhoods it counts have a stop under construction (`stopsInHand`)
+ */
+export function checkDetail(facts: Facts, rates: SiteRates, building = 0): string {
   switch (facts.check) {
     case 'daily':
       if (facts.case === 'idle') return `Place a neighborhood to begin. Each is ${num(facts.hood)} people with its own bakery, butcher, cafés, library, doctor and park.`;
@@ -319,8 +343,15 @@ export function checkDetail(facts: Facts, rates: SiteRates): string {
       return `The farthest neighborhood is a ${num(facts.farthestMin)}-minute walk from its ring.`;
     case 'stops':
       if (facts.case === 'idle') return 'A stop sits under the center of any tile the mover line touches.';
-      if (facts.case === 'without') return `${count(facts.count, 'neighborhood has', 'neighborhoods have')} no stop on a line to the ring. Draw the mover line through ${facts.count === 1 ? 'it' : 'them'}.`;
-      if (facts.case === 'waiting') return `${count(facts.count, 'neighborhood nobody lives in yet has', 'neighborhoods nobody lives in yet have')} no stop on a line to the ring.`;
+      if (facts.case === 'without') {
+        const lead = `${count(facts.count, 'neighborhood has', 'neighborhoods have')} no stop on a line to the ring.`;
+        if (building > 0) return lead + underConstruction(facts.count, building, true);
+        return `${lead} Draw the mover line through ${facts.count === 1 ? 'it' : 'them'}.`;
+      }
+      if (facts.case === 'waiting') {
+        const lead = `${count(facts.count, 'neighborhood nobody lives in yet has', 'neighborhoods nobody lives in yet have')} no stop on a line to the ring.`;
+        return building > 0 ? lead + underConstruction(facts.count, building, false) : lead;
+      }
       return 'Every neighborhood has a stop under its center, on a line to the ring.';
     case 'elementary':
     case 'middle':
@@ -672,6 +703,52 @@ export const DAY_PREMISE: Readonly<Record<keyof Omit<DayPremises, 'tripPeriods'>
 /** Each kind of day, named. */
 export const DAY_NAME: Readonly<Record<DayType, string>> = { summerWeekday: 'A summer weekday' };
 
+/** What a neighborhood held back waits for: a service the city cannot carry it with. */
+const WAITS_FOR: Readonly<Record<PlantKind, string>> = { power: 'power', water: 'drinking water', sewage: 'sewage treatment', waste: 'waste handling' };
+
+/** A school whose seats a neighborhood held to the childless share waits for. */
+const SEATS_OF: Readonly<Record<SchoolKind, string>> = { elementary: 'elementary', middle: 'middle-school', high: 'high-school' };
+
+/** What one held-back neighborhood waits for, and whether anyone lives there (ADR-0012 Decisions 3 and 5). */
+function waiting(h: HeldBack): { empty: boolean; what: string } {
+  if (h.short.length) return { empty: true, what: list(h.short.map((p) => WAITS_FOR[p])) };
+  return { empty: false, what: `${list(h.seats.map((k) => SEATS_OF[k]))} seats` };
+}
+
+/**
+ * The neighborhoods held back, in sentences grouped by what they wait for: "6 neighborhoods stand empty, waiting for
+ * power." "1 neighborhood holds only households with no school-age children, waiting for high-school seats."
+ * @param held - the held-back facts, in the board's tile order
+ * @returns the sentences, or '' when nothing is held back
+ */
+export function heldBackLine(held: readonly HeldBack[]): string {
+  const groups: { empty: boolean; what: string; n: number }[] = [];
+  for (const h of held) {
+    const w = waiting(h);
+    const g = groups.find((x) => x.empty === w.empty && x.what === w.what);
+    if (g) g.n++;
+    else groups.push({ ...w, n: 1 });
+  }
+  return groups
+    .map((g) =>
+      g.empty
+        ? `${count(g.n, 'neighborhood stands', 'neighborhoods stand')} empty, waiting for ${g.what}.`
+        : `${count(g.n, 'neighborhood holds', 'neighborhoods hold')} only households with no school-age children, waiting for ${g.what}.`,
+    )
+    .join(' ');
+}
+
+/**
+ * One neighborhood held back, for the inspector: "Nobody lives here yet. It waits for power."
+ * @param h - the held-back fact for the neighborhood
+ */
+export function heldHere(h: HeldBack): string {
+  const w = waiting(h);
+  return w.empty
+    ? `Nobody lives here yet. It waits for ${w.what}.`
+    : `Only households with no school-age children live here. It waits for ${w.what}.`;
+}
+
 /** One month of the city's people, in a sentence. */
 export function monthLine(row: MonthRow): string {
   const moves: string[] = [];
@@ -681,7 +758,8 @@ export function monthLine(row: MonthRow): string {
   if (row.left > 0.05) moves.push(`${fmt(row.left, 1)} moved away`);
   const lead = `Year ${row.year}, month ${row.month}: ${fmt(row.people)} people in homes for ${fmt(row.homes)}.`;
   if (!row.homes) return `${lead.slice(0, lead.indexOf(':'))}: no homes stand yet, so nobody lives here.`;
-  return moves.length ? `${lead} ${cap(list(moves))}.` : `${lead} Nobody came or went.`;
+  const held = row.heldBack?.length ? ` ${heldBackLine(row.heldBack)}` : '';
+  return (moves.length ? `${lead} ${cap(list(moves))}.` : `${lead} Nobody came or went.`) + held;
 }
 
 /**
