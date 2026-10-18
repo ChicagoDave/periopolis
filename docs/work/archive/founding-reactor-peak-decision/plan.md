@@ -1,7 +1,7 @@
 # Session Plan: Resolve issue 5 — founding as placed never fills (one reactor module cannot carry the peak with one down)
 
 **Created**: 2026-10-18
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: David decides what the power condition for moving in means (keep ADR-0012 Decision 3, amend it to firm-with-all-running, or shrink the module), then the sim and the Board are made to say and do exactly that. Sim work only; no outreach.
 **Bounded contexts touched**: Site (power check, move-in gate), Run (move-in, held-back facts), Ledger (only under option c), Board (wording of lines 20/21 and the held-back fact)
 **Key domain language**: Move-in gate, firm power (peak carried with one module down), held back (for power), Need, Founding
