@@ -25,7 +25,7 @@ Options weighed (2026-10-15): GitHub Pages, Cloudflare Pages, any other static h
 - Anything needing a server — a shared gallery of cities, accounts, replies posted from the page — is out of this host's reach; it would be a separate service beside Pages, through the Board's `GameStore` interface for saved cities, and its own decision.
 - No visit counts: O-2's measure stays the replies in `docs/objectives/reviews/`.
 - The repository stays public; a private repository would need a paid plan for Pages.
-- DNS lives at GoDaddy, outside the repository; the records are listed in `docs/work/publish-board-periopolis-city/plan.md` (Phase 1) and must be changed there by hand.
+- DNS lives at GoDaddy, outside the repository; the records are listed in `docs/work/archive/publish-board-periopolis-city/plan.md` (Phase 1) and must be changed there by hand.
 
 ## Session
 

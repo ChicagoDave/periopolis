@@ -29,7 +29,7 @@ Periopolis works a post-car city out from premises (the ledger), lays it out on 
 - **Evidence source**: the reviewers' own written replies (email or comment), copied into `docs/objectives/reviews/` with the reviewer's role and date; produced by the reviewers, independent of the project
 - **Cadence**: every two weeks from publishing until 2026-12-31
 - **Grade**: GREEN
-- **Status**: ACTIVE
+- **Status**: WITHDRAWN (2026-10-18 — David: no outreach; the project is building the sim as well as it can. The Board stays published at periopolis.city, which Phases 1-2 of `docs/work/archive/publish-board-periopolis-city/plan.md` delivered.)
 
 ## Spawned work
 - `docs/work/archive/population-from-sourced-rates/plan.md` (populated: who lives here month by month, and one day by hour)

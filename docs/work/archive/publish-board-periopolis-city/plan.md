@@ -1,7 +1,7 @@
 # Session Plan: Objective O-2 — publish the Board at periopolis.city
 
 **Created**: 2026-10-15
-**Plan Status**: ACTIVE
+**Plan Status**: ABANDONED
 **Superseded by**: docs/work/build-in-order-line-6-under-construction/plan.md
 **Overall scope**: Put the built Board (`apps/board/dist/index.html`) on the public web at periopolis.city, give a stranger what they need to review it, get at least 3 written replies from people who work in city planning or development into `docs/objectives/reviews/`, and log every gap a reply names that the model cannot answer as a still-unknown, all by 2026-12-31.
 **Bounded contexts touched**: Board (adapter, wording only; no rule changes). Otherwise N/A — publishing, deployment and outreach work, framed in plain technical terms (no DDD decomposition).
@@ -68,7 +68,7 @@
 - **Exit state**: The intake format exists and is committed; the first outreach wave is sent (David's action, recorded by date and count); the clock for the fortnightly cadence starts at the publish date.
 - **Demonstration**: `ls docs/objectives/reviews/` shows the README and outreach record; the outreach record shows at least 8 invitations sent with dates; the live Board link in the message opens the site.
 - **Demonstrated**: 
-- **Status**: CURRENT (since 2026-10-15)
+- **Status**: ABANDONED (2026-10-18 — David: no outreach; the work is building the sim. Phases 1-2 stand: the Board is live at periopolis.city with its front door.)
 
 ### Phase 4: Fortnightly review checks (recurring through 2026-12-31)
 - **Tier**: Small
@@ -79,7 +79,7 @@
 - **Exit state**: Every received reply is in the repository and every unanswerable gap in them is logged as a still-unknown; the count and date of the check are stated in the session summary.
 - **Demonstration**: Count the review files with a recorded practitioner role (`ls docs/objectives/reviews/`) and show each named gap resolving to an entry in `overview.md` by its cited file name.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: ABANDONED (2026-10-18 — no outreach, see Phase 3)
 
 ### Phase 5: O-2 close-out at 2026-12-31
 - **Tier**: Small
@@ -90,4 +90,4 @@
 - **Exit state**: O-2's status is set from evidence (the count against the falsifier), the new still-unknowns appear in O-1's baseline notes, and this plan is closed and archived.
 - **Demonstration**: Run the count of review files against 3 and trace each named gap to its still-unknown entry; the output must reproduce the figures written into the objective.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: ABANDONED (2026-10-18 — no outreach, see Phase 3)

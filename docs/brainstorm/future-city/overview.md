@@ -252,7 +252,7 @@ Yours to decide:
 - Whether leftover waste and the last of the reclaimed water leave the city or the loops close.
 - Whether bills and statements count as commercial mail (counted as commercial).
 - How far the paper and plastic rules of line 23 reach (taken as the items named).
-- What the tool is for outside engineering. No objective has been stated in `docs/objectives/`.
+- What the tool is for outside engineering. *Stated 2026-10-14 in `docs/objectives/sustainable-city-shown.md`: close the gaps (O-1). O-2, showing the Board to people who build cities, was withdrawn 2026-10-18: no outreach, the work is the sim itself.*
 
 Still unknown:
 
