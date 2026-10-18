@@ -1,7 +1,8 @@
 /**
  * @file People move in only when they are served (ADR-0012 Decisions 3 to 9), on David's founding of 2026-10-15
- * (`docs/work/tests/city-261015.txt`): as he placed it nobody ever moves in, because one reactor module cannot carry a
- * peak with one down; with a second module the childless share moves in once the plants open; with the schools too,
+ * (`docs/work/tests/city-261015.txt`): as he placed it, one reactor module carries the peak only while it runs, so the
+ * childless share moves in once the plants open with lines 20 and 21 broken (ADR-0012 Decision 3, amended 2026-10-18);
+ * with a second module the same people move in and the lines hold; with the schools too,
  * everyone. Each neighborhood is admitted on its own, in tile order; people who live there stay, and a service they
  * are short of takes the crews first. Without `inOrder` nothing of this happens.
  * Owner context: Run (domain), tests.
@@ -74,21 +75,30 @@ const recordOf = (g: Game): readonly RecordRow[] => g.clock?.record ?? [];
 const SHARE = POPULATION.childlessShare.value;
 
 describe("David's founding, people when served (city-261015)", () => {
-  it('as he placed it nobody ever moves in: one module cannot carry the peak with one down, and the clock says so', () => {
+  it('as he placed it, one module carries the peak only while it runs: the childless share moves in once the plants open, and lines 20 and 21 are broken (ADR-0012 Decision 3, amended 2026-10-18)', () => {
     const g = run(founding({ inOrder: true }));
-    const people = recordOf(g).map((r) => r.pop);
-    // Year by year, 0 to 20.
-    expect(people).toEqual(Array(RULES.years + 1).fill(0));
-    const last = recordOf(g)[RULES.years];
-    expect(last?.homes).toBe(6 * RATES.hood);
-    expect(last?.heldBack?.map((h) => h.hood).sort()).toEqual([...HOODS].sort());
-    expect(last?.heldBack?.every((h) => h.short.length === 1 && h.short[0] === 'power')).toBe(true);
-    expect(g.clock?.lived).toEqual({});
+    const rows = recordOf(g);
+    const opened = rows.findIndex((r) => r.pop > 0);
+    expect(opened).toBeGreaterThan(2);
+    for (const r of rows.slice(0, opened)) expect(r.pop).toBe(0);
+    // Year 7 on, after the squeeze: six neighborhoods, each holding the childless share, held for seats only.
+    const settled = rows[7];
+    expect(settled?.homes).toBe(6 * RATES.hood);
+    expect(settled?.pop).toBeCloseTo(6 * RATES.hood * SHARE, 6);
+    expect(settled?.heldBack).toHaveLength(6);
+    expect(settled?.heldBack?.every((x) => x.short.length === 0 && x.seats.join() === 'middle,high')).toBe(true);
+    expect(Object.values(g.clock?.lived ?? {})).toEqual(Array(6).fill('childless'));
+    // The one module is the risk the board shows: lines 20 and 21 broken and counted from the first resident.
+    for (const r of rows.slice(opened)) expect(r.broken).toContain('power');
+    const power = g.layout.tiles['5,-4'];
+    expect(power?.kind === 'power' ? power.n : 0).toBe(1);
+    expect(rows[RULES.years]?.pop).toBeCloseTo(6 * RATES.hood * SHARE, 6);
   });
 
-  it('with a second module the childless share moves in once the plants open, held back for want of seats', () => {
+  it('with a second module the childless share moves in once the plants open, held back for want of seats, and lines 20 and 21 hold', () => {
     const h = run(secondModule(founding({ inOrder: true })));
     const rows = recordOf(h);
+    expect(rows[7]?.broken).not.toContain('power');
     const opened = rows.findIndex((r) => r.pop > 0);
     expect(opened).toBeGreaterThan(2);
     for (const r of rows.slice(0, opened)) expect(r.pop).toBe(0);

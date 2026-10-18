@@ -22,7 +22,7 @@ export type Need =
   | { readonly need: 'ring'; readonly buildings: number; readonly answers: readonly CheckId[] }
   /** A ring is full: this many more buildings on it. */
   | { readonly need: 'ringBuildings'; readonly tile: TileKey; readonly add: number; readonly answers: readonly CheckId[] }
-  /** The modules cannot carry the peak with one down: this many more. */
+  /** The modules cannot carry the peak with one down (`short`, or `noSpare` with all running): this many more. */
   | { readonly need: 'modules'; readonly add: number; readonly answers: readonly CheckId[] }
   /** A plant serves fewer people than the city has: this many more units. */
   | {
@@ -96,7 +96,7 @@ function needsFrom(core: Core, layout: Layout, rates: SiteRates): readonly Need[
   }
 
   const power = broken('power');
-  if (power && power.facts.check === 'power' && power.facts.case === 'short') {
+  if (power && power.facts.check === 'power' && (power.facts.case === 'short' || power.facts.case === 'noSpare')) {
     out.push({ need: 'modules', add: power.facts.needed - power.facts.modules, answers: ['power'] });
   }
 

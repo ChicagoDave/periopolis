@@ -375,6 +375,11 @@ export function checkDetail(facts: Facts, rates: SiteRates, building = 0): strin
     case 'power':
       if (facts.case === 'idle') return `A module makes ${facts.moduleMw} MW. The city needs enough to carry its peak while one is down for fuel.`;
       if (facts.case === 'short') return `${facts.modules ? `${count(facts.modules, 'module', 'modules')} cannot` : 'With no modules the city cannot'} carry a peak of ${num(facts.peakMw)} MW with one down for fuel. It takes ${facts.needed}.`;
+      if (facts.case === 'noSpare') {
+        return facts.modules === 1
+          ? `1 module carries a peak of ${num(facts.peakMw)} MW only while it runs. With it down for fuel the city has no power. It takes ${facts.needed}.`
+          : `${facts.modules} modules carry a peak of ${num(facts.peakMw)} MW only while all run. With one down for fuel the rest fall short. It takes ${facts.needed}.`;
+      }
       return `${count(facts.modules, 'module', 'modules')}. With one down for fuel the rest give ${num(facts.firmMw)} MW, against a peak of ${num(facts.peakMw)} MW.`;
     case 'water':
     case 'sewage':

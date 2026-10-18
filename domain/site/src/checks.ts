@@ -90,6 +90,8 @@ export type Facts =
     }
   | { readonly check: 'power'; readonly case: 'idle'; readonly moduleMw: number }
   | { readonly check: 'power'; readonly case: 'short'; readonly modules: number; readonly peakMw: number; readonly needed: number }
+  /** The modules carry the peak only while every one runs: people may live here, lines 20 and 21 are broken (ADR-0012 Decision 3, amended 2026-10-18). */
+  | { readonly check: 'power'; readonly case: 'noSpare'; readonly modules: number; readonly peakMw: number; readonly needed: number }
   | { readonly check: 'power'; readonly case: 'carries'; readonly modules: number; readonly firmMw: number; readonly peakMw: number }
   | { readonly check: 'water' | 'sewage' | 'waste'; readonly case: 'idle'; readonly serves: number }
   | {

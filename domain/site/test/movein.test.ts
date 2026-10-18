@@ -5,8 +5,8 @@
  * Owner context: Site (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
-import { NO_STRESS, PLANTS, RATES, SCHOOLS, assessCore, emptyLayout, moveInGate, placeNeighborhood, starterLayout } from '../src/index.ts';
-import type { Layout, LineCheck, TileKey } from '../src/index.ts';
+import { NO_STRESS, PLANTS, RATES, SCHOOLS, addPlantUnit, assessCore, emptyLayout, moveInGate, placeNeighborhood, starterLayout } from '../src/index.ts';
+import type { Layout, LineCheck, Outcome, TileKey } from '../src/index.ts';
 
 function hoods(layout: Layout, keys: readonly TileKey[]): Layout {
   return keys.reduce((s, k) => {
@@ -22,6 +22,15 @@ const checkOf = (l: Layout, id: string, occupied: Record<TileKey, number> = {}, 
 /** The ledger's city with three more neighborhoods, off the line and short of plant units for 65,000. */
 const THIRTEEN = hoods(starterLayout(), ['2,0', '-3,0', '0,2']);
 const ALONE = hoods(emptyLayout(), ['0,0']);
+
+function must(outcome: Outcome): Layout {
+  if (!outcome.ok) throw new Error(`refused: ${outcome.rejection.reason}`);
+  return outcome.layout;
+}
+
+/** The lone neighborhood with one module: 5,000 people peak at 7.5 MW, which one 77 MW module carries only while it runs. */
+const ONE_MODULE = must(addPlantUnit(ALONE, '3,-1', 'power', RATES));
+const TWO_MODULES = must(addPlantUnit(ONE_MODULE, '3,-1', 'power', RATES));
 
 describe('a neighborhood nobody lives in', () => {
   it('lacks its stop as a watch: line 6 is amber, marks it, and counts it', () => {
@@ -107,12 +116,15 @@ describe('the move-in gate', () => {
       [THIRTEEN, '-3,0', { '2,0': 3000 }, ['2,0']],
       [ALONE, '0,0', {}, []],
       [ALONE, '0,0', { '0,0': 3000 }, ['0,0']],
+      [ONE_MODULE, '0,0', {}, []],
+      [TWO_MODULES, '0,0', {}, []],
     ];
     for (const [layout, hood, occupied, childless] of cases) {
       const gate = moveInGate(layout, RATES, hood, occupied, childless);
       const core = assessCore(layout, NO_STRESS, RATES, occupied, childless);
       const bad = (id: string): LineCheck | undefined => core.checks.find((c) => c.id === id && c.status === 'bad');
-      expect(gate.short).toEqual(PLANTS.filter((p) => bad(p)));
+      // Power is lacking when the check is broken short of carrying, not short of a spare (ADR-0012 Decision 3, amended).
+      expect(gate.short).toEqual(PLANTS.filter((p) => bad(p) && !(p === 'power' && bad(p)?.facts.case === 'noSpare')));
       expect(gate.seats).toEqual(SCHOOLS.filter((s) => bad(s)?.tiles.includes(hood)));
     }
   });
@@ -125,5 +137,32 @@ describe('the move-in gate', () => {
 
   it('refuses a tile that is not a standing neighborhood', () => {
     expect(() => moveInGate(starterLayout(), RATES, '9,9', {})).toThrow('9,9 is not a standing neighborhood');
+  });
+});
+
+describe('power with every module running (ADR-0012 Decision 3, amended 2026-10-18)', () => {
+  it('no module: the check is short, and the gate lacks power', () => {
+    expect(checkOf(ALONE, 'power')?.status).toBe('bad');
+    expect(checkOf(ALONE, 'power')?.facts).toEqual({ check: 'power', case: 'short', modules: 0, peakMw: 7.5, needed: 2 });
+    expect(moveInGate(ALONE, RATES, '0,0', {}).short).toEqual(['power', 'water', 'sewage', 'waste']);
+  });
+
+  it('one module carries the peak only while it runs: lines 20 and 21 are broken, people move in all the same', () => {
+    const check = checkOf(ONE_MODULE, 'power');
+    expect(check?.status).toBe('bad');
+    expect(check?.facts).toEqual({ check: 'power', case: 'noSpare', modules: 1, peakMw: 7.5, needed: 2 });
+    expect(check?.tiles).toEqual(['3,-1']);
+    expect(moveInGate(ONE_MODULE, RATES, '0,0', {}).short).toEqual(['water', 'sewage', 'waste']);
+  });
+
+  it('two modules carry it with one down: the check holds and the gate lacks nothing of power', () => {
+    const check = checkOf(TWO_MODULES, 'power');
+    expect(check?.status).toBe('ok');
+    expect(check?.facts).toEqual({ check: 'power', case: 'carries', modules: 2, firmMw: 77, peakMw: 7.5 });
+    expect(moveInGate(TWO_MODULES, RATES, '0,0', {}).short).toEqual(['water', 'sewage', 'waste']);
+  });
+
+  it('the peak counts the people given, so an empty neighborhood asks for no module', () => {
+    expect(checkOf(ONE_MODULE, 'power', { '0,0': 0 })?.status).toBe('ok');
   });
 });

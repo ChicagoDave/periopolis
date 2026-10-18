@@ -36,6 +36,16 @@ interface RunFixture {
 const site = siteRecorded as unknown as SiteFixture;
 const run = runRecorded as unknown as RunFixture;
 
+/**
+ * The sketch had one broken case for power, short with one down. Since ADR-0012 Decision 3 as amended (2026-10-18) the
+ * Board words a reactor site that carries the peak only while every module runs as its own case, asserted below; for
+ * that state the sketch's sentence is the short one, so parity with the fixture reads it that way.
+ */
+function asSketchWorded(facts: Facts): string {
+  if (facts.check === 'power' && facts.case === 'noSpare') return checkDetail({ ...facts, case: 'short' }, RATES);
+  return checkDetail(facts, RATES);
+}
+
 describe('the line checks, worded', () => {
   for (const c of site.evaluations) {
     it(`${c.name}: every title, line label, detail and tile issue reads as the sketch wrote it`, () => {
@@ -43,7 +53,7 @@ describe('the line checks, worded', () => {
       if (c.showing) options.show = c.showing;
       if (c.now) options.now = c.now;
       const a = assess(c.state, RATES, options);
-      const worded = a.checks.map((k) => ({ id: k.id, lines: linesLabel(k.lines), title: checkTitle(k.id), detail: checkDetail(k.facts, RATES) }));
+      const worded = a.checks.map((k) => ({ id: k.id, lines: linesLabel(k.lines), title: checkTitle(k.id), detail: asSketchWorded(k.facts) }));
       expect(worded).toEqual(c.result.rules.map((r) => ({ id: r.id, lines: r.lines, title: r.title, detail: r.detail })));
       const issues: Record<string, string[]> = {};
       for (const [k, p] of Object.entries(a.per)) issues[k] = p.issues.map(issueText);
@@ -225,6 +235,16 @@ describe('built in order, worded (ADR-0012)', () => {
 
   it('with none in hand line 6 keeps its old words; with some, the line is under construction', () => {
     expect(checkDetail(without, RATES)).toBe('3 neighborhoods have no stop on a line to the ring. Draw the mover line through them.');
+  });
+
+  it('words a reactor site that carries the peak only while every module runs (ADR-0012 Decision 3, amended)', () => {
+    expect(checkDetail({ check: 'power', case: 'noSpare', modules: 1, peakMw: 45, needed: 2 }, RATES)).toBe(
+      '1 module carries a peak of 45 MW only while it runs. With it down for fuel the city has no power. It takes 2.',
+    );
+    expect(checkDetail({ check: 'power', case: 'noSpare', modules: 2, peakMw: 90, needed: 3 }, RATES)).toBe(
+      '2 modules carry a peak of 90 MW only while all run. With one down for fuel the rest fall short. It takes 3.',
+    );
+    expect(checkDetail({ check: 'power', case: 'short', modules: 1, peakMw: 90, needed: 3 }, RATES)).toBe('1 module cannot carry a peak of 90 MW with one down for fuel. It takes 3.');
     expect(checkDetail(without, RATES, 3)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to them is under construction.');
     expect(checkDetail(without, RATES, 2)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to 2 of them is under construction. Draw it through the other one.');
     expect(checkDetail(without, RATES, 1)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to 1 of them is under construction. Draw it through the other 2.');

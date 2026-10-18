@@ -102,6 +102,14 @@ describe('what a layout needs', () => {
     expect(needsOf(s, RATES)[1]).toEqual({ need: 'modules', add: 2, answers: ['power'] });
   });
 
+  it('a module that carries the peak only while it runs still asks for the spare (ADR-0012 Decision 3, amended)', () => {
+    const s = must(addPlantUnit(hoods(emptyLayout(), ['0,0']), '3,-1', 'power', RATES));
+    const power = assess(s, RATES).checks.find((c) => c.id === 'power');
+    expect(power?.status).toBe('bad');
+    expect(power?.facts.check === 'power' ? power.facts.case : null).toBe('noSpare');
+    expect(needsOf(s, RATES).find((n) => n.need === 'modules')).toEqual({ need: 'modules', add: 1, answers: ['power'] });
+  });
+
   it('answers exactly the broken checks a built thing can mend, and no more', () => {
     const layouts = [
       starterLayout(),

@@ -407,11 +407,15 @@ export function assessCore(
   const units = (kind: PlantKind): number => of(kind).reduce((t, k) => t + unitsAt(k), 0);
   const modules = units('power');
   const peak = (pop * rates.peakKw) / 1000;
-  const needModules = pop > 0 ? Math.ceil(peak / rates.moduleMw - 1e-9) + 1 : 0;
+  // The modules that carry the peak with all running, and with one down for fuel (lines 20 and 21's standard).
+  const carryModules = pop > 0 ? Math.ceil(peak / rates.moduleMw - 1e-9) : 0;
+  const needModules = pop > 0 ? carryModules + 1 : 0;
   {
     if (!some && !modules) check('power', [20, 21], 'idle', { check: 'power', case: 'idle', moduleMw: rates.moduleMw });
-    else if (modules < needModules) {
+    else if (modules < carryModules) {
       check('power', [20, 21], 'bad', { check: 'power', case: 'short', modules, peakMw: peak, needed: needModules }, of('power'));
+    } else if (modules < needModules) {
+      check('power', [20, 21], 'bad', { check: 'power', case: 'noSpare', modules, peakMw: peak, needed: needModules }, of('power'));
     } else {
       check('power', [20, 21], 'ok', {
         check: 'power',
