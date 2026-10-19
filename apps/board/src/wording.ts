@@ -6,7 +6,7 @@
  * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText, proposalPrice, needsNow,
  * addedSaid; and the month clock and the day (ADR-0009): POPULATION_PREMISE, DAY_PREMISE, DAY_NAME, monthLine,
  * peopleNow, hourLabel, dayCaption; and who is held back (ADR-0012): heldBackLine, heldHere; and the clock's own
- * sentences: yearLine, yearsUp, clockStarted, PAUSED_FOR_ORDER, SPEED_NAME.
+ * sentences: yearLine, yearsUp, clockStarted, PAUSED_FOR_ORDER, SPEED_NAME; and the angled view: angledCaption, ANGLED_LABEL.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
@@ -837,3 +837,16 @@ export const PAUSED_FOR_ORDER = 'Paused: your order is in. Press Play to carry o
 
 /** The three speeds the months can run at, named. */
 export const SPEED_NAME: Readonly<Record<Speed, string>> = { slow: 'Slow', steady: 'Steady', fast: 'Fast' };
+
+/** The button that opens the site from the air, and its pressed state. */
+export const ANGLED_LABEL = 'From the air';
+
+/**
+ * The view bar's caption on the angled view: what stands, in blocks and stories.
+ * @param blocks - blocks painted
+ * @param stories - their stories in all
+ */
+export function angledCaption(blocks: number, stories: number): string {
+  if (!blocks) return 'The site from the air. Nothing stands yet.';
+  return `The site from the air: ${count(blocks, 'block', 'blocks')}, ${fmt(stories)} stories in all.`;
+}

@@ -435,10 +435,11 @@ test('the months run on their own: Play moves the people, an order pauses, a rel
   await page.click('#play');
   await expect(page.locator('#play')).toHaveText('Pause');
   await expect(page.locator('#play')).toHaveAttribute('aria-pressed', 'true');
-  // Two months and more pass with nothing pressed: the people line, the month said and the months list move.
-  await expect(page.locator('#peoplenow')).toContainText('Year 1, month 2 of 12.');
-  await expect(page.locator('#said')).toContainText('Year 1, month 2:');
-  await expect(page.locator('#peoplenow')).toContainText('Year 1, month 3 of 12.');
+  // Months pass with nothing pressed: the months list grows past three rows, and the people line and the month said
+  // have moved off the start (polled, since at Fast a month is 100 ms and no one moment can be pinned).
+  await expect.poll(() => page.locator('#monthrows tr').count()).toBeGreaterThanOrEqual(3);
+  await expect(page.locator('#peoplenow')).not.toContainText('The start of year 1.');
+  await expect(page.locator('#said')).toContainText('people in homes for 50,000.');
   // An order placed while the months run pauses them and says so; the month then holds.
   await place(page, 'hood', ['4,0']);
   await expect(page.locator('#said')).toContainText('Ordered: neighborhood.');
@@ -468,4 +469,46 @@ test('the months run on their own: Play moves the people, an order pauses, a rel
   await page.click('#undo');
   await expect(page.locator('#clocknow')).toContainText('Year 19 of 20.');
   await expect(page.locator('#peoplenow')).toContainText('The start of year 20.');
+});
+
+test("the site from the air: the ledger's city as 36 blocks of 238 stories on a canvas, painted, and the map comes back", async ({ page }) => {
+  await expect(page.locator('#angledcanvas')).toBeHidden();
+  await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'false');
+  await page.click('#angled');
+  await expect(page.locator('#said')).toHaveText('The site from the air. Back to the map returns.');
+  await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#angledcanvas')).toBeVisible();
+  await expect(page.locator('#board')).toBeHidden();
+  // What was painted is the scene: 14 strips of line, 10 neighborhoods, 8 ring buildings and 4 plants, their stories summed.
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-blocks', '36');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-stories', '238');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lod', 'far');
+  await expect(page.locator('#viewbar')).toBeVisible();
+  await expect(page.locator('#viewtext')).toHaveText('The site from the air: 36 blocks, 238 stories in all.');
+  await expect(page.locator('#levels')).toBeHidden();
+  // The canvas is painted: a good share of its pixels are not the empty ground.
+  const painted = await page.evaluate(() => {
+    const c = document.getElementById('angledcanvas') as HTMLCanvasElement;
+    const ctx = c.getContext('2d');
+    if (!ctx) return -1;
+    const data = ctx.getImageData(0, 0, c.width, c.height).data;
+    let on = 0;
+    for (let i = 3; i < data.length; i += 4) if ((data[i] ?? 0) > 0) on++;
+    return on / (data.length / 4);
+  });
+  expect(painted).toBeGreaterThan(0.05);
+  // Back to the map, by the view bar.
+  await page.click('#back');
+  await expect(page.locator('#angledcanvas')).toBeHidden();
+  await expect(page.locator('#board')).toBeVisible();
+  await expect(page.locator('#viewbar')).toBeHidden();
+  await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'false');
+  // A cleared site from the air has nothing to paint; pressing the button again returns to the map.
+  await page.click('#clear');
+  await page.click('#angled');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-blocks', '0');
+  await expect(page.locator('#viewtext')).toHaveText('The site from the air. Nothing stands yet.');
+  await page.click('#angled');
+  await expect(page.locator('#viewbar')).toBeHidden();
+  await expect(page.locator('#board')).toBeVisible();
 });

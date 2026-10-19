@@ -194,6 +194,17 @@ function start(data: { game?: unknown }): void {
     page.say('The map.');
     page.render();
   });
+  // The site from the air: a toggle, from the map or a tile alike; pressed again, or Back, returns to the map.
+  byId('angled').addEventListener('click', () => {
+    if (s.view.at === 'angled') {
+      s.lookAway();
+      page.say('The map.');
+    } else {
+      s.lookAngled();
+      page.say('The site from the air. Back to the map returns.');
+    }
+    page.render();
+  });
   for (const level of ['surface', 'sub'] as const) {
     byId(`level-${level}`).addEventListener('click', () => {
       s.showLevel(level);

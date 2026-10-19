@@ -14,7 +14,7 @@ import type { TileKey } from '@city/site';
 import { byId, svg } from '../dom.ts';
 import { fmt } from '../format.ts';
 import type { Page } from '../page.ts';
-import { LEVEL_NAME, SITE_NAME, layerLines, placeholderNote } from '../wording.ts';
+import { LEVEL_NAME, SITE_NAME, angledCaption, layerLines, placeholderNote } from '../wording.ts';
 
 /** Room round the tile for the legend, the scale and the note, metres. */
 const MARGIN = 48;
@@ -136,12 +136,23 @@ export function drawGround(page: Page): void {
 }
 
 /**
- * The bar above the board: hidden on the map; on a tile it names the tile, offers the way back and the two levels.
+ * The bar above the board: hidden on the map; on a tile it names the tile, offers the way back and the two levels;
+ * from the air it says what was painted and offers the way back, with no levels.
  * @param page - the page
+ * @param painted - what the angled view painted, when it is showing
  */
-export function drawViewBar(page: Page): void {
+export function drawViewBar(page: Page, painted: { readonly blocks: number; readonly stories: number } | null = null): void {
   const { s } = page;
   const bar = byId('viewbar');
+  const levels = byId('levels');
+  byId('angled').setAttribute('aria-pressed', String(s.view.at === 'angled'));
+  if (s.view.at === 'angled') {
+    bar.hidden = false;
+    levels.hidden = true;
+    byId('viewtext').textContent = angledCaption(painted?.blocks ?? 0, painted?.stories ?? 0);
+    return;
+  }
+  levels.hidden = false;
   if (s.view.at !== 'tile') {
     bar.hidden = true;
     return;

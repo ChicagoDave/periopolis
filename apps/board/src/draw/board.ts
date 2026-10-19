@@ -1,6 +1,7 @@
 /**
  * @file The board: tiles, the 30-minute circles, the mover line, what stands on each tile, and the labels. When the
- * session looks at one tile, the ground module draws that tile instead and the map waits.
+ * session looks at one tile, the ground module draws that tile instead and the map waits; from the air, the angled
+ * view paints its canvas instead.
  * Public interface: drawBoard, describe, tileAtPixels.
  * Owner context: Board (adapter).
  */
@@ -10,6 +11,7 @@ import { byId, svg } from '../dom.ts';
 import { fmt, years } from '../format.ts';
 import type { Page } from '../page.ts';
 import { SITE_NAME } from '../wording.ts';
+import { drawAngled } from './angled/view.ts';
 import { drawGround, drawViewBar } from './ground.ts';
 
 const SIZE = 30;
@@ -67,7 +69,10 @@ export function describe(page: Page, k: TileKey): string {
 /** Draw the board from the ground up. Only the tiles take clicks, so nothing drawn above them gets in the way. */
 export function drawBoard(page: Page): void {
   const { s } = page;
-  drawViewBar(page);
+  // From the air, the canvas shows in the SVG's place and the view bar says what was painted.
+  const painted = drawAngled(page);
+  drawViewBar(page, painted);
+  if (s.view.at === 'angled') return;
   if (s.view.at === 'tile') {
     drawGround(page);
     return;

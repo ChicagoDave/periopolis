@@ -82,6 +82,8 @@ p { margin: 0; }
 .stage { grid-area: stage; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 7px 10px; background: var(--flag-bg); color: var(--ink); border: 1px solid var(--flag); border-radius: 4px; font: 400 .9rem/1.35 var(--display); }
 .boardscroll { overflow: auto; border: 1px solid var(--rule); background: var(--sheet); border-radius: 4px; }
+#angledcanvas { display: block; width: 100%; height: auto; background: var(--ground); }
+#angledcanvas[hidden], #board[hidden] { display: none; }
 #board { display: block; width: 100%; height: auto; min-width: 520px; max-width: 760px; margin-inline: auto; touch-action: manipulation; }
 .said { min-height: 1.4em; font: 400 .9rem/1.4 var(--display); color: var(--ink-2); }
 .bar { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -324,17 +326,19 @@ p { margin: 0; }
       <div class="viewbar" id="viewbar" hidden>
         <button class="btn small" id="back" type="button">Back to the map</button>
         <span id="viewtext"></span>
-        <span class="levels" role="group" aria-label="Level">
+        <span class="levels" id="levels" role="group" aria-label="Level">
           <button class="btn small" id="level-surface" type="button" aria-pressed="true">Surface</button>
           <button class="btn small" id="level-sub" type="button" aria-pressed="false">Sub level</button>
         </span>
       </div>
       <div class="boardscroll" id="boardscroll">
         <svg id="board" role="group" aria-label="The site. Each tile is the ground of one neighborhood." xmlns="http://www.w3.org/2000/svg"></svg>
+        <canvas id="angledcanvas" hidden role="img" aria-label="The site from the air: every neighborhood, ring building and plant as a block with its stories."></canvas>
       </div>
       <p class="said" id="said" role="status"></p>
       <div class="bar">
         <button class="btn" id="undo" type="button">Undo</button>
+        <button class="btn" id="angled" type="button" aria-pressed="false">From the air</button>
         <button class="btn" id="starter" type="button">Load the ledger's city</button>
         <button class="btn" id="sized" type="button">Load it sized to its people</button>
         <button class="btn" id="clear" type="button">Clear the site</button>

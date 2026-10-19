@@ -1,6 +1,6 @@
 /**
  * @file The page's session: the game, the tool in hand, the tile picked, the line cursor, the stretch test shown, the
- * view (the map, or one tile's ground at a level), and the history undo keeps. Replaced, never changed in place.
+ * view (the map, one tile's ground at a level, or the site from the air), and the history undo keeps. Replaced, never changed in place.
  * The view is the page's alone: it is never saved with the city.
  * Public interface: Session, View, newSession.
  * Owner context: Board (adapter).
@@ -13,8 +13,8 @@ import type { AssessOptions, Assessment, TestId, TileKey } from '@city/site';
 import type { GameStore } from './storage.ts';
 import type { ToolId } from './wording.ts';
 
-/** What the board shows: the whole map, or the ground of one tile at one level. */
-export type View = { readonly at: 'map' } | { readonly at: 'tile'; readonly key: TileKey; readonly level: Level };
+/** What the board shows: the whole map, the ground of one tile at one level, or the whole site from the air at an angle. */
+export type View = { readonly at: 'map' } | { readonly at: 'tile'; readonly key: TileKey; readonly level: Level } | { readonly at: 'angled' };
 
 /** Whether a tile has ground to look at: a neighborhood or a ring. */
 function hasGround(game: Game, key: TileKey): boolean {
@@ -57,6 +57,8 @@ export interface Session {
   look(key: TileKey): boolean;
   /** Back to the map. */
   lookAway(): void;
+  /** The whole site from the air, at an angle; from the map or a tile alike. */
+  lookAngled(): void;
   /** Show the other level of the tile being looked at; nothing happens on the map. */
   showLevel(level: Level): void;
 }
@@ -125,6 +127,9 @@ export function newSession(game: Game, store: GameStore): Session {
     },
     lookAway() {
       s.view = { at: 'map' };
+    },
+    lookAngled() {
+      s.view = { at: 'angled' };
     },
     showLevel(level) {
       if (s.view.at === 'tile') s.view = { ...s.view, level };
