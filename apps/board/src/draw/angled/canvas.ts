@@ -2,7 +2,7 @@
  * @file Painting a scene: fit the camera to it, sort its blocks far to near, extrude each and hand every face to a
  * painter in order. The painter is an interface, so a test paints into a list and the page paints into a canvas.
  * Pure but for the painter it is given.
- * Public interface: Painter, Palette, fitCamera, lodFor, paintScene, MID_SCALE.
+ * Public interface: Painter, Palette, fitCamera, lodFor, paintScene, MID_SCALE, DARK.
  * Owner context: Board (adapter), the angled view (plan angled-view-through-time).
  */
 import { blockDepth, extrude } from './extrude.ts';
@@ -19,6 +19,9 @@ export interface Painter {
 
 /** A colour for each kind of block. */
 export type Palette = Readonly<Record<SceneKind, string>>;
+
+/** The shade an unlit home block keeps, so a dark neighborhood still reads as standing. */
+export const DARK = 0.45;
 
 /** Pixels a metre from which the rows of townhouses are drawn instead of one block a tile. */
 export const MID_SCALE = 0.25;
@@ -69,7 +72,8 @@ export function fitCamera(scene: Scene, width: number, height: number, yaw: numb
 
 /**
  * Paint a scene: what lies flat on the ground first, in the scene's order, then the blocks that rise sorted by depth,
- * farthest first; each extruded under the camera and its faces handed to the painter in order, coloured by kind.
+ * farthest first; each extruded under the camera and its faces handed to the painter in order, coloured by kind and
+ * dimmed by how little of it is lit (an empty home block keeps 0.45 of its shade).
  * @returns how many faces were painted
  */
 export function paintScene(painter: Painter, scene: Scene, camera: Camera, palette: Palette): number {
@@ -80,7 +84,7 @@ export function paintScene(painter: Painter, scene: Scene, camera: Camera, palet
   for (const b of ordered) {
     const color = palette[b.kind];
     for (const face of extrude(b.block, camera) as Face[]) {
-      painter.fillPolygon(face.points, color, face.shade);
+      painter.fillPolygon(face.points, color, face.shade * (DARK + (1 - DARK) * b.lit));
       faces++;
     }
   }

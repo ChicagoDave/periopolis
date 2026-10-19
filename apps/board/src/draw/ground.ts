@@ -12,6 +12,7 @@ import type { GroundPlan, Layer, Point, Segment } from '@city/ground';
 import { RATES } from '@city/site';
 import type { TileKey } from '@city/site';
 import { byId, svg } from '../dom.ts';
+import type { Painted } from './angled/view.ts';
 import { fmt } from '../format.ts';
 import type { Page } from '../page.ts';
 import { LEVEL_NAME, SITE_NAME, angledCaption, layerLines, placeholderNote } from '../wording.ts';
@@ -141,7 +142,7 @@ export function drawGround(page: Page): void {
  * @param page - the page
  * @param painted - what the angled view painted, when it is showing
  */
-export function drawViewBar(page: Page, painted: { readonly blocks: number; readonly stories: number } | null = null): void {
+export function drawViewBar(page: Page, painted: Painted | null = null): void {
   const { s } = page;
   const bar = byId('viewbar');
   const levels = byId('levels');
@@ -149,7 +150,7 @@ export function drawViewBar(page: Page, painted: { readonly blocks: number; read
   if (s.view.at === 'angled') {
     bar.hidden = false;
     levels.hidden = true;
-    byId('viewtext').textContent = angledCaption(painted?.blocks ?? 0, painted?.stories ?? 0);
+    byId('viewtext').textContent = angledCaption(painted?.blocks ?? 0, painted?.stories ?? 0, painted?.sites ?? 0, painted?.lit ?? 1);
     return;
   }
   levels.hidden = false;

@@ -842,11 +842,17 @@ export const SPEED_NAME: Readonly<Record<Speed, string>> = { slow: 'Slow', stead
 export const ANGLED_LABEL = 'From the air';
 
 /**
- * The view bar's caption on the angled view: what stands, in blocks and stories.
- * @param blocks - blocks painted
+ * The view bar's caption on the angled view: what stands, in blocks and stories; what the crews are building; and
+ * how lit the homes are when not every home is lived in.
+ * @param blocks - blocks painted, scaffolds and strips included
  * @param stories - their stories in all
+ * @param sites - tiles under construction
+ * @param lit - the homes' lit share, 0 to 1
  */
-export function angledCaption(blocks: number, stories: number): string {
+export function angledCaption(blocks: number, stories: number, sites = 0, lit = 1): string {
   if (!blocks) return 'The site from the air. Nothing stands yet.';
-  return `The site from the air: ${count(blocks, 'block', 'blocks')}, ${fmt(stories)} stories in all.`;
+  const parts = [`The site from the air: ${count(blocks, 'block', 'blocks')}, ${fmt(stories)} stories in all.`];
+  if (sites) parts.push(`${count(sites, 'tile', 'tiles')} under construction.`);
+  if (lit < 0.995) parts.push(`${num(100 * lit)}% of the homes are lit.`);
+  return parts.join(' ');
 }

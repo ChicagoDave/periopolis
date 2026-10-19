@@ -512,3 +512,37 @@ test("the site from the air: the ledger's city as 36 blocks of 238 stories on a 
   await expect(page.locator('#viewbar')).toBeHidden();
   await expect(page.locator('#board')).toBeVisible();
 });
+
+test('the site from the air follows the clock: scaffolds for what is ordered, blocks as the crews finish, homes lit as people arrive (ADR-0012, ADR-0009)', async ({ page }) => {
+  await page.click('#found');
+  await place(page, 'power', ['3,-1', '3,-1']);
+  await place(page, 'water', ['3,-2']);
+  await place(page, 'sewage', ['-3,1']);
+  await place(page, 'waste', ['-3,2']);
+  await place(page, 'hood', ['1,0', '2,-1']);
+  await page.click('#angled');
+  // Year 0: six tiles on order, nothing standing.
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-sites', '6');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-blocks', '6');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-stories', '0');
+  await expect(page.locator('#viewtext')).toHaveText('The site from the air: 6 blocks, 0 stories in all. 6 tiles under construction.');
+  // Year 2: the plants' units and the two neighborhoods stand, empty, waiting for power; the reactor site is still building.
+  await page.click('#tick');
+  await page.click('#tick');
+  await expect(page.locator('#angledcanvas')).toBeVisible();
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-sites', '1');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-stories', '12');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lit', '0.00');
+  await expect(page.locator('#viewtext')).toContainText('1 tile under construction. 0% of the homes are lit.');
+  // Year 3: both modules open and the first 400 move in, into one of the two neighborhoods.
+  await page.click('#tick');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-sites', '0');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-stories', '14');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lit', '0.04');
+  await expect(page.locator('#viewtext')).toHaveText('The site from the air: 6 blocks, 14 stories in all. 4% of the homes are lit.');
+  // A month later more have come, and the view, still from the air, shows it.
+  await page.click('#month');
+  const lit = Number(await page.locator('#angledcanvas').getAttribute('data-lit'));
+  expect(lit).toBeGreaterThan(0.04);
+  await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'true');
+});
