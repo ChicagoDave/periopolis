@@ -349,13 +349,15 @@ p { margin: 0; }
         <p class="clocknow" id="clocknow"></p>
         <ol class="years" id="years" aria-label="The twenty years of the run. Past years show a check if every line held, or the number of lines broken."></ol>
         <div class="row">
-          <button class="btn primary" id="tick" type="button">Next year</button>
+          <button class="btn primary" id="play" type="button" hidden aria-pressed="false">Play</button>
           <button class="btn small" id="month" type="button" hidden>Next month</button>
+          <button class="btn" id="tick" type="button">Next year</button>
           <button class="btn small" id="stop" type="button">Stop the clock</button>
-          <button class="btn small" id="run" type="button">Run this city for 20 years</button>
-          <button class="btn small" id="found" type="button">Found a city from nothing</button>
+          <button class="btn small" id="run" type="button">Start the clock on this city</button>
+          <button class="btn small" id="found" type="button">Start a city from nothing</button>
+          <label class="monthly" id="speedbox" hidden>Speed <select id="speed" aria-label="How fast the months run"><option value="slow">Slow</option><option value="steady" selected>Steady</option><option value="fast">Fast</option></select></label>
         </div>
-        <label class="monthly" id="monthlybox"><input type="checkbox" id="monthly"> People arrive month by month, at no more than Irvine's pace</label>
+        <label class="monthly" id="yearlybox"><input type="checkbox" id="yearly"> Year by year, as the sketch runs it: homes fill the year they finish</label>
         <p class="peoplenow" id="peoplenow" hidden></p>
         <ul class="notices" id="notices"></ul>
         <p class="keeprule" id="keeprule">Each of these is one of the four stretch tests come true. A city that holds all four cannot be broken by any of them.</p>

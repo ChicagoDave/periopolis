@@ -5,14 +5,16 @@
  * PREMISE_UNIT, linesLabel, checkTitle, stopsInHand, checkDetail, issueText, testLabel, moveSaid, orderSaid, noticeText,
  * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText, proposalPrice, needsNow,
  * addedSaid; and the month clock and the day (ADR-0009): POPULATION_PREMISE, DAY_PREMISE, DAY_NAME, monthLine,
- * peopleNow, hourLabel, dayCaption; and who is held back (ADR-0012): heldBackLine, heldHere.
+ * peopleNow, hourLabel, dayCaption; and who is held back (ADR-0012): heldBackLine, heldHere; and the clock's own
+ * sentences: yearLine, yearsUp, clockStarted, PAUSED_FOR_ORDER, SPEED_NAME.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
 import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, Proposal, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue, TileKey } from '@city/site';
 import type { Day, DayPremises, DayType, PopulationPremises } from '@city/site';
 import type { Layer as MoneyLayer } from '@city/site';
-import type { HeldBack, MonthRow, Notice, OrderEvent, PieceKind, RunRules } from '@city/run';
+import type { HeldBack, MonthRow, Notice, OrderEvent, PieceKind, RecordRow, RunRules } from '@city/run';
+import type { Speed } from './autorun.ts';
 import { cap, count, fmt, list, low, money, num, years } from './format.ts';
 
 /** The six layers of money (ADR-0007), named. */
@@ -799,3 +801,39 @@ export function dayCaption(day: Day): string {
     (day.pupils > 0.5 ? ` ${fmt(day.pupils)} pupils walk or ride to school and home again.` : '')
   );
 }
+
+/** One year of the record, in a sentence. */
+export function yearLine(row: RecordRow): string {
+  const parts = [`Year ${row.year}: ${fmt(row.pop)} people.`];
+  if (row.bad) parts.push(`${row.bad}${row.bad === 1 ? ' line broken: ' : ' lines broken: '}${row.broken.map((id) => low(checkTitle(id))).join('; ')}.`);
+  else parts.push(row.pop ? 'Every line held.' : 'Nobody lives here yet.');
+  if (row.heldBack?.length) parts.push(heldBackLine(row.heldBack));
+  if (Object.keys(row.opened).length) parts.push(`Opened: ${openedSentence(row.opened)}.`);
+  return parts.join(' ');
+}
+
+/** The run's horizon reached: " The 20 years are up." */
+export function yearsUp(rules: RunRules): string {
+  return ` The ${rules.years} years are up.`;
+}
+
+/**
+ * The clock just started, and what to press next: on the month clock, Play lets the months run; year by year, Next
+ * year steps one.
+ * @param rules - the run's rules (years and crews)
+ * @param monthly - whether the run is on the month clock
+ * @param empty - whether the site is empty (a city started from nothing) or the city on the board
+ */
+export function clockStarted(rules: RunRules, monthly: boolean, empty: boolean): string {
+  const next = monthly ? 'press Play to let the months run, or Next month to step one' : 'press Next year';
+  if (empty) return `An empty site, year 0, ${rules.crews} crews. Place your first orders, then ${next}. Undo brings the old city back.`;
+  return monthly
+    ? `The clock is on this city at year 0 of ${rules.years}. What you place now is an order for the ${rules.crews} crews. When your orders are in, ${next}.`
+    : `The clock is running on this city: year 0 of ${rules.years}. What you place now is an order for the ${rules.crews} crews. Press Next year when your orders are in.`;
+}
+
+/** Said when an order placed while the months were running pauses them. */
+export const PAUSED_FOR_ORDER = 'Paused: your order is in. Press Play to carry on.';
+
+/** The three speeds the months can run at, named. */
+export const SPEED_NAME: Readonly<Record<Speed, string>> = { slow: 'Slow', steady: 'Steady', fast: 'Fast' };

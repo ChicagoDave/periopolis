@@ -108,6 +108,8 @@ test('two far neighborhoods with no line break three lines and are the only tile
 });
 
 test('founding a city from nothing: orders, three years, a building site and the work in hand', async ({ page }) => {
+  // Year by year, as the sketch runs it: this flow's figures were pinned on the yearly clock.
+  await page.check('#yearly');
   await page.click('#found');
   await expect(page.locator('#said')).toHaveText('An empty site, year 0, 10 crews. Place your first orders, then press Next year. Undo brings the old city back.');
   await expect(page.locator('#moneynow')).toHaveText('Nothing stands, so nothing costs anything yet.');
@@ -154,6 +156,7 @@ test('founding a city from nothing: orders, three years, a building site and the
 });
 
 test("the ledger's city run to year 20 records every year, survives a reload and exports its clock", async ({ page }) => {
+  await page.check('#yearly');
   await page.click('#run');
   await expect(page.locator('#clocknow')).toContainText('Year 0 of 20.');
   // The run is built in order (ADR-0012), and the ledger's city is served, so everyone lives there and nothing is held.
@@ -349,10 +352,13 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
   await expect(page.locator('#poppremises li').nth(4)).toContainText('Arrivals into empty homes: 4,800 people a year at most, citywide');
   await expect(page.locator('#poppremises li').last()).toContainText('People in homes with no school-age children: 60% of people');
 
-  await page.check('#monthly');
+  // The month clock is the Board's default run.
   await page.click('#found');
-  await expect(page.locator('#said')).toContainText('People arrive month by month; Next month steps one.');
-  await expect(page.locator('#monthlybox')).toBeHidden();
+  await expect(page.locator('#said')).toHaveText(
+    'An empty site, year 0, 10 crews. Place your first orders, then press Play to let the months run, or Next month to step one. Undo brings the old city back.',
+  );
+  await expect(page.locator('#yearlybox')).toBeHidden();
+  await expect(page.locator('#play')).toHaveText('Play');
   await expect(page.locator('#peoplenow')).toHaveText('The start of year 1. 0 people living in homes for 0.');
   await expect(page.locator('#daynow')).toHaveText('A summer weekday, and nobody lives here yet: no trips, no power drawn, every mover parked.');
   // People move in only when the city carries them (ADR-0012): two reactor modules, so the peak holds with one down,

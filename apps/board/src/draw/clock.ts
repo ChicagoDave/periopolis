@@ -1,8 +1,8 @@
 /**
  * @file The clock card: the year, the twenty years as a strip, what is announced, the record; on a run with the month
  * clock, the people living there and the months so far (ADR-0009); who comes and goes, with each figure's mark; and the
- * work in hand.
- * Public interface: drawClock, drawWork, yearLine.
+ * work in hand; and the Play, Pause and speed of the months running on their own.
+ * Public interface: drawClock, drawWork, yearLine (re-exported from wording).
  * Owner context: Board (adapter).
  */
 import { RULES, cancelJob, homesOf, occupiedOf, putFirst } from '@city/run';
@@ -12,19 +12,11 @@ import type { Layout, PopulationPremises } from '@city/site';
 import { button, byId, el } from '../dom.ts';
 import { cap, fmt, low, money, years } from '../format.ts';
 import type { Page } from '../page.ts';
-import { PIECE_NAME, POPULATION_PREMISE, checkTitle, heldBackLine, noticeText, openedSentence, peopleNow } from '../wording.ts';
+import { PIECE_NAME, POPULATION_PREMISE, checkTitle, noticeText, openedSentence, peopleNow, yearLine } from '../wording.ts';
 import { RATES } from '@city/site';
 import { markChip } from './money.ts';
 
-/** One year of the record, in a sentence. */
-export function yearLine(row: RecordRow): string {
-  const parts = [`Year ${row.year}: ${fmt(row.pop)} people.`];
-  if (row.bad) parts.push(`${row.bad}${row.bad === 1 ? ' line broken: ' : ' lines broken: '}${row.broken.map((id) => low(checkTitle(id))).join('; ')}.`);
-  else parts.push(row.pop ? 'Every line held.' : 'Nobody lives here yet.');
-  if (row.heldBack?.length) parts.push(heldBackLine(row.heldBack));
-  if (Object.keys(row.opened).length) parts.push(`Opened: ${openedSentence(row.opened)}.`);
-  return parts.join(' ');
-}
+export { yearLine };
 
 /** Who comes and goes: every population premise, worded, with its mark. */
 function drawPopulation(): void {
@@ -37,10 +29,17 @@ function drawPopulation(): void {
   }
 }
 
-/** On a run with the month clock: the people living there now, the Next month button, and the months so far. */
-function drawMonths(layout: Layout, clock: Clock | null): void {
+/** On a run with the month clock: the people living there now, Play or Pause with the speed, the Next month button,
+ * and the months so far. */
+function drawMonths(page: Page, layout: Layout, clock: Clock | null): void {
   const growth = clock?.growth;
   const over = clock !== null && clock.year >= RULES.years;
+  const play = byId<HTMLButtonElement>('play');
+  play.hidden = !growth || over;
+  play.textContent = page.auto.playing ? 'Pause' : 'Play';
+  play.setAttribute('aria-pressed', page.auto.playing ? 'true' : 'false');
+  byId('speedbox').hidden = !growth || over;
+  byId<HTMLSelectElement>('speed').value = page.auto.speed;
   byId('month').hidden = !growth;
   byId<HTMLButtonElement>('month').disabled = over;
   byId('peoplenow').hidden = !growth;
@@ -76,9 +75,9 @@ export function drawClock(page: Page): void {
   for (const id of ['tick', 'stop', 'years', 'notices', 'keeprule', 'recordbox']) byId(id).hidden = !on;
   byId('run').hidden = on;
   byId('found').hidden = on;
-  byId('monthlybox').hidden = on;
+  byId('yearlybox').hidden = on;
   drawPopulation();
-  drawMonths(s.game.layout, clock);
+  drawMonths(page, s.game.layout, clock);
   now.textContent = '';
   if (!clock) {
     now.textContent = 'The clock is stopped. What you place is built at once.';

@@ -3,13 +3,15 @@
  * Public interface: none; it runs on load.
  * Owner context: Board (adapter).
  */
-import { RULES, startRun, stopRun, tick, tickMonth } from '@city/run';
+import { RULES, startRun, stopRun } from '@city/run';
 import type { Game } from '@city/run';
 import { RATES, allTiles, emptyLayout, sizedLayout, starterLayout, tileAt, tileKey } from '@city/site';
 import type { TileKey } from '@city/site';
 import { byId } from './dom.ts';
 import { describe, drawBoard } from './draw/board.ts';
-import { drawClock, drawWork, yearLine } from './draw/clock.ts';
+import { canStep, monthStep, newAutoRun, yearStep } from './autorun.ts';
+import type { Speed } from './autorun.ts';
+import { drawClock, drawWork } from './draw/clock.ts';
 import { drawDay } from './draw/day.ts';
 import { drawInspector } from './draw/inspector.ts';
 import { drawMoney } from './draw/money.ts';
@@ -24,7 +26,7 @@ import type { Page } from './page.ts';
 import { newSession } from './session.ts';
 import { browserStore, restoreGame } from './storage.ts';
 import type { SavedGame } from './storage.ts';
-import { monthLine } from './wording.ts';
+import { PAUSED_FOR_ORDER, clockStarted } from './wording.ts';
 import type { ToolId } from './wording.ts';
 
 const KEY = 'future-city-builder-v1';
@@ -47,9 +49,16 @@ function start(data: { game?: unknown }): void {
   const kept = (data.game ? restoreGame(data.game) : null) ?? restoreGame(store.load());
   const s = newSession(kept ?? { layout: starterLayout(), clock: null }, store);
   let flashTimer: ReturnType<typeof setTimeout> | null = null;
+  // The months running on their own: after each, the page is redrawn and the month said; when they stop themselves
+  // at the horizon the Play button goes with them.
+  const auto = newAutoRun(s, (said) => {
+    page.render();
+    if (said !== null) page.say(said);
+  });
 
   const page: Page = {
     s,
+    auto,
     say: (text) => {
       byId('said').textContent = text || '';
     },
@@ -79,6 +88,7 @@ function start(data: { game?: unknown }): void {
       drawBoard(page);
     },
     swap: (game: Game, words: string) => {
+      auto.pause();
       s.remember();
       s.game = game;
       s.lineFrom = null;
@@ -87,12 +97,14 @@ function start(data: { game?: unknown }): void {
       page.say(words);
     },
     commit: (m: Move) => {
+      // An order placed while the months run pauses them (plan board-auto-run-by-month, decision 4).
+      const paused = m.changed && auto.pause();
       if (m.changed) {
         s.remember();
         s.game = m.game;
         s.save();
       }
-      page.say(m.said);
+      page.say(paused ? `${m.said} ${PAUSED_FOR_ORDER}` : m.said);
       page.render();
     },
   };
@@ -151,6 +163,7 @@ function start(data: { game?: unknown }): void {
   });
   const seed = (): number => 1 + Math.floor(Math.random() * 2147483646);
   byId('undo').addEventListener('click', () => {
+    auto.pause();
     if (!s.undo()) return;
     page.say('Undone.');
     page.render();
@@ -192,50 +205,43 @@ function start(data: { game?: unknown }): void {
     page.say('Back to today.');
     page.render();
   });
-  // Whether a run starts with the month clock (ADR-0009): people arrive month by month into finished homes.
-  const monthly = (): boolean => byId<HTMLInputElement>('monthly').checked;
-  const byMonth = (): string => (monthly() ? ' People arrive month by month; Next month steps one.' : '');
-  byId('run').addEventListener('click', () =>
-    page.swap(
-      startRun(s.game.layout, seed(), RATES, RULES, { growth: monthly(), inOrder: true }),
-      `The clock is running on this city: year 0 of ${RULES.years}. What you place now is an order for the ${RULES.crews} crews. Press Next year when your orders are in.${byMonth()}`,
-    ),
-  );
+  // A run is on the month clock (ADR-0009) unless the yearly mode, the sketch's, is asked for: homes full the year
+  // they finish. Starting a run never starts the months running; Play does, once the orders are in.
+  const monthly = (): boolean => !byId<HTMLInputElement>('yearly').checked;
+  byId('run').addEventListener('click', () => {
+    const growth = monthly();
+    page.swap(startRun(s.game.layout, seed(), RATES, RULES, { growth, inOrder: true }), clockStarted(RULES, growth, false));
+  });
   byId('found').addEventListener('click', () => {
+    const growth = monthly();
     s.picked = null;
-    page.swap(
-      startRun(emptyLayout(), seed(), RATES, RULES, { growth: monthly(), inOrder: true }),
-      `An empty site, year 0, ${RULES.crews} crews. Place your first orders, then press Next year. Undo brings the old city back.${byMonth()}`,
-    );
+    page.swap(startRun(emptyLayout(), seed(), RATES, RULES, { growth, inOrder: true }), clockStarted(RULES, growth, true));
   });
   byId('stop').addEventListener('click', () => page.swap(stopRun(s.game), 'The clock is stopped. Work in hand was finished at once.'));
-  byId('tick').addEventListener('click', () => {
-    const clock = s.game.clock;
-    if (!clock || clock.year >= RULES.years) return;
-    const next = tick(s.game, RATES, RULES);
-    const row = next.clock?.record[next.clock.record.length - 1];
-    s.remember();
-    s.game = next;
-    s.lineFrom = null;
-    s.save();
+  byId('play').addEventListener('click', () => {
+    if (auto.playing) auto.pause();
+    else if (!auto.play()) return;
     page.render();
-    if (row) page.say(yearLine(row) + ((next.clock?.year ?? 0) >= RULES.years ? ` The ${RULES.years} years are up.` : ''));
+  });
+  byId('speed').addEventListener('change', () => {
+    auto.setSpeed(byId<HTMLSelectElement>('speed').value as Speed);
+  });
+  // A tap steps one, remembering one state each; it pauses the months first.
+  byId('tick').addEventListener('click', () => {
+    auto.pause();
+    if (!canStep(s)) return;
+    s.remember();
+    const said = yearStep(s);
+    page.render();
+    if (said) page.say(said);
   });
   byId('month').addEventListener('click', () => {
-    const clock = s.game.clock;
-    if (!clock || !clock.growth || clock.year >= RULES.years) return;
-    const next = tickMonth(s.game, RATES, RULES);
-    const months = next.clock?.growth?.months ?? [];
-    const last = months[months.length - 1];
-    const yearEnded = (next.clock?.year ?? 0) > clock.year;
-    const row = next.clock?.record[next.clock.record.length - 1];
+    auto.pause();
+    if (!canStep(s) || !s.game.clock?.growth) return;
     s.remember();
-    s.game = next;
-    s.lineFrom = null;
-    s.save();
+    const said = monthStep(s);
     page.render();
-    const said = last ? monthLine(last) : '';
-    page.say(yearEnded && row ? `${said} ${yearLine(row)}${(next.clock?.year ?? 0) >= RULES.years ? ` The ${RULES.years} years are up.` : ''}` : said);
+    if (said) page.say(said);
   });
   byId('copy').addEventListener('click', () => {
     const text = asText(s);

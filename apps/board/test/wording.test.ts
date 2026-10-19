@@ -8,11 +8,11 @@ import { DAYS, POPULATION, RATES, assess, dayOf, emptyLayout, needsOf, placeNeig
 import type { DayPremises, Facts, Layout, LineCheck, PopulationPremises, Stress, TestId, TileKey } from '@city/site';
 import { RULES, notices, startRun, tick, tickMonth } from '@city/run';
 import type { Game, HeldBack, MonthRow } from '@city/run';
-import { yearLine } from '../src/draw/clock.ts';
 import { move } from '../src/moves.ts';
 import type { ToolId } from '../src/wording.ts';
 import { checkDetail, checkTitle, heldBackLine, heldHere, issueText, linesLabel, needText, noticeText, stopsInHand, testLabel } from '../src/wording.ts';
 import { DAY_NAME, DAY_PREMISE, POPULATION_PREMISE, dayCaption, hourLabel, monthLine, peopleNow } from '../src/wording.ts';
+import { PAUSED_FOR_ORDER, SPEED_NAME, clockStarted, yearLine, yearsUp } from '../src/wording.ts';
 import siteRecorded from '../../../domain/site/test/fixtures/parity.json';
 import runRecorded from '../../../domain/run/test/fixtures/parity.json';
 
@@ -306,5 +306,24 @@ describe('built in order, worded (ADR-0012)', () => {
     expect(monthLine(month)).toBe(
       'Year 1, month 1: 0 people in homes for 5,000. Nobody came or went. 1 neighborhood stands empty, waiting for power, drinking water, sewage treatment and waste handling.',
     );
+  });
+});
+
+describe('the clock started, and the months running on their own', () => {
+  it('says what to press next: Play on the month clock, Next year on the yearly one, on the board or an empty site', () => {
+    expect(clockStarted(RULES, true, false)).toBe(
+      'The clock is on this city at year 0 of 20. What you place now is an order for the 10 crews. When your orders are in, press Play to let the months run, or Next month to step one.',
+    );
+    expect(clockStarted(RULES, true, true)).toBe(
+      'An empty site, year 0, 10 crews. Place your first orders, then press Play to let the months run, or Next month to step one. Undo brings the old city back.',
+    );
+    // The yearly sentences are the ones the Board said before the month clock was the default.
+    expect(clockStarted(RULES, false, false)).toBe(
+      'The clock is running on this city: year 0 of 20. What you place now is an order for the 10 crews. Press Next year when your orders are in.',
+    );
+    expect(clockStarted(RULES, false, true)).toBe('An empty site, year 0, 10 crews. Place your first orders, then press Next year. Undo brings the old city back.');
+    expect(yearsUp(RULES)).toBe(' The 20 years are up.');
+    expect(PAUSED_FOR_ORDER).toBe('Paused: your order is in. Press Play to carry on.');
+    expect(Object.values(SPEED_NAME)).toEqual(['Slow', 'Steady', 'Fast']);
   });
 });

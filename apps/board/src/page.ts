@@ -4,6 +4,7 @@
  * Owner context: Board (adapter).
  */
 import type { Game } from '@city/run';
+import type { AutoRun } from './autorun.ts';
 import type { TileKey } from '@city/site';
 import type { Move } from './moves.ts';
 import type { Session } from './session.ts';
@@ -11,6 +12,8 @@ import type { ToolId } from './wording.ts';
 
 export interface Page {
   readonly s: Session;
+  /** The months running on their own: whether they are, and how fast. */
+  readonly auto: AutoRun;
   /** Put a sentence in the status line. */
   say(text: string): void;
   /** Redraw everything from the session. */
