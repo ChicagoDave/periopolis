@@ -7,7 +7,7 @@
 
 ## Context
 
-Issue 3 (David, 2026-10-14) asked for population data "so we can run the sim hour by hour or day by day or month by month". ADR-0009 built the month clock, and the Board shipped it as a manual Next month tap behind a checkbox, while "Run this city for 20 years" only started the clock at year 0 and waited for Next year. David, 2026-10-18: the ask was "monthly automated incremental and visible progress". The plan `docs/work/board-auto-run-by-month/plan.md` built it and left three choices that a future session touching the clock card or the Board's call to `startRun` would otherwise re-litigate.
+Issue 3 (David, 2026-10-14) asked for population data "so we can run the sim hour by hour or day by day or month by month". ADR-0009 built the month clock, and the Board shipped it as a manual Next month tap behind a checkbox, while "Run this city for 20 years" only started the clock at year 0 and waited for Next year. David, 2026-10-18: the ask was "monthly automated incremental and visible progress". The plan `docs/work/archive/board-auto-run-by-month/plan.md` built it and left three choices that a future session touching the clock card or the Board's call to `startRun` would otherwise re-litigate.
 
 The Run is untouched: `tickMonth` is one pure step, the Run's default (`growth` absent) is still the sketch's yearly clock, and the parity suite replays that mode (ADR-0009 Decision 5). Everything here is Board wiring and wording (ADR-0004).
 
@@ -31,4 +31,4 @@ The Run is untouched: `tickMonth` is one pure step, the Run's default (`growth` 
 
 ## Session
 
-Session 2c0551, 2026-10-19; Phase 2 of `docs/work/board-auto-run-by-month/plan.md`.
+Session 2c0551, 2026-10-19; Phase 2 of `docs/work/archive/board-auto-run-by-month/plan.md`.

@@ -2,7 +2,7 @@
 
 **Created**: 2026-10-19
 **Plan Status**: ACTIVE
-**Queued**: Queued behind board-auto-run-by-month; becomes current when that plan is DONE. `.current-plan` is deliberately NOT pointed here. Phase 1 is PENDING, not CURRENT.
+**Queued**: Was queued behind board-auto-run-by-month, DONE and archived 2026-10-19; this plan is next. `.current-plan` is set when its Phase 1 starts.
 **Overall scope**: An angled (oblique/isometric) view of the city with building heights, entered from the tile map, that follows the Board's month clock: as the run plays, it shows the city as it stands that month. A new projection and renderer over the same Ground output, not a new Ground (physical-city "Out of scope").
 **Bounded contexts touched**: Board (apps/board) primarily; Ground (domain/ground) only in branch A; Run (domain/run) read, not changed.
 **Key domain language**: Ground, plan view / angled view, story count, month clock, occupancy, under-construction neighborhood, level of detail.
@@ -14,7 +14,9 @@ What does "moves through time" mean?
 - **A. Each neighborhood's ground grows as crews build it and homes fill as people arrive.** Ground must derive a *partial* neighborhood from a build fraction and an occupancy. A Ground change (new pure function and tests, ADR-0005 says figures Ground needs but the Ledger does not derive go to the Ledger first). Sized: **Large**, about 2 phases on top of the shared base. Needs a run-side statement of a neighborhood's build fraction per month, which the run may not expose today (check ADR-0012 Decision 6).
 - **B. Finished neighborhoods, the ring, plants and stretches appear on the tilted site map as the run completes them; under-construction tiles are shown as such; occupancy is shown by lit/dark homes.** Board rendering over data the run already has (layout tiles, jobs working/waiting/done, occupancy per neighborhood). Sized: **Medium** per phase, no domain change.
 
-**Recommendation: B first, A as a later plan.** B delivers the visible "city grows" payoff with no domain change; A's partial-neighborhood derivation is only worth its cost once the angled view exists to show it, and it is separable (the renderer takes whatever Ground returns). Phases 1 to 4 below are branch B and are shared by A; Phase 5 is branch A and stays PENDING unless David picks A.
+**Decided (David, 2026-10-19): B.** A stays a later plan; Phase 5 stays PENDING. Decisions 1 to 3 below taken as recommended.
+
+**Recommendation (as planned): B first, A as a later plan.** B delivers the visible "city grows" payoff with no domain change; A's partial-neighborhood derivation is only worth its cost once the angled view exists to show it, and it is separable (the renderer takes whatever Ground returns). Phases 1 to 4 below are branch B and are shared by A; Phase 5 is branch A and stays PENDING unless David picks A.
 
 ## Other decisions the plan carries (confirm at Phase 1; recommended answer given)
 
@@ -31,7 +33,7 @@ What does "moves through time" mean?
 - `docs/adrs/0005-ground-is-its-own-context-over-the-ledger.md` — Ground imports only the Ledger; a figure Ground needs but the Ledger does not derive goes to the Ledger first (bears on branch A).
 - `docs/adrs/0011-the-board-is-published-on-github-pages.md` — product ADR, Scope apps/board intersects: the Board stays one self-contained published page; no server, no extra asset; a library must fit the single-file build.
 - `docs/adrs/0002-no-regular-expressions.md` — no regex anywhere, including parsing and tests.
-- Cited from the caller's verified context, not re-read: ADR-0006 (hex tile site, fixes the tile geometry the projection extrudes), ADR-0009 and ADR-0012 (occupancy per neighborhood; under-construction neighborhoods, Decision 6), `docs/work/archive/physical-city/plan.md` (Out of scope: angled view is a new projection and renderer), `docs/brainstorm/future-city/techstack.md` (extruded footprints under a tilted camera; a full simulation is a game engine's job and not chosen), `docs/work/board-auto-run-by-month/plan.md` (the month clock this view follows).
+- Cited from the caller's verified context, not re-read: ADR-0006 (hex tile site, fixes the tile geometry the projection extrudes), ADR-0009 and ADR-0012 (occupancy per neighborhood; under-construction neighborhoods, Decision 6), `docs/work/archive/physical-city/plan.md` (Out of scope: angled view is a new projection and renderer), `docs/brainstorm/future-city/techstack.md` (extruded footprints under a tilted camera; a full simulation is a game engine's job and not chosen), `docs/work/archive/board-auto-run-by-month/plan.md` (the month clock this view follows).
 - Product ADRs not consulted (no Scope intersection): none
 
 ## Phases
@@ -44,8 +46,8 @@ What does "moves through time" mean?
 - **Deliverable**: A pure `apps/board/src/draw/angled/projection.ts` (project a point at a height under a camera: yaw, pitch, scale; inverse for hit-testing; painter's-order sort key) and `extrude.ts` (a footprint plus story count to visible faces with per-face shade). Header comments per documentation standard `always`. Tests assert numbers: a unit square at height 0 projects to the known quad; heights shift screen y by the known amount; the inverse round-trips; draw order puts nearer footprints later. Behaviour Statements per rule 12.
 - **Exit state**: Projection and extrusion are tested pure functions with no DOM import; nothing is drawn yet.
 - **Demonstration**: `pnpm --filter @city/board test` runs the projection and extrusion suites green, and the round-trip test shows inverse(project(p)) equals p within tolerance.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-19, session 2c0551. `apps/board/src/draw/angled/projection.ts` (Camera {yaw, pitch in (0, π/2], scale, origin}, GroundPoint, ScreenPoint, DEFAULT_CAMERA, cameraAt, turned, project, unproject, depthOf) and `extrude.ts` (Face, Block, STORY_M 3.2, LIGHT, extrude, blockDepth), both pure, no DOM import (grep for document/window/dom in the folder: 0). `apps/board/test/angled.test.ts` (13) asserts numbers: the unit square under the plan-view camera projects to itself; a π/4 tilt foreshortens y by √2/2 and leaves x; a height of 10 lifts a point by 10·cos(pitch) and not at all in the plan view; scale 10 and origin (100, 50) place (1, 1) at (110, 50 + 10·√2/2); a quarter-turn yaw sends (1, 0) to (0, 1); unproject(project(p)) round-trips within 1e-9 on four cameras and four points at heights 0, 7 and 96; depth grows toward the viewer, reverses under a half-turn and ignores height; cameraAt refuses pitch 0, pitch past π/2 and scale 0. Extrusion: height 0 is one top face at shade 1; straight on, a 2 m block gives one side (the y = 1 edge, ground corners at sin(π/3), upper corners 2·cos(π/3) higher) then the top; turned π/6, two sides, the farther (+x) first, both 0.45 in shadow, and turned half round both lit at 0.45 + 0.5·√2/2; a clockwise footprint paints the same faces as a counter-clockwise one; blockDepth sorts a block 10 m nearer last; refusals on two corners, a negative height and NaN. `pnpm -r test` green (ledger 91, ground 27, site 168, run 182, board 169); `pnpm -r typecheck` clean. [verified: unit tests, "Tests passed" 91/27/168/182/169, 2026-10-19T21:28:48Z, after the last edit at 21:28:32Z] [reported by session, unverified: typecheck, no hook row]
+- **Status**: DONE
 
 ### Phase 2: Angled view of the site map, finished city at one month (entry and ADR)
 - **Tier**: Medium
