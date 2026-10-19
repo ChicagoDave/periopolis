@@ -1,7 +1,7 @@
 # Session Plan: Board auto-run month by month with visible progress
 
 **Created**: 2026-10-19
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Replace the manual Next month tap with a Play/Pause control that advances the run one month per timer step (tickMonth, then render), at a chosen speed, stopping at year 20; make the month clock the Board's default run; reword the buttons; pin it with an e2e flow. Board-only wiring and wording; no domain change.
 **Bounded contexts touched**: Board (apps/board) only. Run (domain/run) is read, not changed; docs/domain/run.md gets a note only if the Board's use of the month clock needs recording.
 **Key domain language**: month clock (growth), yearly mode, run / clock, orders (placements for the crews), Next year, undo/remember.
