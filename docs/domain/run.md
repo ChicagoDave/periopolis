@@ -4,7 +4,7 @@
 
 **Package.** `@city/run` (`domain/run`). Pure and deterministic; depends on `@city/site` alone. The one random source is a seeded generator, so a run replays from its seed. Public interface: `startRun`, `stopRun`, `tick`, `tickMonth`, the month clock (`growthOn`, `monthStep`, `occupiedOf`, `homesOf`), who may live where (`admit`, `limitsOf`, `childlessOf`), the crew order (`classOf`, `crewed`, `emergencyOf`), `placeOrder`, `cancelJob`, `putFirst`, `inHand`, `notices`, `stressAt`, `restoreClock`, `totalSpend`, and the rules.
 
-**Consumers.** The Board shows the clock card, the work in hand and the notices, and turns clicks into orders.
+**Consumers.** The Board shows the clock card, the work in hand and the notices, and turns clicks into orders. Since 2026-10-19 every run the Board starts is on the month clock unless the player asks for the yearly mode, and the Board's own timer calls `tickMonth` once a month at a chosen speed; the Run's default (`growth` absent, the sketch's clock) and the parity suite are unchanged.
 
 ## Terms
 

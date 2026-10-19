@@ -422,3 +422,50 @@ test('a neighborhood stands empty until the city carries it, and line 6 says whe
   await page.click('#tick');
   await expect(page.locator('#rule-stops .detail')).toHaveText('Every neighborhood has a stop under its center, on a line to the ring.');
 });
+
+test('the months run on their own: Play moves the people, an order pauses, a reload keeps the month paused, and the run stops itself at year 20', async ({ page }) => {
+  await page.click('#run');
+  await expect(page.locator('#said')).toHaveText(
+    'The clock is on this city at year 0 of 20. What you place now is an order for the 10 crews. When your orders are in, press Play to let the months run, or Next month to step one.',
+  );
+  await expect(page.locator('#play')).toHaveText('Play');
+  await expect(page.locator('#speedbox')).toBeVisible();
+  await expect(page.locator('#peoplenow')).toHaveText('The start of year 1. 50,000 people living in homes for 50,000.');
+  await page.selectOption('#speed', 'fast');
+  await page.click('#play');
+  await expect(page.locator('#play')).toHaveText('Pause');
+  await expect(page.locator('#play')).toHaveAttribute('aria-pressed', 'true');
+  // Two months and more pass with nothing pressed: the people line, the month said and the months list move.
+  await expect(page.locator('#peoplenow')).toContainText('Year 1, month 2 of 12.');
+  await expect(page.locator('#said')).toContainText('Year 1, month 2:');
+  await expect(page.locator('#peoplenow')).toContainText('Year 1, month 3 of 12.');
+  // An order placed while the months run pauses them and says so; the month then holds.
+  await place(page, 'hood', ['4,0']);
+  await expect(page.locator('#said')).toContainText('Ordered: neighborhood.');
+  await expect(page.locator('#said')).toContainText('Paused: your order is in. Press Play to carry on.');
+  await expect(page.locator('#play')).toHaveText('Play');
+  const held = await page.locator('#peoplenow').textContent();
+  await page.waitForTimeout(400);
+  await expect(page.locator('#peoplenow')).toHaveText(held ?? '');
+  // The timer is in memory only: a reload opens the run paused in the same month, and Play is there to carry on.
+  await page.reload();
+  await expect(page.locator('#peoplenow')).toHaveText(held ?? '');
+  await expect(page.locator('#play')).toHaveText('Play');
+  await page.waitForTimeout(400);
+  await expect(page.locator('#peoplenow')).toHaveText(held ?? '');
+  // Years pass by the tap to the last one; Play runs its twelve months and stops itself at the horizon.
+  for (let y = 1; y < 20; y++) await page.click('#tick');
+  await expect(page.locator('#clocknow')).toContainText('Year 19 of 20.');
+  await expect(page.locator('#play')).toBeVisible();
+  await page.click('#play');
+  await expect(page.locator('#clocknow')).toContainText('Year 20. The run is over.', { timeout: 30000 });
+  await expect(page.locator('#said')).toContainText('The 20 years are up.');
+  await expect(page.locator('#play')).toBeHidden();
+  await expect(page.locator('#speedbox')).toBeHidden();
+  await expect(page.locator('#month')).toBeDisabled();
+  await expect(page.locator('#recordrows tr')).toHaveCount(21);
+  // One undo goes back to where Play was pressed: the start of year 20, not one month.
+  await page.click('#undo');
+  await expect(page.locator('#clocknow')).toContainText('Year 19 of 20.');
+  await expect(page.locator('#peoplenow')).toContainText('The start of year 20.');
+});
