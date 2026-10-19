@@ -367,10 +367,15 @@ export function checkDetail(facts: Facts, rates: SiteRates, building = 0): strin
       if (facts.case === 'idle') return 'Fields sit beside a neighborhood and serve the ones around it.';
       if (facts.case === 'none') return 'There are no playing fields yet.';
       if (facts.case === 'far') return `${count(facts.count, 'neighborhood is', 'neighborhoods are')} more than a ${facts.fieldWalk}-minute walk from fields and cannot ride to them.`;
+      if (facts.case === 'waiting') {
+        if (facts.sets === 0) return 'There are no playing fields yet. Nobody lives here yet to miss them.';
+        return `${count(facts.count, 'neighborhood nobody lives in yet is', 'neighborhoods nobody lives in yet are')} more than a ${facts.fieldWalk}-minute walk from fields and cannot ride to them.`;
+      }
       return `${count(facts.sets, 'set', 'sets')} of fields. Every neighborhood is within a ${facts.fieldWalk}-minute walk or a mover ride of one.`;
     case 'ways':
       if (facts.case === 'idle') return 'Past a 15-minute walk people take a mover, or a bike if it is near enough.';
       if (facts.case === 'stuck') return `${num(100 * facts.share, 1)}% of trips are longer than people will walk and have no mover to take. Run the mover line to the tiles marked.`;
+      if (facts.case === 'waiting') return `${num(100 * facts.share, 1)}% of trips go to ${count(facts.count, 'neighborhood nobody lives in yet', 'neighborhoods nobody lives in yet')}, longer than people will walk with no mover to take. Nobody makes them yet.`;
       return `${num(100 * facts.foot)}% of trips are on foot, ${num(100 * facts.bike)}% by bike and ${num(100 * facts.ride)}% by mover.${facts.nowhere > 0.0005 ? ` Another ${num(100 * facts.nowhere, 1)}% have no place to go to.` : ''}`;
     case 'power':
       if (facts.case === 'idle') return `A module makes ${facts.moduleMw} MW. The city needs enough to carry its peak while one is down for fuel.`;

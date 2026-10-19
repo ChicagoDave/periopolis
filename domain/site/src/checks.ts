@@ -78,8 +78,12 @@ export type Facts =
   | { readonly check: 'fields'; readonly case: 'none' }
   | { readonly check: 'fields'; readonly case: 'far'; readonly count: number; readonly fieldWalk: number }
   | { readonly check: 'fields'; readonly case: 'near'; readonly sets: number; readonly fieldWalk: number }
+  /** Only neighborhoods nobody lives in yet are far from fields (or there are none and nobody to miss them): a watch (ADR-0012 Decision 8, amended 2026-10-18). */
+  | { readonly check: 'fields'; readonly case: 'waiting'; readonly count: number; readonly sets: number; readonly fieldWalk: number }
   | { readonly check: 'ways'; readonly case: 'idle' }
   | { readonly check: 'ways'; readonly case: 'stuck'; readonly share: number }
+  /** Only trips toward neighborhoods nobody lives in yet are stuck: a watch (ADR-0012 Decision 8, amended 2026-10-18). */
+  | { readonly check: 'ways'; readonly case: 'waiting'; readonly share: number; readonly count: number }
   | {
       readonly check: 'ways';
       readonly case: 'flowing';

@@ -1,0 +1,10 @@
+{"ts":"2026-10-17T00:50:50Z","kind":"hook","source":"session-start","msg":"Session 410995 started on main","detail":"previous session IN-FLIGHT","branch":"main","session":"410995","gate":"session-init","budget":"0/100"}
+{"ts":"2026-10-17T00:52:44Z","kind":"agent","source":"post-tool-use","msg":"Agent completed","detail":"pre-session-audit","branch":"main","session":"410995","gate":"session-init","budget":"2/100"}
+{"ts":"2026-10-17T06:02:20Z","kind":"edit","source":"post-tool-use","msg":"File written","detail":"docs/objectives/reviews/README.md","branch":"main","session":"410995","gate":"","budget":"18/100"}
+{"ts":"2026-10-17T06:02:20Z","kind":"edit","source":"post-tool-use","msg":"File written","detail":"docs/objectives/reviews/outreach.md","branch":"main","session":"410995","gate":"","budget":"19/100"}
+{"ts":"2026-10-17T06:02:21Z","kind":"edit","source":"post-tool-use","msg":"File written","detail":"docs/objectives/reviews/outreach-message.md","branch":"main","session":"410995","gate":"","budget":"20/100"}
+{"ts":"2026-10-17T06:02:24Z","kind":"edit","source":"post-tool-use","msg":"File changed via Bash","detail":"docs/objectives/reviews/README.md","branch":"main","session":"410995","gate":"","budget":"21/100"}
+{"ts":"2026-10-17T06:02:24Z","kind":"edit","source":"post-tool-use","msg":"File changed via Bash","detail":"docs/objectives/reviews/outreach-message.md","branch":"main","session":"410995","gate":"","budget":"21/100"}
+{"ts":"2026-10-17T06:02:24Z","kind":"edit","source":"post-tool-use","msg":"File changed via Bash","detail":"docs/objectives/reviews/outreach.md","branch":"main","session":"410995","gate":"","budget":"21/100"}
+{"ts":"2026-10-17T06:02:27Z","kind":"edit","source":"post-tool-use","msg":"File edited","detail":"docs/objectives/reviews/outreach-message.md","branch":"main","session":"410995","gate":"","budget":"22/100"}
+{"ts":"2026-10-18T03:45:28Z","kind":"hook","source":"session-finalize","msg":"Session ended — event log archived","detail":"410995","branch":"main","session":"410995","gate":"","budget":"29/100"}

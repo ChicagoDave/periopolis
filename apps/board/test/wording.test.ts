@@ -237,6 +237,16 @@ describe('built in order, worded (ADR-0012)', () => {
     expect(checkDetail(without, RATES)).toBe('3 neighborhoods have no stop on a line to the ring. Draw the mover line through them.');
   });
 
+  it('words the watches of a neighborhood nobody lives in yet on lines 4 and 17 (ADR-0012 Decision 8, amended)', () => {
+    expect(checkDetail({ check: 'fields', case: 'waiting', count: 1, sets: 2, fieldWalk: 20 }, RATES)).toBe(
+      '1 neighborhood nobody lives in yet is more than a 20-minute walk from fields and cannot ride to them.',
+    );
+    expect(checkDetail({ check: 'fields', case: 'waiting', count: 3, sets: 0, fieldWalk: 20 }, RATES)).toBe('There are no playing fields yet. Nobody lives here yet to miss them.');
+    expect(checkDetail({ check: 'ways', case: 'waiting', share: 0.0464, count: 3 }, RATES)).toBe(
+      '4.6% of trips go to 3 neighborhoods nobody lives in yet, longer than people will walk with no mover to take. Nobody makes them yet.',
+    );
+  });
+
   it('words a reactor site that carries the peak only while every module runs (ADR-0012 Decision 3, amended)', () => {
     expect(checkDetail({ check: 'power', case: 'noSpare', modules: 1, peakMw: 45, needed: 2 }, RATES)).toBe(
       '1 module carries a peak of 45 MW only while it runs. With it down for fuel the city has no power. It takes 2.',

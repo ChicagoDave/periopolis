@@ -1,6 +1,6 @@
 /**
  * @file The move-in gate and the checks it reads (ADR-0012 Decisions 3, 8 and 9): a neighborhood nobody lives in
- * watches its stop and its schools instead of breaking them; a neighborhood held to the childless share sends no
+ * watches its stop, its fields, the trips toward it and its schools instead of breaking them; a neighborhood held to the childless share sends no
  * pupils; and the gate lacks a service or a school exactly when that check is broken for the neighborhood asking.
  * Owner context: Site (domain), tests.
  */
@@ -42,9 +42,54 @@ describe('a neighborhood nobody lives in', () => {
     expect(stops?.status).toBe('warn');
     expect(stops?.facts).toEqual({ check: 'stops', case: 'waiting', count: 3 });
     expect(stops?.tiles).toEqual(['2,0', '-3,0', '0,2']);
-    // The tile's own level is the worst of its issues; lines 4 and 17 are not the gate's (ADR-0012 Decision 8 names 6
-    // and 15), so only the stop's mark is asserted here.
     expect(empty.per['2,0']?.issues).toContainEqual({ kind: 'noStop' });
+  });
+
+  it('is past the walk from fields as a watch: line 4 is amber and marks it, and breaks again once anyone lives there', () => {
+    const lived = checkOf(THIRTEEN, 'fields');
+    expect(lived?.status).toBe('bad');
+    expect(lived?.facts).toEqual({ check: 'fields', case: 'far', count: 1, fieldWalk: RATES.fieldWalk });
+    const empty = assessCore(THIRTEEN, NO_STRESS, RATES, { '2,0': 0, '-3,0': 0, '0,2': 0 });
+    const fields = empty.checks.find((c) => c.id === 'fields');
+    expect(fields?.status).toBe('warn');
+    expect(fields?.facts).toEqual({ check: 'fields', case: 'waiting', count: 1, sets: 2, fieldWalk: RATES.fieldWalk });
+    expect(fields?.tiles).toEqual(['0,2']);
+    expect(empty.per['0,2']?.issues.some((i) => i.kind === 'fieldsFar')).toBe(true);
+    expect(empty.per['0,2']?.level).toBe('warn');
+    expect(checkOf(THIRTEEN, 'fields', { '2,0': 0, '-3,0': 0, '0,2': 1 })?.status).toBe('bad');
+  });
+
+  it('with no fields at all and nobody living anywhere, line 4 waits; with anyone, it is broken', () => {
+    expect(checkOf(ALONE, 'fields')?.facts).toEqual({ check: 'fields', case: 'none' });
+    const waiting = assessCore(ALONE, NO_STRESS, RATES, { '0,0': 0 });
+    const fields = waiting.checks.find((c) => c.id === 'fields');
+    expect(fields?.status).toBe('warn');
+    expect(fields?.facts).toEqual({ check: 'fields', case: 'waiting', count: 1, sets: 0, fieldWalk: RATES.fieldWalk });
+    expect(waiting.per['0,0']?.issues.some((i) => i.kind === 'fieldsFar')).toBe(false);
+  });
+
+  it('trips toward it that would be stuck are a watch: line 17 is amber and marks it, not broken', () => {
+    const lived = checkOf(THIRTEEN, 'ways');
+    expect(lived?.status).toBe('bad');
+    expect(lived?.tiles).toEqual(['2,0', '-3,0', '0,2']);
+    const empty = assessCore(THIRTEEN, NO_STRESS, RATES, { '2,0': 0, '-3,0': 0, '0,2': 0 });
+    const ways = empty.checks.find((c) => c.id === 'ways');
+    expect(ways?.status).toBe('warn');
+    expect(ways?.facts.check === 'ways' && ways.facts.case === 'waiting' ? ways.facts.count : null).toBe(3);
+    expect(ways?.facts.check === 'ways' && ways.facts.case === 'waiting' ? ways.facts.share : 0).toBeGreaterThan(0.005);
+    expect(ways?.tiles).toEqual(['2,0', '-3,0', '0,2']);
+    expect(empty.per['2,0']?.issues).toContainEqual({ kind: 'tripsToHereStuck' });
+    expect(empty.per['2,0']?.level).toBe('warn');
+    // One person in one of them: the trips between lived-in neighborhoods are stuck again, and only that tile breaks.
+    const one = checkOf(THIRTEEN, 'ways', { '2,0': 1, '-3,0': 0, '0,2': 0 });
+    expect(one?.status).toBe('bad');
+    expect(one?.tiles).toEqual(['2,0']);
+  });
+
+  it('a city nobody lives in yet has no trips, and line 17 says so without dividing by nobody', () => {
+    const ways = checkOf(ALONE, 'ways', { '0,0': 0 });
+    expect(ways?.status).toBe('ok');
+    expect(ways?.facts).toEqual({ check: 'ways', case: 'flowing', foot: 0, bike: 0, ride: 0, nowhere: 0 });
   });
 
   it('as soon as anyone lives there its missing stop is broken again, and only it is counted', () => {

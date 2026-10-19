@@ -301,11 +301,26 @@ export function assessCore(
       const f = draft(h).fields;
       return !f || (f.walkMin > rates.fieldWalk + TINY && f.segments === null);
     });
+    // A neighborhood nobody lives in watches its missing fields instead of breaking line 4 (ADR-0012 Decision 8).
+    const failed = far.filter((h) => !empty[h]);
+    const waiting = far.filter((h) => empty[h]);
+    const lived = hoods.filter((h) => !empty[h]);
+    if (fields.length) for (const h of waiting) flag(h, 'warn', { kind: 'fieldsFar', walkMin: draft(h).fields?.walkMin ?? 0 });
     if (!some) check('fields', [4], 'idle', { check: 'fields', case: 'idle' });
-    else if (!fields.length) check('fields', [4], 'bad', { check: 'fields', case: 'none' });
-    else if (far.length) {
-      for (const h of far) flag(h, 'bad', { kind: 'fieldsFar', walkMin: draft(h).fields?.walkMin ?? 0 });
-      check('fields', [4], 'bad', { check: 'fields', case: 'far', count: far.length, fieldWalk: rates.fieldWalk }, far);
+    else if (!fields.length && (lived.length || !hoods.length)) check('fields', [4], 'bad', { check: 'fields', case: 'none' });
+    else if (!fields.length) {
+      check('fields', [4], 'warn', { check: 'fields', case: 'waiting', count: hoods.length, sets: 0, fieldWalk: rates.fieldWalk }, hoods);
+    } else if (failed.length) {
+      for (const h of failed) flag(h, 'bad', { kind: 'fieldsFar', walkMin: draft(h).fields?.walkMin ?? 0 });
+      check('fields', [4], 'bad', { check: 'fields', case: 'far', count: failed.length, fieldWalk: rates.fieldWalk }, failed);
+    } else if (waiting.length) {
+      check(
+        'fields',
+        [4],
+        'warn',
+        { check: 'fields', case: 'waiting', count: waiting.length, sets: fields.length, fieldWalk: rates.fieldWalk },
+        waiting,
+      );
     } else check('fields', [4], 'ok', { check: 'fields', case: 'near', sets: fields.length, fieldWalk: rates.fieldWalk });
   }
 
@@ -315,6 +330,9 @@ export function assessCore(
   const total = { foot: 0, bike: 0, ride: 0, stuck: 0, nowhere: 0, noRide: 0, door: 0, inVehicle: 0 };
   const stuckBy: Record<TileKey, number> = {};
   const blame: Record<TileKey, number> = {};
+  // Trips toward a neighborhood nobody lives in yet: stuck ones are a watch, not a break (ADR-0012 Decision 8).
+  const toward = { stuck: 0 };
+  const towardBlame: Record<TileKey, number> = {};
   const share = rates.share;
   const leg = (a: TileKey, b: TileKey, weight: number, limit: number, farEnd: boolean): void => {
     if (!(weight > 0)) return;
@@ -342,7 +360,10 @@ export function assessCore(
     total.foot += weight * foot;
     total.bike += weight * bike;
     total.ride += weight * ride;
-    if (stuck > 0) {
+    if (stuck > 0 && empty[b]) {
+      toward.stuck += weight * stuck;
+      towardBlame[b] = (towardBlame[b] ?? 0) + weight * stuck;
+    } else if (stuck > 0) {
       total.stuck += weight * stuck;
       stuckBy[a] = (stuckBy[a] ?? 0) + weight * stuck;
       // The tile to mark is the end with no stop; with a stop at both ends, the two lines do not meet.
@@ -383,7 +404,10 @@ export function assessCore(
   }
   {
     const stuckShare = pop > 0 ? total.stuck / pop : 0;
+    const towardShare = pop > 0 ? toward.stuck / pop : 0;
     const where = keys.filter((k) => (blame[k] ?? 0) / pop1 > 0.001);
+    const towardWhere = keys.filter((k) => (towardBlame[k] ?? 0) / pop1 > 0.001);
+    for (const k of towardWhere) flag(k, 'warn', { kind: 'tripsToHereStuck' });
     if (!some) check('ways', [17], 'idle', { check: 'ways', case: 'idle' });
     else if (stuckShare > 0.005) {
       for (const k of where) {
@@ -391,14 +415,16 @@ export function assessCore(
         flag(k, 'bad', own >= 0.0005 ? { kind: 'tripsStuck', share: own } : { kind: 'tripsToHereStuck' });
       }
       check('ways', [17], 'bad', { check: 'ways', case: 'stuck', share: stuckShare }, where);
+    } else if (towardShare > 0.005) {
+      check('ways', [17], 'warn', { check: 'ways', case: 'waiting', share: towardShare, count: towardWhere.length }, towardWhere);
     } else {
       check('ways', [17], 'ok', {
         check: 'ways',
         case: 'flowing',
-        foot: total.foot / pop,
-        bike: total.bike / pop,
-        ride: total.ride / pop,
-        nowhere: total.nowhere / pop,
+        foot: pop > 0 ? total.foot / pop : 0,
+        bike: pop > 0 ? total.bike / pop : 0,
+        ride: pop > 0 ? total.ride / pop : 0,
+        nowhere: pop > 0 ? total.nowhere / pop : 0,
       });
     }
   }
