@@ -6,7 +6,7 @@
  * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText, proposalPrice, needsNow,
  * addedSaid; and the month clock and the day (ADR-0009): POPULATION_PREMISE, DAY_PREMISE, DAY_NAME, monthLine,
  * peopleNow, hourLabel, dayCaption; and who is held back (ADR-0012): heldBackLine, heldHere; and the clock's own
- * sentences: yearLine, yearsUp, clockStarted, PAUSED_FOR_ORDER, SPEED_NAME; and the angled view: angledCaption, ANGLED_LABEL.
+ * sentences: yearLine, yearsUp, clockStarted, PAUSED_FOR_ORDER, SPEED_NAME; and the angled view: angledCaption, ANGLED_LABEL, TILT_NAME.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
@@ -15,6 +15,7 @@ import type { Day, DayPremises, DayType, PopulationPremises } from '@city/site';
 import type { Layer as MoneyLayer } from '@city/site';
 import type { HeldBack, MonthRow, Notice, OrderEvent, PieceKind, RecordRow, RunRules } from '@city/run';
 import type { Speed } from './autorun.ts';
+import type { Tilt } from './session.ts';
 import { cap, count, fmt, list, low, money, num, years } from './format.ts';
 
 /** The six layers of money (ADR-0007), named. */
@@ -840,6 +841,9 @@ export const SPEED_NAME: Readonly<Record<Speed, string>> = { slow: 'Slow', stead
 
 /** The button that opens the site from the air, and its pressed state. */
 export const ANGLED_LABEL = 'From the air';
+
+/** The three tilts of the view from the air, named. */
+export const TILT_NAME: Readonly<Record<Tilt, string>> = { low: 'low', mid: 'mid', high: 'high' };
 
 /**
  * The view bar's caption on the angled view: what stands, in blocks and stories; what the crews are building; and

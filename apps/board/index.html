@@ -82,7 +82,8 @@ p { margin: 0; }
 .stage { grid-area: stage; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 7px 10px; background: var(--flag-bg); color: var(--ink); border: 1px solid var(--flag); border-radius: 4px; font: 400 .9rem/1.35 var(--display); }
 .boardscroll { overflow: auto; border: 1px solid var(--rule); background: var(--sheet); border-radius: 4px; }
-#angledcanvas { display: block; width: 100%; height: auto; background: var(--ground); }
+#angledcanvas { display: block; width: 100%; height: auto; background: var(--ground); cursor: grab; touch-action: none; }
+#angledcanvas.dragging { cursor: grabbing; }
 #angledcanvas[hidden], #board[hidden] { display: none; }
 #board { display: block; width: 100%; height: auto; min-width: 520px; max-width: 760px; margin-inline: auto; touch-action: manipulation; }
 .said { min-height: 1.4em; font: 400 .9rem/1.4 var(--display); color: var(--ink-2); }
@@ -329,6 +330,13 @@ p { margin: 0; }
         <span class="levels" id="levels" role="group" aria-label="Level">
           <button class="btn small" id="level-surface" type="button" aria-pressed="true">Surface</button>
           <button class="btn small" id="level-sub" type="button" aria-pressed="false">Sub level</button>
+        </span>
+        <span class="levels" id="aircontrols" role="group" aria-label="The viewer from the air" hidden>
+          <button class="btn small" id="air-turn" type="button">Turn</button>
+          <button class="btn small" id="air-tilt" type="button">Tilt</button>
+          <button class="btn small" id="air-in" type="button">Nearer</button>
+          <button class="btn small" id="air-out" type="button">Farther</button>
+          <button class="btn small" id="air-fit" type="button">Fit</button>
         </span>
       </div>
       <div class="boardscroll" id="boardscroll">

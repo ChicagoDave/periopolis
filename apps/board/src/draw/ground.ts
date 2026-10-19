@@ -13,9 +13,10 @@ import { RATES } from '@city/site';
 import type { TileKey } from '@city/site';
 import { byId, svg } from '../dom.ts';
 import type { Painted } from './angled/view.ts';
+import { ZOOM_MAX } from '../session.ts';
 import { fmt } from '../format.ts';
 import type { Page } from '../page.ts';
-import { LEVEL_NAME, SITE_NAME, angledCaption, layerLines, placeholderNote } from '../wording.ts';
+import { LEVEL_NAME, SITE_NAME, TILT_NAME, angledCaption, layerLines, placeholderNote } from '../wording.ts';
 
 /** Room round the tile for the legend, the scale and the note, metres. */
 const MARGIN = 48;
@@ -146,14 +147,20 @@ export function drawViewBar(page: Page, painted: Painted | null = null): void {
   const { s } = page;
   const bar = byId('viewbar');
   const levels = byId('levels');
+  const air = byId('aircontrols');
   byId('angled').setAttribute('aria-pressed', String(s.view.at === 'angled'));
   if (s.view.at === 'angled') {
     bar.hidden = false;
     levels.hidden = true;
+    air.hidden = false;
     byId('viewtext').textContent = angledCaption(painted?.blocks ?? 0, painted?.stories ?? 0, painted?.sites ?? 0, painted?.lit ?? 1);
+    byId<HTMLButtonElement>('air-out').disabled = s.air.zoom <= 1;
+    byId<HTMLButtonElement>('air-in').disabled = s.air.zoom >= ZOOM_MAX;
+    byId('air-tilt').textContent = `Tilt: ${TILT_NAME[s.air.tilt]}`;
     return;
   }
   levels.hidden = false;
+  air.hidden = true;
   if (s.view.at !== 'tile') {
     bar.hidden = true;
     return;

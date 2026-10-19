@@ -194,6 +194,46 @@ function start(data: { game?: unknown }): void {
     page.say('The map.');
     page.render();
   });
+  // The viewer from the air: a quarter turn, the next tilt, nearer or farther by half again, fitted; a drag slides it.
+  byId('air-turn').addEventListener('click', () => {
+    s.turnAir();
+    page.render();
+  });
+  byId('air-tilt').addEventListener('click', () => {
+    s.tiltAir();
+    page.render();
+  });
+  byId('air-in').addEventListener('click', () => {
+    s.zoomAir(1.5);
+    page.render();
+  });
+  byId('air-out').addEventListener('click', () => {
+    s.zoomAir(1 / 1.5);
+    page.render();
+  });
+  byId('air-fit').addEventListener('click', () => {
+    s.fitAir();
+    page.render();
+  });
+  const air = byId<HTMLCanvasElement>('angledcanvas');
+  let drag: { x: number; y: number } | null = null;
+  air.addEventListener('pointerdown', (e) => {
+    drag = { x: e.clientX, y: e.clientY };
+    air.classList.add('dragging');
+    air.setPointerCapture(e.pointerId);
+  });
+  air.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    s.panAir(e.clientX - drag.x, e.clientY - drag.y);
+    drag = { x: e.clientX, y: e.clientY };
+    page.render();
+  });
+  const dragEnd = (): void => {
+    drag = null;
+    air.classList.remove('dragging');
+  };
+  air.addEventListener('pointerup', dragEnd);
+  air.addEventListener('pointercancel', dragEnd);
   // The site from the air: a toggle, from the map or a tile alike; pressed again, or Back, returns to the map.
   byId('angled').addEventListener('click', () => {
     if (s.view.at === 'angled') {

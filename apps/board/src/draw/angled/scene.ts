@@ -1,7 +1,7 @@
 /**
  * @file The scene: what the angled view paints, derived from the layout and the Ground's plans. Every neighborhood,
  * ring building and plant becomes a block on the site in metres, with its stories; every stretch of mover line a
- * flat strip. Far, a neighborhood is one block the size of its tile; mid, its rows of townhouses. On a clock, a tile
+ * flat strip. Far, a neighborhood is one block the size of its tile; mid, its rows of townhouses; near, every home. On a clock, a tile
  * the crews are building is a low scaffold, a stretch on order a strip of its own kind, and every home block carries
  * how lit it is, the share of its people living there (ADR-0009, ADR-0012); mid, that share lights whole rows, in an
  * order seeded from the tile's key so the same share lights the same rows. Pure, no DOM; it decides no shape
@@ -18,8 +18,8 @@ import type { EdgeKey, Layout, SiteRates, Tile, TileKey } from '@city/site';
 import { STORY_M } from './extrude.ts';
 import type { Block } from './extrude.ts';
 
-/** How much detail: far is one block a tile, mid is the rows of townhouses and each ring building. */
-export type Lod = 'far' | 'mid';
+/** How much detail: far is one block a tile, mid the rows of townhouses and each ring building, near every home. */
+export type Lod = 'far' | 'mid' | 'near';
 
 /** What a block is: what stands, a stretch of line, a tile under construction, a stretch under construction. */
 export type SceneKind = Tile['kind'] | 'line' | 'site' | 'siteline';
@@ -111,28 +111,44 @@ export function litRows(key: TileKey, rows: number, share: number): boolean[] {
   return lit;
 }
 
+/** A slab of a row: so many fronts from its start, the row's depth deep. */
+function slab(row: { readonly y: number; readonly x0: number }, from: number, to: number, depth: number, center: Point): Point[] {
+  return shifted(
+    [
+      { x: row.x0 + from, y: row.y - depth / 2 },
+      { x: row.x0 + to, y: row.y - depth / 2 },
+      { x: row.x0 + to, y: row.y + depth / 2 },
+      { x: row.x0 + from, y: row.y + depth / 2 },
+    ],
+    center,
+  );
+}
+
 function neighborhoodBlocks(key: TileKey, center: Point, plan: NeighborhoodPlan, rates: SiteRates, lod: Lod, share: number): SceneBlock[] {
   const stories = plan.surface.rows[0]?.stories ?? 0;
   if (lod === 'far') return [{ key, kind: 'hood', stories, lit: share, block: { corners: tileHex(center, rates), heightM: stories * STORY_M } }];
   const depth = plan.figures.rowDepthM;
+  if (lod === 'near') {
+    // Every home: a front wide, the row deep, lit home by home in the tile's seeded order.
+    const homes = plan.surface.rows.reduce((t, r) => t + r.homes, 0);
+    const lit = litRows(key, homes, share);
+    const out: SceneBlock[] = [];
+    let i = 0;
+    for (const row of plan.surface.rows) {
+      const front = row.frontageM / row.homes;
+      for (let h = 0; h < row.homes; h++, i++) {
+        out.push({ key, kind: 'hood', stories: row.stories, lit: lit[i] ? 1 : 0, block: { corners: slab(row, h * front, (h + 1) * front, depth, center), heightM: row.stories * STORY_M } });
+      }
+    }
+    return out;
+  }
   const lit = litRows(key, plan.surface.rows.length, share);
   return plan.surface.rows.map((row, i) => ({
     key,
     kind: 'hood',
     stories: row.stories,
     lit: lit[i] ? 1 : 0,
-    block: {
-      corners: shifted(
-        [
-          { x: row.x0, y: row.y - depth / 2 },
-          { x: row.x1, y: row.y - depth / 2 },
-          { x: row.x1, y: row.y + depth / 2 },
-          { x: row.x0, y: row.y + depth / 2 },
-        ],
-        center,
-      ),
-      heightM: row.stories * STORY_M,
-    },
+    block: { corners: slab(row, 0, row.frontageM, depth, center), heightM: row.stories * STORY_M },
   }));
 }
 

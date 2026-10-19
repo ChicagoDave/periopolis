@@ -1,18 +1,22 @@
 /**
  * @file The angled view on the page: when the session looks at the site from the air, the map's SVG hides, the
- * canvas shows, the scene is derived from the game as it stands and painted under a camera fitted to the canvas.
- * The canvas carries data-blocks and data-stories so a test can hold what was painted to the scene.
- * Public interface: Painted, drawAngled, ANGLED_YAW, ANGLED_PITCH.
+ * canvas shows, the scene is derived from the game as it stands and painted under the session's camera (a quarter
+ * turn, a tilt, a zoom over the fit, a pan). The canvas is its own cache: when only who lives where changed since
+ * the last paint, only the tiles whose lit share moved are cleared and painted again. The canvas carries data-blocks,
+ * data-stories, data-sites, data-lit, data-lod, data-repaint and data-faces so a test can hold what was painted to
+ * the scene.
+ * Public interface: Painted, drawAngled, cameraFor, ANGLED_YAW, TILT_RAD.
  * Owner context: Board (adapter), the angled view (plan angled-view-through-time).
  */
 import { RATES } from '@city/site';
 import { byId } from '../../dom.ts';
 import type { Page } from '../../page.ts';
-import { fitCamera, lodFor, paintScene } from './canvas.ts';
-import type { Painter, Palette } from './canvas.ts';
-import type { ScreenPoint } from './projection.ts';
+import type { Air, Tilt } from '../../session.ts';
+import { changedTiles, fitCamera, lodFor, paintRegion, paintScene, regionOf } from './canvas.ts';
+import type { Painter, Palette, Region } from './canvas.ts';
+import type { Camera, ScreenPoint } from './projection.ts';
 import { sceneOf } from './scene.ts';
-import type { Standing } from './scene.ts';
+import type { Lod, Scene, Standing } from './scene.ts';
 
 /** What the view painted, for the view bar's caption. */
 export interface Painted {
@@ -22,10 +26,11 @@ export interface Painted {
   readonly lit: number;
 }
 
-/** The site turned a sixth, so two faces of every block show. */
+/** The site turned a sixth before any quarter turn, so two faces of every block show. */
 export const ANGLED_YAW = Math.PI / 6;
-/** Tilted to 50 degrees: heights read, and the far side of the site is not hidden behind the near. */
-export const ANGLED_PITCH = (50 * Math.PI) / 180;
+
+/** The three tilts, radians: low is side on enough to read heights, high is nearly the plan. */
+export const TILT_RAD: Readonly<Record<Tilt, number>> = { low: (30 * Math.PI) / 180, mid: (50 * Math.PI) / 180, high: (70 * Math.PI) / 180 };
 
 /** The page's colours for each kind, read from its tokens so the view follows the theme. */
 function palette(): Palette {
@@ -45,8 +50,8 @@ function palette(): Palette {
   };
 }
 
-/** A painter on a canvas context: the colour, then a veil of ink for the shade. */
-function canvasPainter(ctx: CanvasRenderingContext2D): Painter {
+/** A painter on a canvas context: the colour, then a veil of ink for the shade; a clip clears to the ground. */
+function canvasPainter(ctx: CanvasRenderingContext2D, ground: string): Painter {
   return {
     fillPolygon(points: readonly ScreenPoint[], color: string, shade: number) {
       if (!points.length) return;
@@ -64,15 +69,64 @@ function canvasPainter(ctx: CanvasRenderingContext2D): Painter {
       ctx.lineWidth = 0.6;
       ctx.stroke();
     },
+    clip(region: Region) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(region.x0, region.y0, region.x1 - region.x0, region.y1 - region.y0);
+      ctx.clip();
+      ctx.fillStyle = ground;
+      ctx.fillRect(region.x0, region.y0, region.x1 - region.x0, region.y1 - region.y0);
+    },
+    unclip() {
+      ctx.restore();
+    },
   };
+}
+
+/**
+ * The camera for the session's viewer: the scene fitted to the canvas at the turn and tilt, then nearer by the zoom
+ * about the canvas's middle, then slid by the pan.
+ * @param scene - what is shown
+ * @param air - the viewer
+ * @param width - the canvas, pixels
+ * @param height - the canvas, pixels
+ */
+export function cameraFor(scene: Scene, air: Air, width: number, height: number): Camera {
+  const fit = fitCamera(scene, width, height, ANGLED_YAW + (air.turn * Math.PI) / 2, TILT_RAD[air.tilt]);
+  const cx = width / 2;
+  const cy = height / 2;
+  return {
+    ...fit,
+    scale: fit.scale * air.zoom,
+    origin: { x: cx + (fit.origin.x - cx) * air.zoom + air.pan.x, y: cy + (fit.origin.y - cy) * air.zoom + air.pan.y },
+  };
+}
+
+/** What the last paint was of, so the next can tell whether only who lives where changed. */
+interface Last {
+  readonly signature: string;
+  readonly scene: Scene;
+}
+let last: Last | null = null;
+
+/** Everything but who lives where: the tiles and lines that stand, what is on order, the viewer and the canvas. */
+function signatureOf(page: Page, standing: Standing, lod: Lod, width: number, height: number): string {
+  const { s } = page;
+  const tiles = Object.keys(s.game.layout.tiles)
+    .map((k) => `${k}:${s.game.layout.tiles[k]?.kind}:${(s.game.layout.tiles[k] as { n?: number }).n ?? ''}`)
+    .join(';');
+  const lines = Object.keys(s.game.layout.lines).join(';');
+  const sites = Object.keys(standing.sites ?? {}).join(';');
+  const ordered = Object.keys(standing.lines ?? {}).join(';');
+  const air = `${s.air.turn}/${s.air.tilt}/${s.air.zoom.toFixed(4)}/${s.air.pan.x.toFixed(1)}/${s.air.pan.y.toFixed(1)}`;
+  return [tiles, lines, sites, ordered, air, lod, width, height].join('|');
 }
 
 /**
  * Show or hide the angled view for the session's view, and paint it when shown. The map's SVG is hidden while the
  * canvas shows; the caller draws the map when the view is elsewhere.
  * @param page - the page
- * @returns what was painted, for the view bar: blocks, stories, tiles under construction and the homes' lit share;
- * null when the view is not the angled one
+ * @returns what was painted, for the view bar; null when the view is not the angled one
  */
 export function drawAngled(page: Page): Painted | null {
   const { s } = page;
@@ -82,32 +136,66 @@ export function drawAngled(page: Page): Painted | null {
   canvas.hidden = !on;
   // An SVG element has no `hidden` property, so the attribute is set by hand and the page's CSS hides it.
   board.toggleAttribute('hidden', on);
-  if (!on) return null;
+  if (!on) {
+    last = null;
+    return null;
+  }
   const scroller = byId('boardscroll');
   const cssWidth = Math.max(320, scroller.clientWidth || 960);
   const cssHeight = Math.round(cssWidth * 0.62);
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(cssWidth * dpr);
-  canvas.height = Math.round(cssHeight * dpr);
-  canvas.style.height = `${cssHeight}px`;
+  const sized = canvas.width !== Math.round(cssWidth * dpr) || canvas.height !== Math.round(cssHeight * dpr);
+  if (sized) {
+    canvas.width = Math.round(cssWidth * dpr);
+    canvas.height = Math.round(cssHeight * dpr);
+    canvas.style.height = `${cssHeight}px`;
+  }
   const ctx = canvas.getContext('2d');
   if (!ctx) return { blocks: 0, stories: 0, sites: 0, lit: 1 };
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, cssWidth, cssHeight);
   // What the clock says: tiles and stretches on order, and who lives where (the session reads both from the Run).
   const standing: Standing = { sites: s.hand.sites, lines: s.hand.lines, occupied: s.occupied };
-  // Fit far first; if the fit is close enough for rows, derive again at mid detail and fit that.
+  // Fit far first; if the viewer is close enough for rows or homes, derive again at that detail.
   let scene = sceneOf(s.game.layout, RATES, 'far', standing);
-  let camera = fitCamera(scene, cssWidth, cssHeight, ANGLED_YAW, ANGLED_PITCH);
-  if (lodFor(camera.scale) === 'mid') {
-    scene = sceneOf(s.game.layout, RATES, 'mid', standing);
-    camera = fitCamera(scene, cssWidth, cssHeight, ANGLED_YAW, ANGLED_PITCH);
+  let camera = cameraFor(scene, s.air, cssWidth, cssHeight);
+  const lod = lodFor(camera.scale);
+  if (lod !== 'far') {
+    scene = sceneOf(s.game.layout, RATES, lod, standing);
+    camera = cameraFor(scene, s.air, cssWidth, cssHeight);
   }
-  paintScene(canvasPainter(ctx), scene, camera, palette());
+  const colors = palette();
+  const ground = getComputedStyle(document.documentElement).getPropertyValue('--ground').trim() || '#E1E8DF';
+  const painter = canvasPainter(ctx, ground);
+  const signature = signatureOf(page, standing, lod, cssWidth, cssHeight);
+  const viewport = { width: cssWidth, height: cssHeight };
+  let repaint: 'full' | 'region' | 'none' = 'full';
+  let faces = 0;
+  if (!sized && last && last.signature === signature) {
+    const moved = changedTiles(last.scene, scene);
+    const region = regionOf(scene, moved, camera);
+    if (!moved.length) repaint = 'none';
+    else if (region) {
+      repaint = 'region';
+      faces = paintRegion(painter, scene, camera, colors, {
+        x0: Math.max(0, region.x0),
+        y0: Math.max(0, region.y0),
+        x1: Math.min(cssWidth, region.x1),
+        y1: Math.min(cssHeight, region.y1),
+      });
+    } else repaint = 'none';
+  }
+  if (repaint === 'full') {
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    faces = paintScene(painter, scene, camera, colors, viewport);
+  }
+  last = { signature, scene };
   canvas.setAttribute('data-blocks', String(scene.blocks.length));
   canvas.setAttribute('data-stories', String(scene.stories));
   canvas.setAttribute('data-sites', String(scene.sites));
   canvas.setAttribute('data-lit', scene.lit.toFixed(2));
   canvas.setAttribute('data-lod', scene.lod);
+  canvas.setAttribute('data-repaint', repaint);
+  canvas.setAttribute('data-faces', String(faces));
+  canvas.setAttribute('data-scale', camera.scale.toFixed(3));
   return { blocks: scene.blocks.length, stories: scene.stories, sites: scene.sites, lit: scene.lit };
 }

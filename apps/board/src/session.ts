@@ -2,7 +2,7 @@
  * @file The page's session: the game, the tool in hand, the tile picked, the line cursor, the stretch test shown, the
  * view (the map, one tile's ground at a level, or the site from the air), and the history undo keeps. Replaced, never changed in place.
  * The view is the page's alone: it is never saved with the city.
- * Public interface: Session, View, newSession.
+ * Public interface: Session, View, Air, Tilt, AIR_START, ZOOM_MAX, newSession.
  * Owner context: Board (adapter).
  */
 import type { Level } from '@city/ground';
@@ -12,6 +12,24 @@ import { RATES, assess } from '@city/site';
 import type { AssessOptions, Assessment, TestId, TileKey } from '@city/site';
 import type { GameStore } from './storage.ts';
 import type { ToolId } from './wording.ts';
+
+/** How steep the view from the air is. */
+export type Tilt = 'low' | 'mid' | 'high';
+
+/** Where the viewer stands over the site: quarter turns, a tilt, a zoom over the fitted scale, and a pan in pixels.
+ * The page's alone, never saved. */
+export interface Air {
+  readonly turn: 0 | 1 | 2 | 3;
+  readonly tilt: Tilt;
+  readonly zoom: number;
+  readonly pan: { readonly x: number; readonly y: number };
+}
+
+/** The view from the air as it opens: a sixth of a turn is built in, mid tilt, fitted, centred. */
+export const AIR_START: Air = { turn: 0, tilt: 'mid', zoom: 1, pan: { x: 0, y: 0 } };
+
+/** The zoom's bounds: fitted to the site, to sixty-four times nearer. */
+export const ZOOM_MAX = 64;
 
 /** What the board shows: the whole map, the ground of one tile at one level, or the whole site from the air at an angle. */
 export type View = { readonly at: 'map' } | { readonly at: 'tile'; readonly key: TileKey; readonly level: Level } | { readonly at: 'angled' };
@@ -27,6 +45,8 @@ export interface Session {
   game: Game;
   /** The map, or one tile's ground. Never saved. */
   view: View;
+  /** The viewer over the site, from the air. Never saved. */
+  air: Air;
   tool: ToolId;
   picked: TileKey | null;
   lineFrom: TileKey | null;
@@ -59,6 +79,16 @@ export interface Session {
   lookAway(): void;
   /** The whole site from the air, at an angle; from the map or a tile alike. */
   lookAngled(): void;
+  /** A quarter turn of the site from the air. */
+  turnAir(): void;
+  /** The next tilt: mid, high, low, round again. */
+  tiltAir(): void;
+  /** Nearer or farther by a factor, held between fitted and ZOOM_MAX; the pan scales with it so what is in the middle stays. */
+  zoomAir(factor: number): void;
+  /** Slide the site by so many pixels. */
+  panAir(dx: number, dy: number): void;
+  /** Fitted and centred again; the turn and tilt stay. */
+  fitAir(): void;
   /** Show the other level of the tile being looked at; nothing happens on the map. */
   showLevel(level: Level): void;
 }
@@ -68,6 +98,7 @@ export function newSession(game: Game, store: GameStore): Session {
   const s: Session = {
     game,
     view: { at: 'map' },
+    air: AIR_START,
     tool: 'inspect',
     picked: null,
     lineFrom: null,
@@ -130,6 +161,25 @@ export function newSession(game: Game, store: GameStore): Session {
     },
     lookAngled() {
       s.view = { at: 'angled' };
+    },
+    turnAir() {
+      s.air = { ...s.air, turn: ((s.air.turn + 1) % 4) as Air['turn'] };
+    },
+    tiltAir() {
+      const next: Record<Tilt, Tilt> = { mid: 'high', high: 'low', low: 'mid' };
+      s.air = { ...s.air, tilt: next[s.air.tilt] };
+    },
+    zoomAir(factor) {
+      if (!(factor > 0)) return;
+      const zoom = Math.max(1, Math.min(ZOOM_MAX, s.air.zoom * factor));
+      const by = zoom / s.air.zoom;
+      s.air = { ...s.air, zoom, pan: { x: s.air.pan.x * by, y: s.air.pan.y * by } };
+    },
+    panAir(dx, dy) {
+      s.air = { ...s.air, pan: { x: s.air.pan.x + dx, y: s.air.pan.y + dy } };
+    },
+    fitAir() {
+      s.air = { ...s.air, zoom: 1, pan: { x: 0, y: 0 } };
     },
     showLevel(level) {
       if (s.view.at === 'tile') s.view = { ...s.view, level };

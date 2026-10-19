@@ -546,3 +546,52 @@ test('the site from the air follows the clock: scaffolds for what is ordered, bl
   expect(lit).toBeGreaterThan(0.04);
   await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'true');
 });
+
+test('the viewer from the air: nearer shows rows then homes, a turn and a tilt repaint, a month repaints only what moved, a drag slides, fit returns', async ({ page }) => {
+  await page.click('#angled');
+  await expect(page.locator('#aircontrols')).toBeVisible();
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lod', 'far');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-repaint', 'full');
+  await expect(page.locator('#air-out')).toBeDisabled();
+  await expect(page.locator('#air-tilt')).toHaveText('Tilt: mid');
+  // Nearer, four times: the rows of townhouses; three more: every home.
+  for (let i = 0; i < 4; i++) await page.click('#air-in');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lod', 'mid');
+  await expect(page.locator('#air-out')).toBeEnabled();
+  for (let i = 0; i < 3; i++) await page.click('#air-in');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lod', 'near');
+  const scaleNear = Number(await page.locator('#angledcanvas').getAttribute('data-scale'));
+  expect(scaleNear).toBeGreaterThanOrEqual(1);
+  const facesNear = Number(await page.locator('#angledcanvas').getAttribute('data-faces'));
+  const blocksNear = Number(await page.locator('#angledcanvas').getAttribute('data-blocks'));
+  expect(blocksNear).toBeGreaterThan(20000);
+  expect(facesNear).toBeLessThan(3 * blocksNear);
+  // A turn and a tilt each repaint the whole frame.
+  await page.click('#air-turn');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-repaint', 'full');
+  await page.click('#air-tilt');
+  await expect(page.locator('#air-tilt')).toHaveText('Tilt: high');
+  // A drag slides the site: the scale holds (read after the tilt, which refits), the frame is painted again.
+  const scaleTilted = Number(await page.locator('#angledcanvas').getAttribute('data-scale'));
+  const box = await page.locator('#angledcanvas').boundingBox();
+  if (!box) throw new Error('no canvas');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 20, { steps: 3 });
+  await page.mouse.up();
+  expect(Number(await page.locator('#angledcanvas').getAttribute('data-scale'))).toBeCloseTo(scaleTilted, 2);
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-repaint', 'full');
+  // Fit: the whole site again, far.
+  await page.click('#air-fit');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lod', 'far');
+  await expect(page.locator('#air-out')).toBeDisabled();
+  // On the clock, a month where only who lives where changed repaints a region, or nothing when nobody moved;
+  // starting the clock on a city with nothing on order changes nothing visible, so nothing is repainted.
+  await page.click('#run');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-repaint', 'none');
+  await page.click('#month');
+  const repaint = await page.locator('#angledcanvas').getAttribute('data-repaint');
+  expect(['region', 'none']).toContain(repaint);
+  await page.click('#air-turn');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-repaint', 'full');
+});
