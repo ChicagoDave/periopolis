@@ -1,7 +1,7 @@
 /**
  * @file Where each need goes: a Proposal gives a need the tiles and the ordinary commands that would build it, and its
  * price; nothing here changes the layout it is given (ADR-0008 Decision 4).
- * Public interface: Step, Proposal, proposeFor, applyProposal.
+ * Public interface: Step, Proposal, proposeFor, applyProposal, proposeNeighborhood.
  * Owner context: Site (domain).
  *
  * Proposals are made one need at a time: the first need is proposed, its steps applied to a scratch layout, and the
@@ -97,6 +97,29 @@ export function applyProposal(
     events.push(o.event);
   }
   return { ok: true, layout: s, events };
+}
+
+/**
+ * Where the next neighborhood goes (ADR-0015 Decision 3): the open tile nearest the ring, or nearest the standing
+ * neighborhoods when there is no ring, or the middle of the board when nothing stands; first in the board's tile order
+ * among equals. Nothing here changes the layout.
+ * @param layout - the board
+ * @param rates - the ledger's rates
+ * @param avoid - tiles not to name, whatever else they are
+ * @returns the tile `placeNeighborhood` would accept, or null when no tile is open
+ */
+export function proposeNeighborhood(layout: Layout, rates: SiteRates, avoid: readonly TileKey[] = []): TileKey | null {
+  const tiles = allTiles(rates.outline);
+  const open = tiles.filter((k) => !layout.tiles[k] && !avoid.includes(k));
+  const rings = tiles.filter((k) => layout.tiles[k]?.kind === 'ring');
+  const hoods = tiles.filter((k) => layout.tiles[k]?.kind === 'hood');
+  const targets = rings.length ? rings : hoods.length ? hoods : ['0,0'];
+  let best: { key: TileKey; km: number } | null = null;
+  for (const k of open) {
+    const km = targets.reduce((m, t) => Math.min(m, kmBetween(k, t, rates.stepKm)), Infinity);
+    if (!best || km < best.km - 1e-9) best = { key: k, km };
+  }
+  return best ? best.key : null;
 }
 
 function priced(layout: Layout, rates: SiteRates): { build: number; run: number } {

@@ -33,7 +33,7 @@ export { NEED_CHECKS, needsOf } from './needs.ts';
 export type { Need } from './needs.ts';
 export { moveInGate } from './movein.ts';
 export type { MoveInGate } from './movein.ts';
-export { proposeFor, applyProposal } from './propose.ts';
+export { proposeFor, applyProposal, proposeNeighborhood } from './propose.ts';
 export type { Step, Proposal } from './propose.ts';
 export { sizedTo, sizedLayout } from './sized.ts';
 export { assess, bandTests } from './stretch.ts';

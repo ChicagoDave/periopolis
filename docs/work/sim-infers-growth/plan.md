@@ -43,8 +43,8 @@
 - **Deliverable**: `startRun(…, { infer: true })` (carried by the clock so a stored run restores; requires `growth` and `inOrder`); a pure, seeded step that, at the decided boundary, reads the needs of the planned board against occupancy and arrivals and places orders through `placeOrder`; a typed `InferredOrder` fact per order in the month and yearly record; the veto memory (cancelled inferred job not re-ordered); tests from each scenario asserting resulting jobs and layout, the input game unchanged, and that `infer` absent leaves clock, record and parity fixtures byte-identical
 - **Exit state**: A run with `infer: true` and one neighborhood grows to the city the signal demands with no player order; `pnpm -r test` and `pnpm -r typecheck` green; parity suite 0 differences
 - **Demonstration**: Vitest scenario starting a run from one neighborhood with `infer: true`, ticking 240 months, and asserting the layout and the yearly record show the inferred orders and people; plus the parity suite green with 0 differences
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-20 — `domain/run/test/infer.test.ts` "twenty years from one neighborhood" starts a run on one neighborhood with `{ growth, inOrder, infer }`, ticks it to year 20 (240 months) and asserts at least ten neighborhoods standing and 40,000 people, every job the run's, the month rows' `InferredOrder` facts naming each neighborhood, homes covering the people every month, and spend summed over layers equal to summed over years and to what was built; 22 tests in all plus 3 Site tests for `proposeNeighborhood`. `pnpm -r test` green, 682 tests across 35 files, the parity suite 0 differences; `pnpm -r typecheck` clean. Probe: the same run takes 122 ms and reaches 14 neighborhoods, 56,000 people. [verified: test event "Tests passed" (91+27+171+204+189 = 682), 2026-10-20T05:03:32Z, after the last source edit 2026-10-20T05:03:22Z; the 35-file count, parity and typecheck results and the probe are reported by session]
+- **Status**: DONE
 
 ### Phase 3: The player beside the run — orders, vetoes and money
 - **Tier**: Medium

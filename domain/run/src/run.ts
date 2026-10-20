@@ -1,6 +1,6 @@
 /**
  * @file The run: starting and stopping the clock, a year passing, a month passing on a run with growth (ADR-0009),
- * and a clock read back from storage.
+ * the run ordering for itself after each month (ADR-0015), and a clock read back from storage.
  * Public interface: Game, RunOptions, startRun, stopRun, tick, tickMonth, seenIn, restoreClock.
  * Owner context: Run (domain).
  */
@@ -11,10 +11,13 @@ import { growthOn, monthStep, occupiedOf } from './growth.ts';
 import type { Growth, MonthRow, MoveIn } from './growth.ts';
 
 import { crewed, emergencyOf } from './crews.ts';
+import { inferStep } from './infer.ts';
+import type { Inferred, InferredWhy } from './infer.ts';
 import type { Job } from './jobs.ts';
+import type { OrderEvent } from './order.ts';
 import { admit, childlessOf, limitsOf } from './movein.ts';
 import type { Admission, HeldBack, Residence } from './movein.ts';
-import { addPiece, draftOf, planned } from './pieces.ts';
+import { addPiece, draftOf, planned, splitPiece } from './pieces.ts';
 import { PIECES } from './rules.ts';
 import type { PieceKind, RunRules } from './rules.ts';
 import { noMoney, spendOf, standingOf } from './spend.ts';
@@ -83,6 +86,9 @@ export interface RunOptions {
   /** Crews take what the city needs first, and people move in only when they are served (ADR-0012). Absent or false,
    * jobs are crewed in the order they stand and homes fill when finished, as in the sketch. */
   readonly inOrder?: boolean;
+  /** The run orders for itself as people arrive (ADR-0015): needs off the planned board, and the next neighborhood
+   * when homes run short of the lead. Needs `growth` and `inOrder`. Absent or false, the run orders nothing. */
+  readonly infer?: boolean;
 }
 
 /**
@@ -92,9 +98,12 @@ export interface RunOptions {
  * @param seed - the run's seed
  * @param rates - the ledger's rates
  * @param rules - the clock's rules
- * @param options - whether to run the month clock, and whether crews take what the city needs first
+ * @param options - whether to run the month clock, whether crews take what the city needs first, and whether the run
+ *   orders for itself
+ * @throws Error when `infer` is asked for without `growth` and `inOrder`
  */
 export function startRun(layout: Layout, seed: number, rates: SiteRates, rules: RunRules, options: RunOptions = {}): Game {
+  if (options.infer && !(options.growth && options.inOrder)) throw new Error('a run that orders for itself needs growth and inOrder');
   const dealt = beginClock(seed, rules);
   const stress = stressAt(dealt, rates.band);
   const admission = options.inOrder ? admit(layout, {}, rates, stress) : null;
@@ -107,7 +116,7 @@ export function startRun(layout: Layout, seed: number, rates: SiteRates, rules: 
   }
   const growth = growthOn(layout, rates, admission ? limitsOf(layout, admission.lived, rates) : undefined);
   const record = [seenIn(layout, stress, 0, {}, rates, null, occupiedOf(layout, growth, rates), admission ?? undefined)];
-  return { layout, clock: { ...clock, record, growth } };
+  return { layout, clock: { ...clock, record, growth, ...(options.infer ? { infer: true } : {}) } };
 }
 
 /**
@@ -159,9 +168,20 @@ export function tickMonth(game: Game, rates: SiteRates, rules: RunRules): Game {
     const stress = stressAt(clock, rates.band, clock.year + 1);
     const admission = clock.inOrder ? admit(game.layout, clock.lived ?? {}, rates, stress) : null;
     const next = monthStep(game.layout, growth, clock.year + 1, stress, rates, null, moveInOf(game.layout, admission, rates));
-    return { layout: game.layout, clock: { ...clock, growth: next, ...(admission ? { lived: admission.lived } : {}) } };
+    return inferred({ layout: game.layout, clock: { ...clock, growth: next, ...(admission ? { lived: admission.lived } : {}) } }, rates, rules);
   }
-  return yearPasses(game, clock, rates, rules, growth);
+  return inferred(yearPasses(game, clock, rates, rules, growth), rates, rules);
+}
+
+/** After a month's people have moved, the run orders for itself (ADR-0015) and the month's row says what it did. */
+function inferred(game: Game, rates: SiteRates, rules: RunRules): Game {
+  if (!game.clock?.infer || !game.clock.growth || game.clock.year >= rules.years) return game;
+  const { game: g, facts } = inferStep(game, rates, rules);
+  if (!facts.length || !g.clock?.growth) return g;
+  const months = g.clock.growth.months;
+  const last = months[months.length - 1];
+  if (!last) return g;
+  return { layout: g.layout, clock: { ...g.clock, growth: { ...g.clock.growth, months: [...months.slice(0, -1), { ...last, inferred: facts }] } } };
 }
 
 /** Who arrivals may move in with this month, on a clock built in order; undefined on the sketch's. */
@@ -289,7 +309,8 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
     if (!whole(j['left'], 0, rules.firstModule) || !whole(j['total'], 1, rules.firstModule)) continue;
     const at = j['at'];
     if (what === 'line' ? !edgeOk(at) : !(typeof at === 'string' && tiles.includes(at))) continue;
-    jobs.push({ what: what as PieceKind, at: at as string, left: j['left'] as number, total: j['total'] as number });
+    const job: Job = { what: what as PieceKind, at: at as string, left: j['left'] as number, total: j['total'] as number };
+    jobs.push(j['inferred'] === true ? { ...job, inferred: true } : job);
   }
   const plan = draftOf(layout);
   const kept: Job[] = [];
@@ -353,7 +374,45 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
   };
   const clock: Clock = raw['inOrder'] === true ? { ...base, inOrder: true, lived: livedOf(raw['lived'], layout) } : base;
   const growth = growthOf(raw['growth'], layout, rates, rules);
-  return growth ? { ...clock, growth } : clock;
+  if (!growth) return clock;
+  // The run orders for itself only with growth and in order (ADR-0015 Decision 1); its vetoes are pieces of the board.
+  if (raw['infer'] !== true || clock.inOrder !== true) return { ...clock, growth };
+  const vetoes = Array.isArray(raw['vetoes']) ? raw['vetoes'].filter((v): v is string => typeof v === 'string' && pieceOk(v, tiles, edgeOk)) : [];
+  return { ...clock, growth, infer: true, ...(vetoes.length ? { vetoes } : {}) };
+}
+
+/** Whether "what@where" names a kind of piece on a tile of the board, or a stretch between two. */
+function pieceOk(id: string, tiles: readonly TileKey[], edgeOk: (e: unknown) => e is string): boolean {
+  const [what, at] = splitPiece(id);
+  if (!(PIECES as readonly string[]).includes(what)) return false;
+  return what === 'line' ? edgeOk(at) : tiles.includes(at);
+}
+
+const INFERRED_WHYS: readonly InferredWhy[] = ['ring', 'ringBuildings', 'modules', 'plantUnits', 'schools', 'fields', 'line', 'homes'];
+
+/** What the run did for itself in a month, read back from storage: known reasons and known kinds of piece only. */
+function inferredOf(raw: readonly unknown[]): Inferred[] {
+  const out: Inferred[] = [];
+  for (const f of raw) {
+    if (!isRecord(f)) continue;
+    const why = f['why'];
+    if (typeof why !== 'string' || !(INFERRED_WHYS as readonly string[]).includes(why)) continue;
+    if (f['type'] === 'NoRoom') out.push({ type: 'NoRoom', why: why as InferredWhy });
+    else if (f['type'] === 'InferredOrder' && Array.isArray(f['events'])) {
+      const events: OrderEvent[] = [];
+      for (const e of f['events']) {
+        if (!isRecord(e)) continue;
+        const what = e['what'];
+        const at = e['at'];
+        if (typeof what !== 'string' || !(PIECES as readonly string[]).includes(what) || typeof at !== 'string') continue;
+        if (e['type'] === 'JobOrdered' && whole(e['total'], 1, 99)) {
+          events.push({ type: 'JobOrdered', what: what as PieceKind, at, total: e['total'], startsNow: e['startsNow'] === true, withSite: e['withSite'] === true });
+        } else if (e['type'] === 'JobCanceled' || e['type'] === 'PieceTakenDown') events.push({ type: e['type'], what: what as PieceKind, at });
+      }
+      if (events.length) out.push({ type: 'InferredOrder', why: why as InferredWhy, events });
+    }
+  }
+  return out;
 }
 
 /**
@@ -388,6 +447,7 @@ function growthOf(raw: unknown, layout: Layout, rates: SiteRates, rules: RunRule
       homes,
       spend: moneyOf(m['spend']),
       ...(Array.isArray(m['heldBack']) ? { heldBack: heldBackOf(m['heldBack'], layout) } : {}),
+      ...(Array.isArray(m['inferred']) && inferredOf(m['inferred']).length ? { inferred: inferredOf(m['inferred']) } : {}),
     });
   }
   return { month: raw['month'] as number, occupied, months };

@@ -16,6 +16,8 @@ export interface Job {
   readonly left: number;
   /** Crew-years it takes in all. */
   readonly total: number;
+  /** Ordered by the run itself (ADR-0015); absent, the player's. */
+  readonly inferred?: true;
 }
 
 /** Working with a crew; waiting for one; or ready, finished and waiting for the place it stands in. */

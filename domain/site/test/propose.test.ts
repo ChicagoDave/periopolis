@@ -1,7 +1,8 @@
 /**
  * @file Where each need goes: proposals for a whole city are empty; an eleventh neighborhood is proposed one stretch of
  * line; every proposal is on the board, on open ground or a tile of its own kind; applying all of them through the
- * ordinary commands leaves no line broken; a board with no room says so rather than naming a tile a command refuses.
+ * ordinary commands leaves no line broken; a board with no room says so rather than naming a tile a command refuses;
+ * the next neighborhood goes nearest the ring, or the neighborhoods, or the middle (ADR-0015).
  * Owner context: Site (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
@@ -12,9 +13,11 @@ import {
   applyProposal,
   assess,
   emptyLayout,
+  kmBetween,
   needsOf,
   placeNeighborhood,
   proposeFor,
+  proposeNeighborhood,
   starterLayout,
 } from '../src/index.ts';
 import type { Layout, Proposal, Step, TileKey } from '../src/index.ts';
@@ -159,5 +162,40 @@ describe('where each need goes', () => {
   it('applying a step a command refuses stops there with the rejection', () => {
     const a = applyProposal(starterLayout(), [{ command: 'toggleExtra', tile: '0,0', extra: 'fields' }], RATES);
     expect(a).toEqual({ ok: false, rejection: { reason: 'NotANeighborhood', tile: '0,0', extra: 'fields' } });
+  });
+});
+
+describe('where the next neighborhood goes (ADR-0015 Decision 3)', () => {
+  it('names the open tile nearest the ring, first in tile order among equals, and leaves the layout alone', () => {
+    const s = starterLayout();
+    const before = JSON.stringify(s);
+    const at = proposeNeighborhood(s, RATES);
+    expect(at).not.toBeNull();
+    expect(s.tiles[at ?? '']).toBeUndefined();
+    const ringKm = (k: TileKey): number => kmBetween(k, '0,0', RATES.stepKm);
+    const open = allTiles(RATES.outline).filter((k) => !s.tiles[k]);
+    const nearest = Math.min(...open.map(ringKm));
+    expect(ringKm(at ?? '')).toBeCloseTo(nearest, 9);
+    expect(at).toBe(open.find((k) => Math.abs(ringKm(k) - nearest) < 1e-9));
+    expect(JSON.stringify(s)).toBe(before);
+    expect(placeNeighborhood(s, at ?? '', RATES).ok).toBe(true);
+  });
+
+  it('with no ring goes next to the neighborhoods; with nothing standing, the middle; never a tile to avoid', () => {
+    const lone = hoods(emptyLayout(), ['3,3']);
+    const at = proposeNeighborhood(lone, RATES);
+    expect(at).not.toBeNull();
+    expect(kmBetween(at ?? '', '3,3', RATES.stepKm)).toBeCloseTo(RATES.stepKm, 9);
+    expect(proposeNeighborhood(emptyLayout(), RATES)).toBe('0,0');
+    expect(proposeNeighborhood(emptyLayout(), RATES, ['0,0'])).not.toBe('0,0');
+    expect(kmBetween(proposeNeighborhood(emptyLayout(), RATES, ['0,0']) ?? '', '0,0', RATES.stepKm)).toBeCloseTo(RATES.stepKm, 9);
+  });
+
+  it('is null when no tile is open', () => {
+    const tiles: Record<TileKey, { kind: 'hood'; has: Record<string, never> }> = {};
+    for (const k of allTiles(RATES.outline)) tiles[k] = { kind: 'hood', has: {} };
+    expect(proposeNeighborhood({ tiles, lines: {} }, RATES)).toBeNull();
+    const open = allTiles(RATES.outline);
+    expect(proposeNeighborhood(emptyLayout(), RATES, open)).toBeNull();
   });
 });

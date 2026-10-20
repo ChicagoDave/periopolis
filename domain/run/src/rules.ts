@@ -24,6 +24,9 @@ export interface RunRules {
   readonly firstModule: number;
   /** Years until the last child of a K to 5 wave has left high school. */
   readonly wave: number;
+  /** On a run that orders for itself (ADR-0015): months of arrivals at the citywide pace to keep homes ahead of.
+   * Mine (David, 2026-10-19): a neighborhood takes a crew two years and fills in about twelve and a half months. */
+  readonly lead: number;
 }
 
 /** The rules as published. */
@@ -33,6 +36,7 @@ export const RULES: RunRules = {
   build: { hood: 2, ring: 2, elementary: 1, middle: 1, high: 2, fields: 1, line: 1, power: 1, water: 2, sewage: 2, waste: 2 },
   firstModule: 3,
   wave: 13,
+  lead: 30,
 };
 
 /** The grades each school covers, first and last. */

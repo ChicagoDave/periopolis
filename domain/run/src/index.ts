@@ -1,7 +1,7 @@
 /**
  * @file The Run. Twenty years on the clock: crews, jobs and the work in hand; the timeline of five announced events;
  * the yearly record and its line-years.
- * Public interface: startRun, stopRun, tick, tickMonth, the month clock (growth), placeOrder, cancelJob, putFirst, inHand, the crew order (classOf, crewed, emergencyOf), who may live where (admit, limitsOf, childlessOf), who the board is checked for (livingOf), stops under construction (stopsBuilding), notices, stressAt, restoreClock,
+ * Public interface: startRun, stopRun, tick, tickMonth, the month clock (growth), placeOrder, cancelJob, putFirst, inHand, the run ordering for itself (inferStep, homesAhead, cancelOrder; ADR-0015), the crew order (classOf, crewed, emergencyOf), who may live where (admit, limitsOf, childlessOf), who the board is checked for (livingOf), stops under construction (stopsBuilding), notices, stressAt, restoreClock,
  * totalSpend, the rules, and the types of games, clocks, jobs, events, records and money.
  * Owner context: Run (domain). Depends on @city/site alone.
  */
@@ -29,4 +29,6 @@ export type { OrderEvent, OrderOutcome } from './order.ts';
 export { startRun, stopRun, tick, tickMonth, seenIn, restoreClock } from './run.ts';
 export type { Game, RunOptions } from './run.ts';
 export { growthOn, monthStep, occupiedOf, homesOf } from './growth.ts';
+export { inferStep, homesAhead, cancelOrder } from './infer.ts';
+export type { Inferred, InferredWhy } from './infer.ts';
 export type { Growth, MonthRow, MoveIn } from './growth.ts';

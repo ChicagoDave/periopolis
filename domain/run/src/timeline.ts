@@ -66,6 +66,10 @@ export interface Clock {
   readonly inOrder?: true;
   /** Who may live in each finished neighborhood (ADR-0012), on a clock built in order; one left out holds nobody. */
   readonly lived?: Readonly<Record<TileKey, Residence>>;
+  /** The run orders for itself as people arrive (ADR-0015); absent, it orders nothing. Only with growth and in order. */
+  readonly infer?: true;
+  /** Pieces ("what@where") the player vetoed: the run never orders them again (ADR-0015 Decision 5). */
+  readonly vetoes?: readonly string[];
 }
 
 /**

@@ -6,7 +6,7 @@
 import type { Layout, Outcome, SiteEvent, SiteRejection } from '@city/site';
 import { crewed, emergencyOf } from './crews.ts';
 import type { Job } from './jobs.ts';
-import { draftOf, pieces, planned, removePiece, splitPiece } from './pieces.ts';
+import { draftOf, pieceId, pieces, planned, removePiece, splitPiece } from './pieces.ts';
 import type { Game } from './run.ts';
 import { PIECES } from './rules.ts';
 import type { PieceKind, RunRules } from './rules.ts';
@@ -42,8 +42,11 @@ function pieceKind(text: string): PieceKind | null {
  * @param game - the game, with its clock running
  * @param command - the layout command, applied to the planned board
  * @param rules - the clock's rules
+ * @param by - who orders: the player (the default), whose order for a vetoed piece lifts the veto, or the run itself
+ *   (ADR-0015), whose jobs are marked inferred
+ * @throws Error when the clock is not running
  */
-export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules: RunRules): OrderOutcome {
+export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules: RunRules, by: 'player' | 'run' = 'player'): OrderOutcome {
   if (!game.clock) throw new Error('the clock is not running');
   const before = planned(game.layout, game.clock.jobs);
   const res = command(before);
@@ -54,6 +57,7 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
   const draft = draftOf(game.layout);
   const jobs: Job[] = [...game.clock.jobs];
   const events: OrderEvent[] = [];
+  let vetoes = game.clock.vetoes;
   for (const key of keys) {
     const [kind, at] = splitPiece(key);
     const what = pieceKind(kind);
@@ -77,14 +81,15 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
     for (let n = (will[key] ?? 0) - (was[key] ?? 0); n > 0; n--) {
       const withSite = what === 'power' && !was[key];
       const total = withSite ? rules.firstModule : rules.build[what];
-      jobs.push({ what, at, left: total, total });
+      jobs.push(by === 'run' ? { what, at, left: total, total, inferred: true } : { what, at, left: total, total });
+      if (by === 'player' && vetoes?.includes(pieceId(what, at))) vetoes = vetoes.filter((v) => v !== pieceId(what, at));
       const startsNow = crewed(jobs, rules.crews, game.clock.inOrder === true, emergencyOf(game.clock))[jobs.length - 1] === true;
       events.push({ type: 'JobOrdered', what, at, total, startsNow, withSite });
     }
   }
   return {
     ok: true,
-    game: { layout: { tiles: draft.tiles, lines: draft.lines }, clock: { ...game.clock, jobs } },
+    game: { layout: { tiles: draft.tiles, lines: draft.lines }, clock: { ...game.clock, jobs, ...(vetoes ? { vetoes } : {}) } },
     siteEvent: res.event,
     events,
   };

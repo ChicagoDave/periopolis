@@ -13,6 +13,7 @@
 import { LAYERS, allTiles, assessCore, costOf, kindOf, monthOf } from '@city/site';
 import type { Layer, Layout, PopulationMonth, SiteRates, Stress, TileKey } from '@city/site';
 
+import type { Inferred } from './infer.ts';
 import type { HeldBack } from './movein.ts';
 import type { Money } from './spend.ts';
 
@@ -34,6 +35,9 @@ export interface MonthRow {
   readonly spend: Money;
   /** On a clock built in order: the neighborhoods standing empty or held to the childless share, and what each lacks. */
   readonly heldBack?: readonly HeldBack[];
+  /** On a run that orders for itself (ADR-0015): what the run ordered after this month's people moved, and the needs
+   * the board had no room for. Absent when it ordered nothing. */
+  readonly inferred?: readonly Inferred[];
 }
 
 /** Who arrivals may move in with, on a clock built in order (ADR-0012). */
