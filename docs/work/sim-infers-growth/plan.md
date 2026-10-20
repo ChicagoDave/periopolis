@@ -54,8 +54,8 @@
 - **Deliverable**: Player order and inferred order resolve by the ADR's rule (no double-ordering of the same need; player's order for a need suppresses the inferred one; emergency restoration still first per ADR-0012 Decision 7); veto, pause of inference and any spend cap as decided; spend sums equal the same work ordered by hand (ADR-0007); tests from scenarios, each asserting state and a typed rejection reason where an order is refused
 - **Exit state**: A mixed run (player places, run infers, player cancels) behaves per the ADR on every scenario; spend sum equals a hand-ordered run of the same pieces
 - **Demonstration**: Vitest scenarios for player-order-first, cancel-then-not-reordered, emergency-first and spend-sum equality, all green under `pnpm --filter @city/run test`
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-20 — `domain/run/test/player.test.ts`, 9 tests under `pnpm --filter @city/run test`: the take-down veto (the run's fields taken down are vetoed and never rebuilt there; the player's own water plant taken down is re-ordered), `TileTaken` rejection with the game unchanged, putFirst within class, emergency water ordered the month it breaks and crewed from the year's end, and the replay of the run's 240 months of orders by hand yielding the same jobs, layout, occupancy and spend to the cent. Found and fixed on the way: one order adding two modules to a new reactor brought two sites (pinned by a direct test), and a player's order that cancels one of the run's jobs now vetoes it as `cancelOrder` does; the built list restores and is pinned. `pnpm -r test` green, 691 tests across 36 files; typecheck clean; parity 0 differences. [verified: test event "Tests passed" (91+27+171+213+189 = 691), 2026-10-20T05:40:33Z, after the last source edit 2026-10-20T05:40:17Z; the 36-file count, typecheck and parity results are reported by session]
+- **Status**: DONE
 
 ### Phase 4: The Board lets the city grow — toggle, wording, and the pause rule
 - **Tier**: Medium

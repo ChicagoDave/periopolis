@@ -17,7 +17,7 @@ import type { Job } from './jobs.ts';
 import type { OrderEvent } from './order.ts';
 import { admit, childlessOf, limitsOf } from './movein.ts';
 import type { Admission, HeldBack, Residence } from './movein.ts';
-import { addPiece, draftOf, planned, splitPiece } from './pieces.ts';
+import { addPiece, draftOf, pieceId, planned, splitPiece } from './pieces.ts';
 import { PIECES } from './rules.ts';
 import type { PieceKind, RunRules } from './rules.ts';
 import { noMoney, spendOf, standingOf } from './spend.ts';
@@ -197,6 +197,7 @@ function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules,
   const draft = draftOf(game.layout);
   const jobs: { what: PieceKind; at: string; left: number; total: number }[] = clock.jobs.map((j) => ({ ...j }));
   const opened: Partial<Record<PieceKind, number>> = {};
+  const built: string[] = [...(clock.built ?? [])];
   const working = crewed(jobs, rules.crews, clock.inOrder === true, emergencyOf(clock));
   jobs.forEach((j, i) => {
     if (working[i]) j.left -= 1;
@@ -204,6 +205,7 @@ function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules,
   const open = (j: Job): void => {
     addPiece(draft, j.what, j.at);
     opened[j.what] = (opened[j.what] ?? 0) + 1;
+    if (j.inferred && clock.infer) built.push(pieceId(j.what, j.at));
   };
   for (const j of jobs) if (j.left <= 0 && !waitsFor(j, rules)) open(j);
   const ready = (j: Job): boolean => {
@@ -222,7 +224,7 @@ function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules,
       ? { ...e, edge: pickEdge(layout, clock.seed, e.id) }
       : e,
   );
-  const next: Clock = { ...clock, year, jobs: still, events, record: clock.record, lineYears: clock.lineYears };
+  const next: Clock = { ...clock, year, jobs: still, events, record: clock.record, lineYears: clock.lineYears, ...(built.length ? { built } : {}) };
   const last = clock.record[clock.record.length - 1];
   const stress = stressAt(next, rates.band);
   const admission = clock.inOrder ? admit(layout, clock.lived ?? {}, rates, stress) : null;
@@ -377,8 +379,10 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
   if (!growth) return clock;
   // The run orders for itself only with growth and in order (ADR-0015 Decision 1); its vetoes are pieces of the board.
   if (raw['infer'] !== true || clock.inOrder !== true) return { ...clock, growth };
-  const vetoes = Array.isArray(raw['vetoes']) ? raw['vetoes'].filter((v): v is string => typeof v === 'string' && pieceOk(v, tiles, edgeOk)) : [];
-  return { ...clock, growth, infer: true, ...(vetoes.length ? { vetoes } : {}) };
+  const idsOf = (x: unknown): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === 'string' && pieceOk(v, tiles, edgeOk)) : []);
+  const vetoes = idsOf(raw['vetoes']);
+  const built = idsOf(raw['built']);
+  return { ...clock, growth, infer: true, ...(vetoes.length ? { vetoes } : {}), ...(built.length ? { built } : {}) };
 }
 
 /** Whether "what@where" names a kind of piece on a tile of the board, or a stretch between two. */

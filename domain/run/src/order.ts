@@ -42,8 +42,9 @@ function pieceKind(text: string): PieceKind | null {
  * @param game - the game, with its clock running
  * @param command - the layout command, applied to the planned board
  * @param rules - the clock's rules
- * @param by - who orders: the player (the default), whose order for a vetoed piece lifts the veto, or the run itself
- *   (ADR-0015), whose jobs are marked inferred
+ * @param by - who orders: the player (the default), whose order for a vetoed piece lifts the veto and whose order
+ *   cancelling a job the run placed or taking down a piece the run built vetoes it, or the run itself (ADR-0015),
+ *   whose jobs are marked inferred
  * @throws Error when the clock is not running
  */
 export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules: RunRules, by: 'player' | 'run' = 'player'): OrderOutcome {
@@ -58,6 +59,7 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
   const jobs: Job[] = [...game.clock.jobs];
   const events: OrderEvent[] = [];
   let vetoes = game.clock.vetoes;
+  let built = game.clock.built;
   for (const key of keys) {
     const [kind, at] = splitPiece(key);
     const what = pieceKind(kind);
@@ -66,11 +68,17 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
       let i = jobs.length - 1;
       while (i >= 0 && !(jobs[i]?.what === what && jobs[i]?.at === at)) i--;
       if (i >= 0) {
-        jobs.splice(i, 1);
+        const [gone] = jobs.splice(i, 1);
         events.push({ type: 'JobCanceled', what, at });
+        // The player's order cancelling a job the run placed is a veto, as cancelOrder's is (ADR-0015 Decision 5).
+        if (by === 'player' && gone?.inferred && game.clock.infer && !vetoes?.includes(pieceId(what, at))) vetoes = [...(vetoes ?? []), pieceId(what, at)];
       } else {
         removePiece(draft, what, at);
         events.push({ type: 'PieceTakenDown', what, at });
+        if (by === 'player' && built?.includes(pieceId(what, at))) {
+          built = built.filter((b) => b !== pieceId(what, at));
+          if (!vetoes?.includes(pieceId(what, at))) vetoes = [...(vetoes ?? []), pieceId(what, at)];
+        }
       }
     }
   }
@@ -78,8 +86,10 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
     const [kind, at] = splitPiece(key);
     const what = pieceKind(kind);
     if (!what) continue;
-    for (let n = (will[key] ?? 0) - (was[key] ?? 0); n > 0; n--) {
-      const withSite = what === 'power' && !was[key];
+    const added = (will[key] ?? 0) - (was[key] ?? 0);
+    for (let n = added; n > 0; n--) {
+      // Only the first module of a new reactor brings its site, however many one command adds.
+      const withSite = what === 'power' && !was[key] && n === added;
       const total = withSite ? rules.firstModule : rules.build[what];
       jobs.push(by === 'run' ? { what, at, left: total, total, inferred: true } : { what, at, left: total, total });
       if (by === 'player' && vetoes?.includes(pieceId(what, at))) vetoes = vetoes.filter((v) => v !== pieceId(what, at));
@@ -89,7 +99,7 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
   }
   return {
     ok: true,
-    game: { layout: { tiles: draft.tiles, lines: draft.lines }, clock: { ...game.clock, jobs, ...(vetoes ? { vetoes } : {}) } },
+    game: { layout: { tiles: draft.tiles, lines: draft.lines }, clock: { ...game.clock, jobs, ...(vetoes ? { vetoes } : {}), ...(built ? { built } : {}) } },
     siteEvent: res.event,
     events,
   };

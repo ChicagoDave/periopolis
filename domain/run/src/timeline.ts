@@ -70,6 +70,8 @@ export interface Clock {
   readonly infer?: true;
   /** Pieces ("what@where") the player vetoed: the run never orders them again (ADR-0015 Decision 5). */
   readonly vetoes?: readonly string[];
+  /** Pieces the run ordered that now stand: taken down by the player, one is vetoed (ADR-0015 Decision 5). */
+  readonly built?: readonly string[];
 }
 
 /**
