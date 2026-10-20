@@ -2,12 +2,15 @@
  * @file The build order (ADR-0012 Decision 2): with `inOrder`, crews take the line, the ring, the plants and the
  * schools before fields and neighborhoods, whatever order they were placed in. The founding is David's run of
  * 2026-10-15 (`docs/work/tests/city-261015.txt`): six neighborhoods placed first, the line and the plants after.
+ * Moved 2026-10-20 (ADR-0016, Phase 2): the board now runs along the shore and the founding's reactor at 5,-4 and
+ * west plants at -6,3, -5,1 and -4,-1 fall outside it and the circle, so they stand on the band at 4,-4, -4,0 (water,
+ * upstream), -4,3 (sewage) and -3,-1 (waste), reached by the same number of stretches; every figure is unchanged.
  * Owner context: Run (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
 import { RATES, addPlantUnit, addRingBuilding, emptyLayout, layStretch, placeNeighborhood, toggleExtra } from '@city/site';
 import type { Layout, Outcome, TileKey } from '@city/site';
-import { RULES, classOf, crewed, inHand, placeOrder, putFirst, restoreClock, startRun, tick, totalSpend } from '../src/index.ts';
+import { RULES, classOf, crewed, inHand, placeOrder, planned, putFirst, restoreClock, startRun, tick, tickMonth, totalSpend } from '../src/index.ts';
 import type { Game, Job, OrderOutcome } from '../src/index.ts';
 
 function must(out: OrderOutcome): Game {
@@ -21,7 +24,7 @@ const HOODS: readonly TileKey[] = ['0,-1', '1,-1', '-1,0', '1,0', '-1,1', '0,1']
 const STRETCHES: readonly (readonly [TileKey, TileKey])[] = [
   ['-1,0', '0,0'], ['-1,0', '0,-1'], ['1,-1', '1,0'], ['-1,1', '0,1'], ['-1,1', '0,0'], ['0,0', '0,1'],
   ['0,-1', '0,0'], ['0,-1', '1,-1'], ['0,1', '1,0'], ['-1,0', '-1,1'], ['-1,0', '-2,0'], ['-2,0', '-3,0'],
-  ['-4,-1', '-4,0'], ['-4,0', '-5,1'], ['-3,0', '-4,1'], ['-4,1', '-5,2'], ['-5,2', '-6,3'], ['-3,0', '-4,0'], ['0,0', '1,0'],
+  ['-3,-1', '-4,0'], ['-4,0', '-4,1'], ['-3,0', '-4,1'], ['-4,1', '-4,2'], ['-4,2', '-4,3'], ['-3,0', '-4,0'], ['0,0', '1,0'],
 ];
 
 /** The homes, ring, schools and fields, as David placed them first. */
@@ -37,10 +40,10 @@ function homesFirst(game: Game): Game {
 function thenTheLine(game: Game): Game {
   let g = game;
   for (const [a, b] of STRETCHES) g = order(g, (p) => layStretch(p, a, b, RATES));
-  g = order(g, (p) => addPlantUnit(p, '5,-4', 'power', RATES));
-  g = order(g, (p) => addPlantUnit(p, '-6,3', 'water', RATES));
-  g = order(g, (p) => addPlantUnit(p, '-5,1', 'sewage', RATES));
-  return order(g, (p) => addPlantUnit(p, '-4,-1', 'waste', RATES));
+  g = order(g, (p) => addPlantUnit(p, '4,-4', 'power', RATES));
+  g = order(g, (p) => addPlantUnit(p, '-4,0', 'water', RATES));
+  g = order(g, (p) => addPlantUnit(p, '-4,3', 'sewage', RATES));
+  return order(g, (p) => addPlantUnit(p, '-3,-1', 'waste', RATES));
 }
 
 const founding = (inOrder: boolean): Game => thenTheLine(homesFirst(startRun(emptyLayout(), 7, RATES, RULES, { inOrder })));
@@ -82,7 +85,7 @@ describe("David's founding, built in order (city-261015)", () => {
     while (g.clock && hoodsStanding(g) === 0 && g.clock.year < RULES.years) g = tick(g, RATES, RULES);
     expect(hoodsStanding(g)).toBeGreaterThan(0);
     expect(Object.keys(g.layout.lines)).toHaveLength(STRETCHES.length);
-    for (const [k, kind] of [['5,-4', 'power'], ['-6,3', 'water'], ['-5,1', 'sewage'], ['-4,-1', 'waste']] as const) {
+    for (const [k, kind] of [['4,-4', 'power'], ['-4,0', 'water'], ['-4,3', 'sewage'], ['-3,-1', 'waste']] as const) {
       expect(g.layout.tiles[k]?.kind).toBe(kind);
     }
     expect(g.clock?.year).toBeGreaterThan(2);
@@ -154,5 +157,21 @@ describe('a stored run keeps its order', () => {
   it('a run started without inOrder carries no flag, so the sketch clock is stored as before', () => {
     const g = startRun(emptyLayout(), 7, RATES, RULES);
     expect(g.clock && 'inOrder' in g.clock).toBe(false);
+  });
+});
+
+describe('the circles ride through the run (ADR-0016)', () => {
+  it('a run started on two circles keeps them through an order, a month and a year', () => {
+    const two: Layout = { ...emptyLayout(), circles: ['0,0', '9,0'] };
+    let g = startRun(two, 7, RATES, RULES, { inOrder: true, growth: true });
+    expect(g.layout.circles).toEqual(['0,0', '9,0']);
+    g = order(g, (p) => placeNeighborhood(p, '10,0', RATES));
+    expect(g.layout.circles).toEqual(['0,0', '9,0']);
+    g = tickMonth(g, RATES, RULES);
+    expect(g.layout.circles).toEqual(['0,0', '9,0']);
+    g = tick(tick(g, RATES, RULES), RATES, RULES);
+    expect(g.layout.circles).toEqual(['0,0', '9,0']);
+    expect(g.layout.tiles['10,0']?.kind).toBe('hood');
+    expect(planned(g.layout, g.clock?.jobs ?? []).circles).toEqual(['0,0', '9,0']);
   });
 });

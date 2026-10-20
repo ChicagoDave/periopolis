@@ -5,6 +5,9 @@
  * with a second module the same people move in and the lines hold; with the schools too,
  * everyone. Each neighborhood is admitted on its own, in tile order; people who live there stay, and a service they
  * are short of takes the crews first. Without `inOrder` nothing of this happens.
+ * Moved 2026-10-20 (ADR-0016, Phase 2): the board now runs along the shore and the founding's reactor at 5,-4 and
+ * west plants at -6,3, -5,1 and -4,-1 fall outside it and the circle, so they stand on the band at 4,-4, -4,0 (water,
+ * upstream), -4,3 (sewage) and -3,-1 (waste), reached by the same number of stretches; every figure is unchanged.
  * Owner context: Run (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
@@ -38,7 +41,7 @@ const HOODS: readonly TileKey[] = ['0,-1', '1,-1', '-1,0', '1,0', '-1,1', '0,1']
 const STRETCHES: readonly (readonly [TileKey, TileKey])[] = [
   ['-1,0', '0,0'], ['-1,0', '0,-1'], ['1,-1', '1,0'], ['-1,1', '0,1'], ['-1,1', '0,0'], ['0,0', '0,1'],
   ['0,-1', '0,0'], ['0,-1', '1,-1'], ['0,1', '1,0'], ['-1,0', '-1,1'], ['-1,0', '-2,0'], ['-2,0', '-3,0'],
-  ['-4,-1', '-4,0'], ['-4,0', '-5,1'], ['-3,0', '-4,1'], ['-4,1', '-5,2'], ['-5,2', '-6,3'], ['-3,0', '-4,0'], ['0,0', '1,0'],
+  ['-3,-1', '-4,0'], ['-4,0', '-4,1'], ['-3,0', '-4,1'], ['-4,1', '-4,2'], ['-4,2', '-4,3'], ['-3,0', '-4,0'], ['0,0', '1,0'],
 ];
 
 /** David's orders, in his order: homes, ring, schools and fields, then the line and the plants. */
@@ -48,14 +51,14 @@ function founding(options: { growth?: boolean; inOrder?: boolean }): Game {
   for (const h of ['1,-1', '-1,0', '0,1']) g = order(g, (p) => toggleExtra(p, h, 'elementary', RATES));
   for (const h of ['1,-1', '-1,1']) g = order(g, (p) => toggleExtra(p, h, 'fields', RATES));
   for (const [a, b] of STRETCHES) g = order(g, (p) => layStretch(p, a, b, RATES));
-  g = order(g, (p) => addPlantUnit(p, '5,-4', 'power', RATES));
-  g = order(g, (p) => addPlantUnit(p, '-6,3', 'water', RATES));
-  g = order(g, (p) => addPlantUnit(p, '-5,1', 'sewage', RATES));
-  return order(g, (p) => addPlantUnit(p, '-4,-1', 'waste', RATES));
+  g = order(g, (p) => addPlantUnit(p, '4,-4', 'power', RATES));
+  g = order(g, (p) => addPlantUnit(p, '-4,0', 'water', RATES));
+  g = order(g, (p) => addPlantUnit(p, '-4,3', 'sewage', RATES));
+  return order(g, (p) => addPlantUnit(p, '-3,-1', 'waste', RATES));
 }
 
 /** The second module the peak needs with one down. */
-const secondModule = (g: Game): Game => order(g, (p) => addPlantUnit(p, '5,-4', 'power', RATES));
+const secondModule = (g: Game): Game => order(g, (p) => addPlantUnit(p, '4,-4', 'power', RATES));
 
 /** A second module, and an elementary, middle and high school within the walk of every neighborhood. */
 function withSchools(g: Game): Game {
@@ -90,7 +93,7 @@ describe("David's founding, people when served (city-261015)", () => {
     expect(Object.values(g.clock?.lived ?? {})).toEqual(Array(6).fill('childless'));
     // The one module is the risk the board shows: lines 20 and 21 broken and counted from the first resident.
     for (const r of rows.slice(opened)) expect(r.broken).toContain('power');
-    const power = g.layout.tiles['5,-4'];
+    const power = g.layout.tiles['4,-4'];
     expect(power?.kind === 'power' ? power.n : 0).toBe(1);
     expect(rows[RULES.years]?.pop).toBeCloseTo(6 * RATES.hood * SHARE, 6);
   });
@@ -128,7 +131,7 @@ describe("David's founding, people when served (city-261015)", () => {
     let at = withSchools(before);
     while (at.clock && at.clock.year < opened) at = tick(at, RATES, RULES);
     expect(Object.keys(at.layout.lines)).toHaveLength(STRETCHES.length);
-    const power = at.layout.tiles['5,-4'];
+    const power = at.layout.tiles['4,-4'];
     expect(power?.kind === 'power' ? power.n : 0).toBe(2);
   });
 
@@ -201,18 +204,18 @@ describe('each neighborhood on its own', () => {
 });
 
 describe('the month clock built in order', () => {
-  /** The ledger's city and one more neighborhood at the edge of the board, no school within its walk: 55,000 homes. */
+  /** The ledger's city and one more neighborhood three steps out, no school within its walk: 55,000 homes. */
   function oneMore(): Layout {
-    const o = placeNeighborhood(starterLayout(), '0,-5', RATES);
+    const o = placeNeighborhood(starterLayout(), '0,-3', RATES);
     if (!o.ok) throw new Error(o.rejection.reason);
     return o.layout;
   }
 
   it('starts each standing neighborhood as full as it may be: everyone, the childless share, or nobody', () => {
     const g = startRun(oneMore(), 7, RATES, RULES, { inOrder: true, growth: true });
-    expect(g.clock?.lived?.['0,-5']).toBe('childless');
+    expect(g.clock?.lived?.['0,-3']).toBe('childless');
     expect(g.clock?.growth?.occupied['1,0']).toBe(RATES.hood);
-    expect(g.clock?.growth?.occupied['0,-5']).toBeCloseTo(RATES.hood * SHARE, 6);
+    expect(g.clock?.growth?.occupied['0,-3']).toBeCloseTo(RATES.hood * SHARE, 6);
     expect(recordOf(g)[0]?.pop).toBeCloseTo(50000 + RATES.hood * SHARE, 6);
     const t = startRun(starterLayout(), 7, RATES, RULES, { inOrder: true, growth: true });
     const thirteen = ['2,0', '-3,0', '0,2'].reduce((l, k) => {

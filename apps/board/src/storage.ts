@@ -8,10 +8,11 @@ import { RULES, restoreClock } from '@city/run';
 import type { Game } from '@city/run';
 import { RATES, restoreLayout } from '@city/site';
 
-/** The shape a game is saved in: the sketch's, so a saved city from the published page still loads. */
+/** The shape a game is saved in: the sketch's plus the circles (ADR-0016); a save without circles restores with the first. */
 export interface SavedGame {
   readonly tiles: Game['layout']['tiles'];
   readonly lines: Game['layout']['lines'];
+  readonly circles?: Game['layout']['circles'];
   readonly clock: Game['clock'];
 }
 

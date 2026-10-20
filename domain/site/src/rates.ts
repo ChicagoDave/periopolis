@@ -15,7 +15,7 @@ import {
   deriveWalkingCity,
 } from '@city/ledger';
 import type { CarCityPremises, Need, SharedPremises, WalkingCityLedger, WalkingCityPremises } from '@city/ledger';
-import { rectangle } from './board.ts';
+import { rectangleFrom } from './board.ts';
 import type { Outline } from './board.ts';
 
 /** The three kinds of school a neighborhood may hold. */
@@ -54,8 +54,13 @@ export interface SiteRates {
   readonly walking: WalkingCityPremises;
   readonly car: CarCityPremises;
   readonly needs: readonly Need[];
-  /** The site's shape: which tiles are on it (ADR-0006). */
+  /**
+   * The site's shape: which tiles are on it (ADR-0006), laid along the lake shore, its south edge: rows -4 to 4 and
+   * east-west positions -4 to 13, holding two circles at "0,0" and "9,0" (ADR-0016).
+   */
   readonly outline: Outline;
+  /** Which way the lake's current runs along the shore: +1 eastward, -1 westward (line 32; Mine until David names the lake). */
+  readonly current: 1 | -1;
   /** People in one neighborhood. */
   readonly hood: number;
   /** Middle of a tile to its corner, km. */
@@ -156,7 +161,8 @@ export function ratesFrom(
     walking,
     car,
     needs,
-    outline: rectangle(5, 5),
+    outline: rectangleFrom(-4, 13, -4, 4),
+    current: 1,
     hood,
     tileKm,
     stepKm: Math.sqrt(3) * tileKm,

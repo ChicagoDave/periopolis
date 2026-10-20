@@ -141,7 +141,7 @@ export function newSession(game: Game, store: GameStore): Session {
       if (s.history.length > 80) s.history.shift();
     },
     save() {
-      s.store.save({ tiles: s.game.layout.tiles, lines: s.game.layout.lines, clock: s.game.clock });
+      s.store.save({ tiles: s.game.layout.tiles, lines: s.game.layout.lines, circles: s.game.layout.circles, clock: s.game.clock });
     },
     undo() {
       const was = s.history.pop();

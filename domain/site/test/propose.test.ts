@@ -194,7 +194,7 @@ describe('where the next neighborhood goes (ADR-0015 Decision 3)', () => {
   it('is null when no tile is open', () => {
     const tiles: Record<TileKey, { kind: 'hood'; has: Record<string, never> }> = {};
     for (const k of allTiles(RATES.outline)) tiles[k] = { kind: 'hood', has: {} };
-    expect(proposeNeighborhood({ tiles, lines: {} }, RATES)).toBeNull();
+    expect(proposeNeighborhood({ tiles, lines: {}, circles: ['0,0'] }, RATES)).toBeNull();
     const open = allTiles(RATES.outline);
     expect(proposeNeighborhood(emptyLayout(), RATES, open)).toBeNull();
   });

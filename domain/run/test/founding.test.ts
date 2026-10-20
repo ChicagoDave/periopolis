@@ -4,6 +4,9 @@
  * years through the real Run on the month clock, built in order, with the city growing itself; and the same founding
  * by hand beside it. The figures here are the record ADR-0015's Consequences carry, pinned as a check on the premises,
  * not as truth (ADR-0007): a premise that moves moves them.
+ * Moved 2026-10-20 (ADR-0016, Phase 2): the board now runs along the shore and the founding's reactor at 5,-4 and
+ * west plants at -6,3, -5,1 and -4,-1 fall outside it and the circle, so they stand on the band at 4,-4, -4,0 (water,
+ * upstream), -4,3 (sewage) and -3,-1 (waste), reached by the same number of stretches; every figure is unchanged.
  * Owner context: Run (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
@@ -22,7 +25,7 @@ const HOODS: readonly TileKey[] = ['0,-1', '1,-1', '-1,0', '1,0', '-1,1', '0,1']
 const STRETCHES: readonly (readonly [TileKey, TileKey])[] = [
   ['-1,0', '0,0'], ['-1,0', '0,-1'], ['1,-1', '1,0'], ['-1,1', '0,1'], ['-1,1', '0,0'], ['0,0', '0,1'],
   ['0,-1', '0,0'], ['0,-1', '1,-1'], ['0,1', '1,0'], ['-1,0', '-1,1'], ['-1,0', '-2,0'], ['-2,0', '-3,0'],
-  ['-4,-1', '-4,0'], ['-4,0', '-5,1'], ['-3,0', '-4,1'], ['-4,1', '-5,2'], ['-5,2', '-6,3'], ['-3,0', '-4,0'], ['0,0', '1,0'],
+  ['-3,-1', '-4,0'], ['-4,0', '-4,1'], ['-3,0', '-4,1'], ['-4,1', '-4,2'], ['-4,2', '-4,3'], ['-3,0', '-4,0'], ['0,0', '1,0'],
 ];
 
 /** David's founding, ordered at year 0 in his order: homes, ring, schools and fields, then the line and the plants. */
@@ -32,10 +35,10 @@ function founding(infer: boolean): Game {
   for (const h of ['1,-1', '-1,0', '0,1']) g = order(g, (p) => toggleExtra(p, h, 'elementary', RATES));
   for (const h of ['1,-1', '-1,1']) g = order(g, (p) => toggleExtra(p, h, 'fields', RATES));
   for (const [a, b] of STRETCHES) g = order(g, (p) => layStretch(p, a, b, RATES));
-  g = order(g, (p) => addPlantUnit(p, '5,-4', 'power', RATES));
-  g = order(g, (p) => addPlantUnit(p, '-6,3', 'water', RATES));
-  g = order(g, (p) => addPlantUnit(p, '-5,1', 'sewage', RATES));
-  return order(g, (p) => addPlantUnit(p, '-4,-1', 'waste', RATES));
+  g = order(g, (p) => addPlantUnit(p, '4,-4', 'power', RATES));
+  g = order(g, (p) => addPlantUnit(p, '-4,0', 'water', RATES));
+  g = order(g, (p) => addPlantUnit(p, '-4,3', 'sewage', RATES));
+  return order(g, (p) => addPlantUnit(p, '-3,-1', 'waste', RATES));
 }
 
 function twentyYears(g0: Game): Game {
@@ -90,7 +93,7 @@ describe("David's founding of 2026-10-15, twenty years on the real path", () => 
 
   it('the price of building in order: the first residents come in year 7, not 5, while the crews build what the run ordered first', () => {
     expect(firstPeople(grown)).toBe(7);
-    expect(Math.round(totalSpend(grown.clock?.record ?? []).capital / 1e9 * 100) / 100).toBe(15.31);
+    expect(Math.round(totalSpend(grown.clock?.record ?? []).capital / 1e9 * 100) / 100).toBe(15.3); // 15.31 on the 115-tile board (ADR-0015); the shore board moves the run's own placements by 10 million
     expect(Math.round(totalSpend(byHand.clock?.record ?? []).capital / 1e9 * 100) / 100).toBe(6.82);
   });
 });

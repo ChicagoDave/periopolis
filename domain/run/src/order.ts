@@ -99,7 +99,7 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
   }
   return {
     ok: true,
-    game: { layout: { tiles: draft.tiles, lines: draft.lines }, clock: { ...game.clock, jobs, ...(vetoes ? { vetoes } : {}), ...(built ? { built } : {}) } },
+    game: { layout: { tiles: draft.tiles, lines: draft.lines, circles: draft.circles }, clock: { ...game.clock, jobs, ...(vetoes ? { vetoes } : {}), ...(built ? { built } : {}) } },
     siteEvent: res.event,
     events,
   };

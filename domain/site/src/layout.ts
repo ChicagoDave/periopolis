@@ -1,10 +1,11 @@
 /**
  * @file A layout: what stands on each tile and where the mover line runs. Values only; commands make new ones.
- * Public interface: Neighborhood, Ring, Plant, Tile, Layout, emptyLayout, starterLayout, restoreLayout.
+ * Public interface: Neighborhood, Ring, Plant, Tile, Layout, FIRST_CIRCLE, emptyLayout, starterLayout, restoreLayout.
  * Owner context: Site (domain).
  */
 import { adjacent, allTiles, edgeEnds, edgeKey, tileKey } from './board.ts';
 import type { EdgeKey, TileKey } from './board.ts';
+import { circleFits } from './circle.ts';
 import { EXTRAS, PLANTS } from './rates.ts';
 import type { ExtraKind, PlantKind, SiteRates } from './rates.ts';
 
@@ -29,15 +30,19 @@ export interface Plant {
 /** What a tile holds. */
 export type Tile = Neighborhood | Ring | Plant;
 
-/** The board as it stands. */
+/** The board as it stands, and the circles laid out on it (ADR-0016): the middles, the first at "0,0". */
 export interface Layout {
   readonly tiles: Readonly<Record<TileKey, Tile>>;
   readonly lines: Readonly<Record<EdgeKey, true>>;
+  readonly circles: readonly TileKey[];
 }
 
-/** An empty site. */
+/** The first circle's middle: the sketch's middle tile, so every key the starter uses stays where it is. */
+export const FIRST_CIRCLE: TileKey = '0,0';
+
+/** An empty site: one circle, nothing on it. */
 export function emptyLayout(): Layout {
-  return { tiles: {}, lines: {} };
+  return { tiles: {}, lines: {}, circles: [FIRST_CIRCLE] };
 }
 
 /** Whether a kind is one of the plants. */
@@ -92,7 +97,7 @@ export function starterLayout(): Layout {
   line([2, -1], [3, -2]);
   line([-2, 1], [-3, 1]);
   line([-2, 1], [-3, 2]);
-  return { tiles, lines };
+  return { tiles, lines, circles: [FIRST_CIRCLE] };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -101,6 +106,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Rebuild a layout from anything, keeping only what the board allows. Anything loaded from storage comes through here.
+ * Circles are kept when their middle is a tile whose whole circle fits the board, once each; a layout stored with
+ * none, or with none that fit, restores with the first (ADR-0016: there are no saved cities from before the circles).
  * @param raw - whatever was stored
  * @param rates - the site's outline and limits
  * @returns a layout, or null when the input is not even an object
@@ -132,5 +139,11 @@ export function restoreLayout(raw: unknown, rates: SiteRates): Layout | null {
     const [a, b] = edgeEnds(e);
     if (valid.includes(a) && valid.includes(b) && adjacent(a, b, rates.outline)) lines[edgeKey(a, b)] = true;
   }
-  return { tiles, lines };
+  const circles: TileKey[] = [];
+  const rawCircles = Array.isArray(raw['circles']) ? raw['circles'] : [];
+  for (const m of rawCircles) {
+    if (typeof m !== 'string' || circles.includes(m) || !valid.includes(m) || !circleFits(m, rates.outline)) continue;
+    circles.push(m);
+  }
+  return { tiles, lines, circles: circles.length ? circles : [FIRST_CIRCLE] };
 }

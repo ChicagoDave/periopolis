@@ -58,11 +58,12 @@ export function pieces(layout: Layout): Record<PieceId, number> {
 export interface Draft {
   tiles: Record<TileKey, Tile>;
   lines: Record<EdgeKey, true>;
+  circles: readonly TileKey[];
 }
 
 /** A changeable copy of a layout. */
 export function draftOf(layout: Layout): Draft {
-  return { tiles: { ...layout.tiles }, lines: { ...layout.lines } };
+  return { tiles: { ...layout.tiles }, lines: { ...layout.lines }, circles: layout.circles };
 }
 
 /**

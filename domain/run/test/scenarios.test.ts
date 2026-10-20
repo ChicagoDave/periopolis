@@ -346,7 +346,8 @@ describe('founding 100,000 from nothing', () => {
       const record = out.game.clock?.record ?? [];
       expect(record[record.length - 1]).toMatchObject({ year: 20, pop: 100000 });
       expect(out.game.clock?.lineYears).toBe(f.final.clock.lineYears);
-      expect(out.game.layout).toEqual(f.final.state);
+      // The fixture records the sketch's two fields; the circles are the Site's own (ADR-0016).
+      expect({ tiles: out.game.layout.tiles, lines: out.game.layout.lines }).toEqual(f.final.state);
       expect(record.map((r) => ({ year: r.year, pop: r.pop, bad: r.bad }))).toEqual(f.final.clock.record.map((r) => ({ year: r.year, pop: r.pop, bad: r.bad })));
       if (f.react) expect(out.game.clock?.lineYears ?? 9).toBeLessThanOrEqual(1);
     });

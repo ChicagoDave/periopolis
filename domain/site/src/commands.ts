@@ -52,7 +52,7 @@ function refuse(rejection: SiteRejection): Outcome {
 }
 
 function withTile(layout: Layout, key: TileKey, tile: Tile): Layout {
-  return { tiles: { ...layout.tiles, [key]: tile }, lines: layout.lines };
+  return { ...layout, tiles: { ...layout.tiles, [key]: tile } };
 }
 
 function offBoard(key: TileKey, rates: SiteRates): boolean {
@@ -137,10 +137,10 @@ export function layStretch(layout: Layout, from: TileKey, to: TileKey, rates: Si
   const lines: Record<EdgeKey, true> = { ...layout.lines };
   if (lines[e]) {
     delete lines[e];
-    return accept({ tiles: layout.tiles, lines }, { type: 'StretchRemoved', edge: e });
+    return accept({ ...layout, lines }, { type: 'StretchRemoved', edge: e });
   }
   lines[e] = true;
-  return accept({ tiles: layout.tiles, lines }, { type: 'StretchLaid', edge: e });
+  return accept({ ...layout, lines }, { type: 'StretchLaid', edge: e });
 }
 
 /**
@@ -155,7 +155,7 @@ export function erase(layout: Layout, key: TileKey, rates: SiteRates): Outcome {
     if (!touching.length) return refuse({ reason: 'NothingThere', tile: key });
     const lines: Record<EdgeKey, true> = { ...layout.lines };
     for (const e of touching) delete lines[e];
-    return accept({ tiles: layout.tiles, lines }, { type: 'LinesThroughTileRemoved', tile: key, edges: touching });
+    return accept({ ...layout, lines }, { type: 'LinesThroughTileRemoved', tile: key, edges: touching });
   }
   if (t.kind !== 'hood' && t.n > 1) {
     const fewer: Tile = t.kind === 'ring' ? { kind: 'ring', n: t.n - 1 } : { kind: t.kind, n: t.n - 1 };
@@ -163,5 +163,5 @@ export function erase(layout: Layout, key: TileKey, rates: SiteRates): Outcome {
   }
   const tiles: Record<TileKey, Tile> = { ...layout.tiles };
   delete tiles[key];
-  return accept({ tiles, lines: layout.lines }, { type: 'TileCleared', tile: key, kind: t.kind });
+  return accept({ ...layout, tiles }, { type: 'TileCleared', tile: key, kind: t.kind });
 }

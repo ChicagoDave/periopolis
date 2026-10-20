@@ -239,7 +239,7 @@ describe('restoring a layout from storage', () => {
       { tiles: { '9,9': { kind: 'hood' }, '0,0': { kind: 'zoo' }, '1,0': { kind: 'ring', n: 999 } }, lines: { x: true, '0,0|3,3': true, '1,0|0,0': true } },
       RATES,
     );
-    expect(restored).toEqual({ tiles: { '1,0': { kind: 'ring', n: 40 } }, lines: { '0,0|1,0': true } });
+    expect(restored).toEqual({ tiles: { '1,0': { kind: 'ring', n: 40 } }, lines: { '0,0|1,0': true }, circles: ['0,0'] });
     expect(restoreLayout('city', RATES)).toBeNull();
   });
 });

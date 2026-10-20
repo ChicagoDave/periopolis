@@ -34,11 +34,20 @@ describe('the memory store and restoreGame', () => {
 });
 
 describe('the session', () => {
-  it('saves the game as the sketch saved it, under tiles, lines and clock', () => {
+  it('saves the game as the sketch saved it, under tiles, lines and clock, with the circles beside them (ADR-0016)', () => {
     const store = memoryStore();
     const s = newSession({ layout: starterLayout(), clock: null }, store);
     s.save();
-    expect(store.load()).toEqual({ tiles: starterLayout().tiles, lines: starterLayout().lines, clock: null });
+    expect(store.load()).toEqual({ tiles: starterLayout().tiles, lines: starterLayout().lines, circles: ['0,0'], clock: null });
+  });
+
+  it('saves and reloads a city on two circles, and a save without circles comes back on the first (ADR-0016)', () => {
+    const store = memoryStore();
+    const s = newSession({ layout: { ...starterLayout(), circles: ['0,0', '9,0'] }, clock: null }, store);
+    s.save();
+    expect((store.load() as { circles: unknown }).circles).toEqual(['0,0', '9,0']);
+    expect(restoreGame(store.load())?.layout.circles).toEqual(['0,0', '9,0']);
+    expect(restoreGame({ tiles: starterLayout().tiles, lines: starterLayout().lines, clock: null })?.layout.circles).toEqual(['0,0']);
   });
 
   it('undo brings back the game before, clears the line cursor, saves, and refuses with nothing to undo', () => {
@@ -62,7 +71,7 @@ describe('the session', () => {
     const s = newSession({ layout: emptyLayout(), clock: null }, memoryStore());
     for (let i = 0; i < 81; i++) {
       s.remember();
-      s.game = { layout: { tiles: { '0,0': { kind: 'ring', n: i + 1 } }, lines: {} }, clock: null };
+      s.game = { layout: { tiles: { '0,0': { kind: 'ring', n: i + 1 } }, lines: {}, circles: ['0,0'] }, clock: null };
     }
     expect(s.history.length).toBe(80);
     expect(s.history[0]?.layout.tiles['0,0']).toEqual({ kind: 'ring', n: 1 });
@@ -129,7 +138,7 @@ describe('the view', () => {
     s.look('1,0');
     s.showLevel('sub');
     s.save();
-    expect(store.load()).toEqual({ tiles: starterLayout().tiles, lines: starterLayout().lines, clock: null });
+    expect(store.load()).toEqual({ tiles: starterLayout().tiles, lines: starterLayout().lines, circles: ['0,0'], clock: null });
     const again = newSession(restoreGame(store.load()) as { layout: ReturnType<typeof starterLayout>; clock: null }, store);
     expect(again.view).toEqual({ at: 'map' });
   });
@@ -210,7 +219,7 @@ describe('a run built in order (ADR-0012)', () => {
 
   it('lists a unit of a service the city is short of as working ahead of the stretches (ADR-0012 Decision 7)', () => {
     let g = startRun(emptyLayout(), 7, RATES, RULES, { inOrder: true });
-    for (let q = -5; q < 5; q++) g = order(g, (p) => layStretch(p, `${q},0`, `${q + 1},0`, RATES));
+    for (let q = -4; q < 6; q++) g = order(g, (p) => layStretch(p, `${q},0`, `${q + 1},0`, RATES));
     g = order(g, (p) => addPlantUnit(p, '3,-2', 'water', RATES));
     const water = (game: Game): string | undefined => {
       const s = newSession(game, memoryStore());
@@ -228,7 +237,7 @@ describe('a run built in order (ADR-0012)', () => {
   it('lists the work in hand in the crew order: a home ordered before ten stretches waits for them', () => {
     const hand = (inOrder: boolean): string | undefined => {
       let g = order(startRun(emptyLayout(), 7, RATES, RULES, { inOrder }), (p) => placeNeighborhood(p, '0,-2', RATES));
-      for (let q = -5; q < 5; q++) g = order(g, (p) => layStretch(p, `${q},0`, `${q + 1},0`, RATES));
+      for (let q = -4; q < 6; q++) g = order(g, (p) => layStretch(p, `${q},0`, `${q + 1},0`, RATES));
       const s = newSession(g, memoryStore());
       s.refresh();
       return s.hand.list.find((j) => j.what === 'hood')?.status;

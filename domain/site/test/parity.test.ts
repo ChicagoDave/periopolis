@@ -5,6 +5,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  edgeEnds,
+  tileAt,
   RATES,
   addPlantUnit,
   allTiles,
@@ -177,6 +179,31 @@ function countIssues(assessment: ReturnType<typeof assess>): unknown {
   return { ...assessment, per };
 }
 
+/** Every tile the fixtures place: keys of the recorded states and results, and the ends of their stretches. */
+function placedTiles(): TileKey[] {
+  const out = new Set<TileKey>();
+  const take = (k: string): void => {
+    const [q, r] = tileAt(k);
+    if (Number.isInteger(q) && Number.isInteger(r)) out.add(k);
+  };
+  const walk = (v: unknown): void => {
+    if (Array.isArray(v)) for (const x of v) walk(x);
+    else if (typeof v === 'object' && v !== null) {
+      for (const [k, x] of Object.entries(v)) {
+        if (k.indexOf('|') >= 0) edgeEnds(k).forEach(take);
+        else take(k);
+        walk(x);
+      }
+    }
+  };
+  walk(fixture.evaluations);
+  walk(fixture.acts);
+  walk(fixture.seatingCases);
+  walk(fixture.cleanCases.map((c) => c.result));
+  walk(fixture.bridgeCases);
+  return [...out];
+}
+
 describe('rates from the ledger', () => {
   it('match the sketch', () => {
     const r = fixture.rates;
@@ -190,12 +217,14 @@ describe('rates from the ledger', () => {
     differences(RATES.longKm, r['LONG_KM'] ?? 0, 'longKm', out);
     differences(RATES.ringServes, r['RING_SERVES'] ?? 0, 'ringServes', out);
     differences(RATES.band, r['BAND'] ?? 0, 'band', out);
-    // The sketch's board is a hexagon; the city's is a rectangle that holds it (ADR-0006). Parity on the outline is
-    // that the sketch's hexagon has the recorded tile count and every one of its tiles is inside the city's outline.
+    // The sketch's board is a hexagon; the city's is a rectangle along the shore (ADR-0006 as amended by ADR-0016).
+    // Parity on the outline is that the sketch's hexagon has the recorded tile count and every tile the fixtures
+    // place is inside the city's outline.
     const sketch = allTiles(hexagon(Number(r['BOARD'] ?? 0)));
     differences(sketch.length, r['tiles'] ?? 0, 'tiles', out);
     const city = allTiles(RATES.outline);
-    for (const k of sketch) if (!city.includes(k)) out.push(`tile ${k} of the sketch's board is outside the city's outline`);
+    for (const k of placedTiles()) if (!sketch.includes(k)) out.push(`tile ${k} of a fixture is outside the sketch's board`);
+    for (const k of placedTiles()) if (!city.includes(k)) out.push(`tile ${k} of a fixture is outside the city's outline`);
     differences(RATES.share, r['SHARE'] ?? {}, 'share', out);
     expect(out).toEqual([]);
   });
@@ -256,7 +285,9 @@ describe('seating parity with the sketch', () => {
 describe('restoring a layout from storage', () => {
   for (const c of fixture.cleanCases) {
     it(c.name, () => {
-      expect(restoreLayout(c.raw, RATES)).toEqual(c.result);
+      // The sketch had no circles; a restored layout carries the first (ADR-0016), beside the recorded fields.
+      const want: unknown = c.result === null ? null : { ...(c.result as object), circles: ['0,0'] };
+      expect(restoreLayout(c.raw, RATES)).toEqual(want);
     });
   }
 });

@@ -1,7 +1,7 @@
 /**
  * @file The board: hexagonal tiles named "q,r" inside an outline, and the distances between them.
- * Public interface: TileKey, EdgeKey, Outline, hexagon, rectangle, extent, tileKey, tileAt, onBoard, allTiles,
- * neighbors, adjacent, kmBetween, edgeKey, edgeEnds.
+ * Public interface: TileKey, EdgeKey, Outline, Extent, hexagon, rectangle, rectangleFrom, extent, eastWest, tileKey,
+ * tileAt, onBoard, allTiles, neighbors, adjacent, ringDistance, kmBetween, edgeKey, edgeEnds.
  * Owner context: Site (domain).
  *
  * Tiles are named by two whole numbers, "q,r": q counts east, r counts down and to the right. A stretch of mover line
@@ -9,7 +9,8 @@
  * by pattern (ADR-0002).
  *
  * The outline is the site's shape (ADR-0006): a hexagon of tiles, which is the sketch's board, or a rectangle of tiles,
- * which is the city's. Either way the middle tile is "0,0" and the tiles are the same hexagons at the same spacing.
+ * which is the city's, laid along the lake shore (ADR-0016). Either way "0,0" names the same tile and the tiles are the
+ * same hexagons at the same spacing.
  */
 
 /** A tile's name, "q,r". */
@@ -18,14 +19,23 @@ export type TileKey = string;
 export type EdgeKey = string;
 
 /**
- * The site's shape: which tiles are on it. A hexagon reaches `radius` tiles from the middle to each corner. A
- * rectangle reaches `halfWidth` tile steps east and west of the middle and `halfHeight` rows above and below it, so
- * every row spans the same width on the ground and the rows alternate one tile shorter where they sit half a step over.
- * Both are centred on "0,0". Values are whole numbers, zero or more.
+ * The site's shape: which tiles are on it. A hexagon reaches `radius` tiles from the middle to each corner, centred on
+ * "0,0". A rectangle is an extent (ADR-0006 Decision 2 as amended by ADR-0016): the east-west positions (`q + r/2`
+ * steps east of "0,0") from `west` to `east` and the rows from `north` to `south`, so every row spans the same width on
+ * the ground and the rows alternate one tile shorter where they sit half a step over. `rectangle` makes the centred
+ * form; `rectangleFrom` any extent. Values are whole numbers; west is at most east and north at most south.
  */
 export type Outline =
   | { readonly kind: 'hexagon'; readonly radius: number }
-  | { readonly kind: 'rectangle'; readonly halfWidth: number; readonly halfHeight: number };
+  | { readonly kind: 'rectangle'; readonly west: number; readonly east: number; readonly north: number; readonly south: number };
+
+/** How far an outline reaches: east-west positions west to east, rows north to south. */
+export interface Extent {
+  readonly west: number;
+  readonly east: number;
+  readonly north: number;
+  readonly south: number;
+}
 
 /**
  * A hexagonal outline: the sketch's board.
@@ -38,7 +48,7 @@ export function hexagon(radius: number): Outline {
 }
 
 /**
- * A rectangular outline.
+ * A rectangular outline centred on "0,0".
  * @param halfWidth - tile steps from the middle to the east or west edge
  * @param halfHeight - rows from the middle to the top or bottom edge
  * @throws RangeError when either figure is not a whole number of zero or more
@@ -46,7 +56,29 @@ export function hexagon(radius: number): Outline {
 export function rectangle(halfWidth: number, halfHeight: number): Outline {
   tileCount(halfWidth, 'halfWidth');
   tileCount(halfHeight, 'halfHeight');
-  return { kind: 'rectangle', halfWidth, halfHeight };
+  return rectangleFrom(-halfWidth, halfWidth, -halfHeight, halfHeight);
+}
+
+/**
+ * A rectangular outline of any extent (ADR-0016): the city's board runs along the lake shore, its south edge.
+ * @param west - the westmost east-west position a tile's middle may have
+ * @param east - the eastmost
+ * @param north - the topmost row
+ * @param south - the bottom row, the shore
+ * @throws RangeError when a figure is not a whole number, or west is past east, or north past south
+ */
+export function rectangleFrom(west: number, east: number, north: number, south: number): Outline {
+  for (const [n, name] of [
+    [west, 'west'],
+    [east, 'east'],
+    [north, 'north'],
+    [south, 'south'],
+  ] as const) {
+    if (!Number.isInteger(n)) throw new RangeError(`${name} must be a whole number, not ${n}`);
+  }
+  if (west > east) throw new RangeError(`west ${west} is past east ${east}`);
+  if (north > south) throw new RangeError(`north ${north} is past south ${south}`);
+  return { kind: 'rectangle', west, east, north, south };
 }
 
 /** Guard an outline figure: a whole number, zero or more. */
@@ -55,14 +87,24 @@ function tileCount(n: number, name: string): void {
 }
 
 /**
- * How far an outline reaches from the middle: tile steps east or west, and rows up or down. A hexagon's reach is its
- * radius both ways. Drawing code sizes its frame from this.
+ * How far an outline reaches: east-west positions and rows. A hexagon reaches its radius every way. Drawing code
+ * sizes its frame from this.
  * @param outline - the site's shape
  */
-export function extent(outline: Outline): { readonly halfWidth: number; readonly halfHeight: number } {
+export function extent(outline: Outline): Extent {
   return outline.kind === 'hexagon'
-    ? { halfWidth: outline.radius, halfHeight: outline.radius }
-    : { halfWidth: outline.halfWidth, halfHeight: outline.halfHeight };
+    ? { west: -outline.radius, east: outline.radius, north: -outline.radius, south: outline.radius }
+    : { west: outline.west, east: outline.east, north: outline.north, south: outline.south };
+}
+
+/**
+ * Where a tile's middle sits east to west: `q + r/2` steps east of "0,0" (ADR-0016: along the shore, upstream and
+ * downstream are read off this).
+ * @param key - the tile
+ */
+export function eastWest(key: TileKey): number {
+  const [q, r] = tileAt(key);
+  return q + r / 2;
 }
 
 /** The six neighbors of a tile, in the order the sketch walks them. */
@@ -116,15 +158,16 @@ function wholeNumber(text: string): number {
 }
 
 /**
- * Whether a tile lies inside the outline. On a rectangle a tile is in when its row is within reach and its middle,
- * which sits q + r/2 steps east of the board's middle, is within reach east or west.
+ * Whether a tile lies inside the outline. On a rectangle a tile is in when its row is within the extent and its middle,
+ * which sits q + r/2 steps east of "0,0", is within the extent east or west.
  * @param q - column
  * @param r - row
  * @param outline - the site's shape
  */
 export function onBoard(q: number, r: number, outline: Outline): boolean {
   if (outline.kind === 'hexagon') return Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) <= outline.radius;
-  return Math.abs(r) <= outline.halfHeight && Math.abs(q + r / 2) <= outline.halfWidth;
+  const x = q + r / 2;
+  return r >= outline.north && r <= outline.south && x >= outline.west && x <= outline.east;
 }
 
 /**
@@ -133,11 +176,10 @@ export function onBoard(q: number, r: number, outline: Outline): boolean {
  * @param outline - the site's shape
  */
 export function allTiles(outline: Outline): TileKey[] {
-  const { halfWidth, halfHeight } = extent(outline);
-  const span = halfWidth + halfHeight;
+  const { west, east, north, south } = extent(outline);
   const out: TileKey[] = [];
-  for (let r = -halfHeight; r <= halfHeight; r++) {
-    for (let q = -span; q <= span; q++) if (onBoard(q, r, outline)) out.push(tileKey(q, r));
+  for (let r = north; r <= south; r++) {
+    for (let q = Math.floor(west - r / 2); q <= Math.ceil(east - r / 2); q++) if (onBoard(q, r, outline)) out.push(tileKey(q, r));
   }
   return out;
 }
@@ -159,6 +201,19 @@ export function neighbors(key: TileKey, outline: Outline): TileKey[] {
 /** Whether two tiles are next to each other inside the outline. */
 export function adjacent(a: TileKey, b: TileKey, outline: Outline): boolean {
   return neighbors(a, outline).includes(b);
+}
+
+/**
+ * How many tile steps apart two tiles are: the hex distance, which is the ring a tile sits on round another.
+ * @param a - one tile
+ * @param b - the other
+ */
+export function ringDistance(a: TileKey, b: TileKey): number {
+  const [q1, r1] = tileAt(a);
+  const [q2, r2] = tileAt(b);
+  const dq = q2 - q1;
+  const dr = r2 - r1;
+  return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
 }
 
 /** Where a tile's middle sits: km east and south of the middle of the board. */

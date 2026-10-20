@@ -330,7 +330,7 @@ function start(data: { game?: unknown }): void {
   scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
 
   const hot = window.claude?.hot;
-  if (hot?.snapshot) hot.snapshot(() => ({ game: { tiles: s.game.layout.tiles, lines: s.game.layout.lines, clock: s.game.clock } }));
+  if (hot?.snapshot) hot.snapshot(() => ({ game: { tiles: s.game.layout.tiles, lines: s.game.layout.lines, circles: s.game.layout.circles, clock: s.game.clock } }));
 }
 
 const hot = window.claude?.hot;

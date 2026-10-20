@@ -268,8 +268,8 @@ test("a tile's ground: the drawn homes, entries and ring buildings are the Groun
   await page.click('#back');
   await expect(page.locator('#said')).toHaveText('The map.');
   await expect(page.locator('#viewbar')).toBeHidden();
-  // The site is a rectangle of 115 tiles (ADR-0006), drawn inside one outline.
-  await expect(page.locator('#board .tile')).toHaveCount(115);
+  // The site is a rectangle of 158 tiles along the shore (ADR-0006, ADR-0016), drawn inside one outline.
+  await expect(page.locator('#board .tile')).toHaveCount(158);
   await expect(page.locator('#board rect.outline')).toHaveCount(1);
   await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
   await tile(page, '0,0').click();
@@ -285,7 +285,7 @@ test("a tile's ground: the drawn homes, entries and ring buildings are the Groun
   }
   await page.click('#inspector button:has-text("Remove one")');
   await expect(page.locator('#viewbar')).toBeHidden();
-  await expect(page.locator('#board .tile')).toHaveCount(115);
+  await expect(page.locator('#board .tile')).toHaveCount(158);
   await expect(tile(page, '0,0')).toHaveClass(/open/);
   await expect(page.locator('#inspector h2')).toHaveText('Open ground');
   // The view is the page's alone: a reload comes back on the map with the city as saved.

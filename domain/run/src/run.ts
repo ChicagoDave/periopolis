@@ -218,7 +218,7 @@ function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules,
     if (j.left <= 0 && ready(j)) open(j);
     else still.push(j);
   }
-  const layout: Layout = { tiles: draft.tiles, lines: draft.lines };
+  const layout: Layout = { tiles: draft.tiles, lines: draft.lines, circles: draft.circles };
   const events: TimelineEvent[] = clock.events.map((e) =>
     e.type === 'closure' && e.edge === undefined && year >= e.start - e.notice
       ? { ...e, edge: pickEdge(layout, clock.seed, e.id) }

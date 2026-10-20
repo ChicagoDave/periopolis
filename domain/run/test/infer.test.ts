@@ -234,7 +234,7 @@ describe('what the run cannot do', () => {
   it('says there is no room for a need the board cannot hold', () => {
     const tiles: Record<TileKey, { kind: 'hood'; has: Record<string, never> }> = {};
     for (const k of allTiles(RATES.outline)) tiles[k] = { kind: 'hood', has: {} };
-    const full: Layout = { tiles, lines: {} };
+    const full: Layout = { tiles, lines: {}, circles: ['0,0'] };
     const g = months(startRun(full, 1, RATES, RULES, GROW), 1);
     const facts = lastMonth(g).inferred ?? [];
     expect(facts.some((f) => f.type === 'NoRoom' && f.why === 'ring')).toBe(true);

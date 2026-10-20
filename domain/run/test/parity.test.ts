@@ -135,7 +135,7 @@ describe('the wave of children', () => {
 describe('timelines', () => {
   for (const t of fixture.timelines) {
     it(`seed ${t.seed} deals the same five events`, () => {
-      expect(startRun({ tiles: {}, lines: {} }, t.seed, RATES, RULES).clock?.events).toEqual(t.events);
+      expect(startRun({ tiles: {}, lines: {}, circles: ['0,0'] }, t.seed, RATES, RULES).clock?.events).toEqual(t.events);
     });
   }
 });

@@ -18,9 +18,16 @@ const SIZE = 30;
 const W3 = Math.sqrt(3);
 const PX_KM = SIZE / RATES.tileKm;
 const REACH = extent(RATES.outline);
-/** Half the site's outline, px: the tiles' reach plus the half tile the outermost tiles extend past their middles. */
-const OUT_W = W3 * SIZE * (REACH.halfWidth + 0.5);
-const OUT_H = 1.5 * SIZE * REACH.halfHeight + SIZE;
+/** The site's outline, px, centred on "0,0": the tiles' reach each way plus the half tile the outermost tiles extend past their middles. */
+const OUT_LEFT = W3 * SIZE * (REACH.west - 0.5);
+const OUT_RIGHT = W3 * SIZE * (REACH.east + 0.5);
+const OUT_TOP = 1.5 * SIZE * REACH.north - SIZE;
+const OUT_BOTTOM = 1.5 * SIZE * REACH.south + SIZE;
+const OUT_W = (OUT_RIGHT - OUT_LEFT) / 2;
+const OUT_H = (OUT_BOTTOM - OUT_TOP) / 2;
+/** Where the outline's middle sits relative to "0,0", px. */
+const OUT_CX = (OUT_LEFT + OUT_RIGHT) / 2;
+const OUT_CY = (OUT_TOP + OUT_BOTTOM) / 2;
 const MARGIN = 12;
 /** Room below the outline for the scale and the tile's figures. */
 const FOOTER = 34;
@@ -79,7 +86,7 @@ export function drawBoard(page: Page): void {
   }
   const board = byId('board');
   const hadFocus = board.contains(document.activeElement);
-  board.setAttribute('viewBox', [-HALF_W, -HALF_H, 2 * HALF_W, 2 * HALF_H + FOOTER].map((v) => v.toFixed(0)).join(' '));
+  board.setAttribute('viewBox', [OUT_CX - HALF_W, OUT_CY - HALF_H, 2 * HALF_W, 2 * HALF_H + FOOTER].map((v) => v.toFixed(0)).join(' '));
   board.textContent = '';
   const defs = svg('defs');
   const hatch = svg('pattern', { id: 'hatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
@@ -87,7 +94,7 @@ export function drawBoard(page: Page): void {
   defs.append(hatch);
   const ground = svg('g');
   // The site's outline: one plain figure round the tiles (ADR-0006), stronger than the tile lines inside it.
-  ground.append(svg('rect', { x: (-OUT_W).toFixed(1), y: (-OUT_H).toFixed(1), width: (2 * OUT_W).toFixed(1), height: (2 * OUT_H).toFixed(1), rx: 2 }, 'outline'));
+  ground.append(svg('rect', { x: OUT_LEFT.toFixed(1), y: OUT_TOP.toFixed(1), width: (2 * OUT_W).toFixed(1), height: (2 * OUT_H).toFixed(1), rx: 2 }, 'outline'));
   const reach = svg('g', undefined, 'over');
   const lines = svg('g', undefined, 'over');
   const stands = svg('g', undefined, 'over');
@@ -198,8 +205,8 @@ export function drawBoard(page: Page): void {
   }
   // A scale, below the outline at its left edge.
   const half = PX_KM / 2;
-  const sx = Number((-OUT_W).toFixed(1));
-  const sy = OUT_H + MARGIN + 16;
+  const sx = Number(OUT_LEFT.toFixed(1));
+  const sy = OUT_BOTTOM + MARGIN + 16;
   top.append(svg('path', { d: `M${sx} ${sy - 4} V${sy} H${(sx + half).toFixed(1)} V${sy - 4}` }, 'scalebar'));
   const scale = svg('text', { x: sx, y: sy - 8 }, 'scaletext');
   scale.textContent = '500 m';

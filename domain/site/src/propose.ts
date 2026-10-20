@@ -254,7 +254,7 @@ function lineSteps(reach: readonly TileKey[], layout: Layout, rates: SiteRates):
   const steps: Step[] = [];
   let lines: Record<string, true> = { ...layout.lines };
   for (const from of reach) {
-    const targets = served({ tiles: layout.tiles, lines }, rates);
+    const targets = served({ ...layout, lines }, rates);
     if (!targets.length) return null;
     if (targets.includes(from)) continue;
     const back: Record<TileKey, TileKey | null> = { [from]: null };
