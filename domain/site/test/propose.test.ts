@@ -188,7 +188,8 @@ describe('where the next neighborhood goes (ADR-0015 Decision 3)', () => {
     const at = proposeNeighborhood(lone, RATES);
     expect(at).not.toBeNull();
     expect(kmBetween(at ?? '', '2,1', RATES.stepKm)).toBeCloseTo(RATES.stepKm, 9);
-    expect(proposeNeighborhood(emptyLayout(), RATES)).toBe('0,0');
+    expect(proposeNeighborhood(emptyLayout(), RATES)).toBe('0,-1'); // beside the middle, which is kept for the ring (ADR-0016)
+    expect(proposeNeighborhood({ ...emptyLayout(), circles: [] }, RATES)).toBe('0,0');
     expect(proposeNeighborhood(emptyLayout(), RATES, ['0,0'])).not.toBe('0,0');
     expect(kmBetween(proposeNeighborhood(emptyLayout(), RATES, ['0,0']) ?? '', '0,0', RATES.stepKm)).toBeCloseTo(RATES.stepKm, 9);
   });

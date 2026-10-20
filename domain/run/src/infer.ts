@@ -84,7 +84,12 @@ export function inferStep(game: Game, rates: SiteRates, rules: RunRules): { read
   const vetoes = clock.vetoes ?? [];
   const facts: Inferred[] = [];
   let g = game;
-  for (const p of proposeFor(planned(g.layout, clock.jobs), rates)) {
+  // The Site is told the vetoes, so a vetoed piece is proposed elsewhere when it can be (ADR-0015 Decision 5; ADR-0016 Phase 4).
+  const avoid = vetoes.map((v) => {
+    const [what, at] = splitPiece(v);
+    return { what, at };
+  });
+  for (const p of proposeFor(planned(g.layout, clock.jobs), rates, avoid)) {
     if (!p.room) {
       facts.push({ type: 'NoRoom', why: p.need.need });
       continue;

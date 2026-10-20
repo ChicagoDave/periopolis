@@ -122,11 +122,11 @@ describe('one neighborhood on an empty site, and nothing at all, twenty years gr
     expect(broken).toEqual(['1: ring', '2: haul', '3: fields', '16: stops, ways']); // '7: haul' before the plants moved to the shore
   });
 
-  it('from nothing: 53,698 people in 13 neighborhoods, every line held at year 20, 3 line-years, the first in year 5', () => {
+  it('from nothing: 53,698 people in 13 neighborhoods, every line held at year 20, 2 line-years, the first in year 5', () => {
     expect(Math.round(last(fromNothing).pop)).toBe(53698);
     expect(hoodsOf(fromNothing)).toBe(13);
     expect(last(fromNothing).broken).toEqual([]);
-    expect(fromNothing.clock?.lineYears).toBe(3);
+    expect(fromNothing.clock?.lineYears).toBe(2); // 3 before the ring took the middle and the first neighborhood stood beside it (ADR-0016 Phase 4)
     expect(firstPeople(fromNothing)).toBe(5);
     expect(inferredBag(fromNothing).hood).toBe(14);
   });

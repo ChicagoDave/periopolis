@@ -9,7 +9,7 @@
  * Owner context: Run (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
-import { LAYERS, POPULATION, RATES, addPlantUnit, allTiles, emptyLayout, erase, kindOf, placeNeighborhood, proposeFor, starterLayout } from '@city/site';
+import { LAYERS, POPULATION, RATES, addPlantUnit, allTiles, emptyLayout, erase, kindOf, placeNeighborhood, proposeFor, shoreTiles, starterLayout } from '@city/site';
 import type { Layout, Outcome, TileKey } from '@city/site';
 import { RULES, cancelOrder, homesAhead, inferStep, pieceId, planned, placeOrder, restoreClock, startRun, tick, tickMonth, totalSpend } from '../src/index.ts';
 import type { Game, Inferred, Job, MonthRow, OrderOutcome } from '../src/index.ts';
@@ -99,12 +99,12 @@ describe('the first month on one neighborhood', () => {
 });
 
 describe('from an empty site', () => {
-  it('the first month orders the first neighborhood in the middle, and the needs follow it', () => {
+  it('the first month orders the first neighborhood beside the middle, kept for the ring, and the needs follow it with the ring in the middle (ADR-0016)', () => {
     const g1 = months(startRun(emptyLayout(), 3, RATES, RULES, GROW), 1);
-    expect(ids(jobs(g1))).toEqual(['hood@0,0']);
-    expect(lastMonth(g1).inferred).toEqual([{ type: 'InferredOrder', why: 'homes', events: [expect.objectContaining({ type: 'JobOrdered', what: 'hood', at: '0,0' })] }]);
+    expect(ids(jobs(g1))).toEqual(['hood@0,-1']);
+    expect(lastMonth(g1).inferred).toEqual([{ type: 'InferredOrder', why: 'homes', events: [expect.objectContaining({ type: 'JobOrdered', what: 'hood', at: '0,-1' })] }]);
     const g2 = months(g1, 1);
-    expect(ids(jobs(g2))).toContain('ring@0,-1');
+    expect(ids(jobs(g2))).toContain('ring@0,0');
     expect(ids(jobs(g2)).filter((id) => id.startsWith('hood@'))).toHaveLength(2);
   });
 });
@@ -127,9 +127,18 @@ describe('the player beside the run', () => {
     const vetoed: Game = { layout: g1.layout, clock: cancelOrder(g1.clock!, index) };
     expect(vetoed.clock?.vetoes).toEqual([pieceId('water', at)]);
     expect(jobs(vetoed).some((j) => j.what === 'water')).toBe(false);
-    // The veto is of the piece, kind and place (ADR-0015 Decision 5): the Site may still propose water elsewhere.
+    // The veto is of the piece, kind and place (ADR-0015 Decision 5): told of it, the Site proposes water elsewhere
+    // on the shore, and the run orders it there (ADR-0016 Phase 4).
     const later = months(vetoed, 6);
     expect(ids(jobs(later))).not.toContain(pieceId('water', at));
+    const elsewhere = ids(jobs(later)).concat(later.clock?.built ?? []).filter((id) => id.startsWith('water@'));
+    expect(elsewhere).toHaveLength(1);
+    expect(elsewhere[0]).not.toBe(pieceId('water', at));
+    const there = (elsewhere[0] ?? '').slice('water@'.length);
+    expect(shoreTiles('0,0', RATES.outline)).toContain(there);
+    expect(later.layout.tiles[at]).toBeUndefined();
+    const said = (later.clock?.growth?.months ?? []).flatMap((m) => m.inferred ?? []).filter((f) => f.type === 'InferredOrder' && f.events.some((e) => e.type === 'JobOrdered' && e.what === 'water'));
+    expect(said.some((f) => f.type === 'InferredOrder' && f.events.some((e) => e.type === 'JobOrdered' && e.at === there))).toBe(true);
     expect(later.clock?.vetoes).toEqual([pieceId('water', at)]);
     const mine = order(later, (p) => addPlantUnit(p, at, 'water', RATES));
     expect(mine.clock?.vetoes).toEqual([]);
