@@ -88,7 +88,7 @@ export function inHand(
       const status: JobStatus = j.left <= 0 ? 'ready' : crew[index] ? 'working' : 'waiting';
       if (status === 'working') working++;
       else if (status === 'waiting') waiting++;
-      const item: JobItem = { index, what: j.what, at: j.at, left: j.left, total: j.total, status };
+      const item: JobItem = { index, what: j.what, at: j.at, left: j.left, total: j.total, status, ...(j.inferred ? { inferred: true } : {}) };
       list.push(item);
       if (j.what === 'line') lines[j.at] = item;
       else if (isExtra(j.what)) (extras[j.at] ??= {})[j.what] = item;

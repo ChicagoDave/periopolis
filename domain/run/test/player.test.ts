@@ -146,6 +146,8 @@ describe('orders and the work in hand', () => {
     expect(moved[0]).toEqual(jobs[index]);
     expect(moved[0]?.inferred).toBe(true);
     const work = inHand(g1.layout, moved, RULES, true, []);
+    expect(work.list[0]?.inferred).toBe(true);
+    expect(work.list.every((j) => j.inferred === true)).toBe(true);
     const firstHood = work.list.find((j) => j.what === 'hood');
     const lines = work.list.filter((j) => j.what === 'line');
     expect(firstHood?.index).toBe(0);

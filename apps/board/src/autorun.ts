@@ -8,7 +8,7 @@
 import { RULES, tick, tickMonth } from '@city/run';
 import { RATES } from '@city/site';
 import type { Session } from './session.ts';
-import { monthLine, yearLine, yearsUp } from './wording.ts';
+import { inferredLine, monthLine, yearLine, yearsUp } from './wording.ts';
 
 /** How fast the months run. */
 export type Speed = 'slow' | 'steady' | 'fast';
@@ -38,8 +38,9 @@ export function canStep(s: Session): boolean {
 /**
  * One month passes on the session's run: the game is replaced, the line cursor dropped and the game saved. The caller
  * remembers for undo first, if it wants to.
- * @returns what to say: the month's sentence, the year's when the month ended one, and that the years are up at the
- * horizon; or null, with nothing changed, when the clock is absent, not on the month clock, or over
+ * @returns what to say: the month's sentence, what the city ordered for itself (ADR-0015), the year's when the month
+ * ended one, and that the years are up at the horizon; or null, with nothing changed, when the clock is absent, not on
+ * the month clock, or over. An order the run places pauses nothing (ADR-0013 Decision 3 as amended).
  */
 export function monthStep(s: Session): string | null {
   const clock = s.game.clock;
@@ -52,7 +53,7 @@ export function monthStep(s: Session): string | null {
   s.game = next;
   s.lineFrom = null;
   s.save();
-  const said = last ? monthLine(last) : '';
+  const said = last ? monthLine(last) + (last.inferred ? ` ${inferredLine(last.inferred)}` : '') : '';
   return yearEnded && row ? `${said} ${yearLine(row)}${(next.clock?.year ?? 0) >= RULES.years ? yearsUp(RULES) : ''}` : said;
 }
 

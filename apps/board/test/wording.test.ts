@@ -13,6 +13,8 @@ import type { ToolId } from '../src/wording.ts';
 import { checkDetail, checkTitle, heldBackLine, heldHere, issueText, linesLabel, needText, noticeText, stopsInHand, testLabel } from '../src/wording.ts';
 import { DAY_NAME, DAY_PREMISE, POPULATION_PREMISE, dayCaption, hourLabel, monthLine, peopleNow } from '../src/wording.ts';
 import { PAUSED_FOR_ORDER, SPEED_NAME, clockStarted, yearLine, yearsUp } from '../src/wording.ts';
+import { INFERRED_WHY, ORDERED_BY_CITY, inferredCell, inferredLine, vetoSaid } from '../src/wording.ts';
+import type { Inferred, InferredWhy } from '@city/run';
 import siteRecorded from '../../../domain/site/test/fixtures/parity.json';
 import runRecorded from '../../../domain/run/test/fixtures/parity.json';
 
@@ -325,5 +327,49 @@ describe('the clock started, and the months running on their own', () => {
     expect(yearsUp(RULES)).toBe(' The 20 years are up.');
     expect(PAUSED_FOR_ORDER).toBe('Paused: your order is in. Press Play to carry on.');
     expect(Object.values(SPEED_NAME)).toEqual(['Slow', 'Steady', 'Fast']);
+  });
+});
+
+describe('the city growing itself, worded (ADR-0015)', () => {
+  const GROW = { growth: true, inOrder: true, infer: true } as const;
+  const hood = (): Layout => {
+    const o = placeNeighborhood(emptyLayout(), '0,0', RATES);
+    if (!o.ok) throw new Error('refused');
+    return o.layout;
+  };
+
+  it('the first month on one neighborhood says what the city ordered, each for its need, and the neighborhood for the people arriving', () => {
+    const g = tickMonth(startRun(hood(), 7, RATES, RULES, GROW), RATES, RULES);
+    const facts = g.clock?.growth?.months[0]?.inferred;
+    if (!facts) throw new Error('nothing ordered');
+    expect(inferredLine(facts)).toBe(
+      'The city ordered a ring building for a ring, 2 reactor modules for power, a water plant unit for water, a sewage plant unit for sewage, a waste works unit for waste, an elementary school, a middle school and a high school for school seats, playing fields for the walk to the fields, 9 stretches of mover line for the mover line and a neighborhood for the people arriving.',
+    );
+    expect(inferredCell(facts)).toContain('ring building, 2 reactor modules, water plant unit');
+    expect(inferredCell(facts)).toContain('neighborhood');
+  });
+
+  it('an empty site\'s first month orders only a neighborhood; a need with no room is said after the orders', () => {
+    const g = tickMonth(startRun(emptyLayout(), 7, RATES, RULES, GROW), RATES, RULES);
+    const facts = g.clock?.growth?.months[0]?.inferred ?? [];
+    expect(inferredLine(facts)).toBe('The city ordered a neighborhood for the people arriving.');
+    expect(inferredCell(facts)).toBe('neighborhood');
+    const noRoom: Inferred[] = [{ type: 'NoRoom', why: 'ring' }, { type: 'NoRoom', why: 'homes' }];
+    expect(inferredLine(noRoom)).toBe('The site has no room for a ring and the people arriving.');
+    expect(inferredCell(noRoom)).toBe('no room');
+    expect(inferredCell([...facts, { type: 'NoRoom', why: 'modules' }])).toBe('neighborhood; no room');
+    expect(inferredLine([])).toBe('');
+  });
+
+  it('every reason is worded, the veto is said, and the clock started says the city orders for itself', () => {
+    for (const why of Object.keys(INFERRED_WHY) as InferredWhy[]) expect(INFERRED_WHY[why].length).toBeGreaterThan(2);
+    expect(vetoSaid('water')).toBe('Vetoed: water plant unit. The city will not order it there again; order it yourself to lift the veto.');
+    expect(ORDERED_BY_CITY).toBe('ordered by the city');
+    expect(clockStarted(RULES, true, true, true)).toBe(
+      'An empty site, year 0, 10 crews. Press Play and the city founds itself, or place your first orders, then press Play to let the months run, or Next month to step one. Undo brings the old city back. The city orders what it needs as people arrive; Cancel on the work in hand vetoes an order.',
+    );
+    expect(clockStarted(RULES, true, false, true)).toContain('The city orders what it needs as people arrive');
+    expect(clockStarted(RULES, true, false, false)).not.toContain('The city orders');
+    expect(clockStarted(RULES, true, true)).toBe(clockStarted(RULES, true, true, false));
   });
 });

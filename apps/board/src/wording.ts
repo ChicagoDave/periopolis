@@ -6,14 +6,15 @@
  * openedSentence, planCaption, layerLines, placeholderNote, lineAt, markLabel, markText, needText, proposalPrice, needsNow,
  * addedSaid; and the month clock and the day (ADR-0009): POPULATION_PREMISE, DAY_PREMISE, DAY_NAME, monthLine,
  * peopleNow, hourLabel, dayCaption; and who is held back (ADR-0012): heldBackLine, heldHere; and the clock's own
- * sentences: yearLine, yearsUp, clockStarted, PAUSED_FOR_ORDER, SPEED_NAME; and the angled view: angledCaption, ANGLED_LABEL, TILT_NAME.
+ * sentences: yearLine, yearsUp, clockStarted, PAUSED_FOR_ORDER, SPEED_NAME; the run ordering for itself (ADR-0015): INFERRED_WHY,
+ * inferredLine, inferredCell, ORDERED_BY_CITY, vetoSaid; and the angled view: angledCaption, ANGLED_LABEL, TILT_NAME.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
 import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, Proposal, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue, TileKey } from '@city/site';
 import type { Day, DayPremises, DayType, PopulationPremises } from '@city/site';
 import type { Layer as MoneyLayer } from '@city/site';
-import type { HeldBack, MonthRow, Notice, OrderEvent, PieceKind, RecordRow, RunRules } from '@city/run';
+import type { HeldBack, Inferred, InferredWhy, MonthRow, Notice, OrderEvent, PieceKind, RecordRow, RunRules } from '@city/run';
 import type { Speed } from './autorun.ts';
 import type { Tilt } from './session.ts';
 import { cap, count, fmt, list, low, money, num, years } from './format.ts';
@@ -825,12 +826,84 @@ export function yearsUp(rules: RunRules): string {
  * @param monthly - whether the run is on the month clock
  * @param empty - whether the site is empty (a city started from nothing) or the city on the board
  */
-export function clockStarted(rules: RunRules, monthly: boolean, empty: boolean): string {
+export function clockStarted(rules: RunRules, monthly: boolean, empty: boolean, infer = false): string {
   const next = monthly ? 'press Play to let the months run, or Next month to step one' : 'press Next year';
-  if (empty) return `An empty site, year 0, ${rules.crews} crews. Place your first orders, then ${next}. Undo brings the old city back.`;
+  const grows = infer ? ' The city orders what it needs as people arrive; Cancel on the work in hand vetoes an order.' : '';
+  if (empty) return `An empty site, year 0, ${rules.crews} crews. ${infer ? 'Press Play and the city founds itself, or place' : 'Place'} your first orders, then ${next}. Undo brings the old city back.${grows}`;
   return monthly
-    ? `The clock is on this city at year 0 of ${rules.years}. What you place now is an order for the ${rules.crews} crews. When your orders are in, ${next}.`
+    ? `The clock is on this city at year 0 of ${rules.years}. What you place now is an order for the ${rules.crews} crews. When your orders are in, ${next}.${grows}`
     : `The clock is running on this city: year 0 of ${rules.years}. What you place now is an order for the ${rules.crews} crews. Press Next year when your orders are in.`;
+}
+
+/** What the run ordered for (ADR-0015 Decision 2): a need, or homes for the people arriving. */
+export const INFERRED_WHY: Readonly<Record<InferredWhy, string>> = {
+  ring: 'a ring',
+  ringBuildings: 'the ring',
+  modules: 'power',
+  plantUnits: 'the plants',
+  schools: 'school seats',
+  fields: 'the walk to the fields',
+  line: 'the mover line',
+  homes: 'the people arriving',
+};
+
+/** So many of a piece: "a water unit", "3 stretches of line". */
+function somePieces(events: readonly OrderEvent[]): string[] {
+  const bag: Partial<Record<PieceKind, number>> = {};
+  for (const e of events) if (e.type === 'JobOrdered') bag[e.what] = (bag[e.what] ?? 0) + 1;
+  return (Object.keys(bag) as PieceKind[]).map((what) => {
+    const n = bag[what] ?? 0;
+    if (what === 'fields') return n === 1 ? PIECE_NAME[what] : `${n} ${PIECE_MANY[what]}`;
+    return n === 1 ? `${'aeiou'.includes(PIECE_NAME[what].charAt(0)) ? 'an' : 'a'} ${PIECE_NAME[what]}` : `${n} ${PIECE_MANY[what]}`;
+  });
+}
+
+/** A plant unit is ordered for its own service, not for "the plants". */
+const PLANT_WHY: Readonly<Partial<Record<PieceKind, string>>> = { water: 'water', sewage: 'sewage', waste: 'waste' };
+
+/** The reason an inferred order is said for: a plant's own service, else the need's. */
+function whyOf(f: Extract<Inferred, { type: 'InferredOrder' }>): string {
+  const first = f.events.find((e) => e.type === 'JobOrdered');
+  return (f.why === 'plantUnits' && first && PLANT_WHY[first.what]) || INFERRED_WHY[f.why];
+}
+
+/**
+ * What the run ordered for itself after a month's people moved, in a sentence: "The city ordered a neighborhood for the
+ * people arriving, and a water unit and 3 stretches of line for the mover line." A need the site has no room for is
+ * said after it. Empty when nothing was ordered.
+ * @param facts - the month's inferred facts
+ */
+export function inferredLine(facts: readonly Inferred[]): string {
+  const ordered = facts.filter((f): f is Extract<Inferred, { type: 'InferredOrder' }> => f.type === 'InferredOrder');
+  const noRoom = facts.filter((f): f is Extract<Inferred, { type: 'NoRoom' }> => f.type === 'NoRoom');
+  const parts: string[] = [];
+  // Orders for the same reason are said together: "an elementary school and a middle school for school seats".
+  const groups: { why: string; pieces: string[] }[] = [];
+  for (const f of ordered) {
+    const why = whyOf(f);
+    const g = groups.find((x) => x.why === why);
+    if (g) g.pieces.push(...somePieces(f.events));
+    else groups.push({ why, pieces: somePieces(f.events) });
+  }
+  if (groups.length) parts.push(`The city ordered ${list(groups.map((g) => `${list(g.pieces)} for ${g.why}`))}.`);
+  if (noRoom.length) parts.push(`The site has no room for ${list(noRoom.map((f) => INFERRED_WHY[f.why]))}.`);
+  return parts.join(' ');
+}
+
+/** The run's orders in a month as a table cell: "neighborhood, water unit, 3 stretches of line", or "no room". */
+export function inferredCell(facts: readonly Inferred[]): string {
+  const pieces = facts.flatMap((f) => (f.type === 'InferredOrder' ? somePieces(f.events) : []));
+  const noRoom = facts.some((f) => f.type === 'NoRoom');
+  const said = pieces.map((p) => (p.startsWith('a ') ? p.slice(2) : p.startsWith('an ') ? p.slice(3) : p)).join(', ');
+  return noRoom ? (said ? `${said}; no room` : 'no room') : said;
+}
+
+/** A job the run ordered, marked as such in the work in hand. */
+export const ORDERED_BY_CITY = 'ordered by the city';
+
+/** Said when the player cancels a job the run ordered: a veto (ADR-0015 Decision 5). */
+export function vetoSaid(what: PieceKind): string {
+  return `Vetoed: ${PIECE_NAME[what]}. The city will not order it there again; order it yourself to lift the veto.`;
 }
 
 /** Said when an order placed while the months were running pauses them. */

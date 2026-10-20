@@ -2,7 +2,7 @@
  * @file The Board's flows in a browser, on the built page: the front door, the opening city, two far neighborhoods, a founding run
  * through year 3, the ledger's city run to year 20, undo and storage, a tile's ground zoomed into at both levels, what
  * the city needs, the city sized to its people, a city founded month by month with its day hour by hour, and a
- * neighborhood standing empty while its line is under construction (ADR-0012).
+ * neighborhood standing empty while its line is under construction (ADR-0012), and a city that grows itself (ADR-0015).
  * Owner context: Board (adapter), tests.
  */
 import { planNeighborhood, planRing } from '@city/ground';
@@ -352,7 +352,8 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
   await expect(page.locator('#poppremises li').nth(4)).toContainText('Arrivals into empty homes: 4,800 people a year at most, citywide');
   await expect(page.locator('#poppremises li').last()).toContainText('People in homes with no school-age children: 60% of people');
 
-  // The month clock is the Board's default run.
+  // The month clock is the Board's default run; the city growing itself (ADR-0015) is turned off for the pinned figures.
+  await page.uncheck('#grow');
   await page.click('#found');
   await expect(page.locator('#said')).toHaveText(
     'An empty site, year 0, 10 crews. Place your first orders, then press Play to let the months run, or Next month to step one. Undo brings the old city back.',
@@ -402,6 +403,7 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
 });
 
 test('a neighborhood stands empty until the city carries it, and line 6 says when its line is under construction (ADR-0012)', async ({ page }) => {
+  await page.uncheck('#grow');
   await page.click('#found');
   await place(page, 'ring', ['0,0']);
   await place(page, 'hood', ['1,0']);
@@ -424,6 +426,7 @@ test('a neighborhood stands empty until the city carries it, and line 6 says whe
 });
 
 test('the months run on their own: Play moves the people, an order pauses, a reload keeps the month paused, and the run stops itself at year 20', async ({ page }) => {
+  await page.uncheck('#grow');
   await page.click('#run');
   await expect(page.locator('#said')).toHaveText(
     'The clock is on this city at year 0 of 20. What you place now is an order for the 10 crews. When your orders are in, press Play to let the months run, or Next month to step one.',
@@ -514,6 +517,7 @@ test("the site from the air: the ledger's city as 36 blocks of 238 stories on a 
 });
 
 test('the site from the air follows the clock: scaffolds for what is ordered, blocks as the crews finish, homes lit as people arrive (ADR-0012, ADR-0009)', async ({ page }) => {
+  await page.uncheck('#grow');
   await page.click('#found');
   await place(page, 'power', ['3,-1', '3,-1']);
   await place(page, 'water', ['3,-2']);
@@ -587,6 +591,7 @@ test('the viewer from the air: nearer shows rows then homes, a turn and a tilt r
   await expect(page.locator('#air-out')).toBeDisabled();
   // On the clock, a month where only who lives where changed repaints a region, or nothing when nobody moved;
   // starting the clock on a city with nothing on order changes nothing visible, so nothing is repainted.
+  await page.uncheck('#grow');
   await page.click('#run');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-repaint', 'none');
   await page.click('#month');
@@ -594,4 +599,62 @@ test('the viewer from the air: nearer shows rows then homes, a turn and a tilt r
   expect(['region', 'none']).toContain(repaint);
   await page.click('#air-turn');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-repaint', 'full');
+});
+
+test('the city grows itself: from nothing, Play founds it, the work in hand says what the city ordered, a veto holds, a player\'s order still pauses, and undo returns to Play (ADR-0015)', async ({ page }) => {
+  // The control is on by default and greyed in the yearly mode.
+  await expect(page.locator('#grow')).toBeChecked();
+  await page.check('#yearly');
+  await expect(page.locator('#grow')).toBeDisabled();
+  await page.uncheck('#yearly');
+  await expect(page.locator('#grow')).toBeEnabled();
+  await page.click('#found');
+  await expect(page.locator('#said')).toContainText('Press Play and the city founds itself');
+  await expect(page.locator('#said')).toContainText('The city orders what it needs as people arrive; Cancel on the work in hand vetoes an order.');
+  await expect(page.locator('#growbox')).toBeHidden();
+  // One month: the first neighborhood is ordered with nothing placed by hand, and nothing pauses.
+  await page.click('#month');
+  await expect(page.locator('#said')).toContainText('The city ordered a neighborhood for the people arriving.');
+  await expect(page.locator('#work li')).toHaveCount(1);
+  await expect(page.locator('#work li').first()).toHaveClass('inferred');
+  await expect(page.locator('#work li').first()).toContainText('ordered by the city');
+  await expect(page.locator('#monthrows tr').first().locator('td').last()).toHaveText('neighborhood');
+  // The next month the needs follow it: the ring, the plants, the schools, the line, and another neighborhood.
+  await page.click('#month');
+  await expect(page.locator('#said')).toContainText('The city ordered');
+  await expect(page.locator('#said')).toContainText('for a ring');
+  await expect(page.locator('#said')).toContainText('for the mover line');
+  await expect.poll(() => page.locator('#work li').count()).toBeGreaterThan(10);
+  // Cancel on one of the city's orders is a veto: it goes and says so; the rest stay.
+  const before = await page.locator('#work li').count();
+  const water = page.locator('#work li', { hasText: 'Water plant unit' }).first();
+  await water.locator('button', { hasText: 'Cancel' }).click();
+  await expect(page.locator('#said')).toContainText('Vetoed: water plant unit. The city will not order it there again; order it yourself to lift the veto.');
+  await expect(page.locator('#work li')).toHaveCount(before - 1);
+  // Play: the months run, the city builds itself and nothing pauses; the player's own order still pauses.
+  await page.selectOption('#speed', 'fast');
+  await page.click('#play');
+  await expect(page.locator('#play')).toHaveText('Pause');
+  // Two neighborhoods can open in one year, so the homes are watched leaving zero rather than reaching one figure.
+  await expect(page.locator('#clocknow')).not.toContainText('Homes for 0 people', { timeout: 30000 });
+  await expect(page.locator('#play')).toHaveText('Pause');
+  await place(page, 'hood', ['4,0']);
+  await expect(page.locator('#said')).toContainText('Ordered: neighborhood.');
+  await expect(page.locator('#said')).toContainText('Paused: your order is in. Press Play to carry on.');
+  await expect(page.locator('#play')).toHaveText('Play');
+  // Undo twice: the player's order, then the whole Play, back to where Play was pressed, the city's orders with it.
+  await page.click('#undo');
+  await page.click('#undo');
+  await expect(page.locator('#clocknow')).toContainText('Year 0 of 20. Homes for 0 people.');
+  await expect(page.locator('#peoplenow')).toContainText('Year 1, month 2 of 12.');
+  // A reload keeps the city growing itself: the months still say what the city ordered, and the control stays hidden.
+  await page.reload();
+  await expect(page.locator('#peoplenow')).toContainText('Year 1, month 2 of 12.');
+  await page.click('#monthbox summary');
+  await expect(page.locator('#orderedcol')).toBeVisible();
+  await expect(page.locator('#monthrows tr').first().locator('td').last()).toHaveText('neighborhood');
+  await expect(page.locator('#growbox')).toBeHidden();
+  await expect(page.locator('#play')).toHaveText('Play');
+  await page.click('#month');
+  await expect(page.locator('#said')).toContainText('The city ordered');
 });

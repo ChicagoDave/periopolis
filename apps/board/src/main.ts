@@ -258,15 +258,25 @@ function start(data: { game?: unknown }): void {
   });
   // A run is on the month clock (ADR-0009) unless the yearly mode, the sketch's, is asked for: homes full the year
   // they finish. Starting a run never starts the months running; Play does, once the orders are in.
+  // On the month clock the city grows itself unless the player turns it off (ADR-0015 Decision 9); the yearly mode
+  // cannot infer, so its box greys the control.
   const monthly = (): boolean => !byId<HTMLInputElement>('yearly').checked;
+  const grows = (): boolean => monthly() && byId<HTMLInputElement>('grow').checked;
+  const syncGrow = (): void => {
+    byId<HTMLInputElement>('grow').disabled = !monthly();
+  };
+  byId('yearly').addEventListener('change', syncGrow);
+  syncGrow();
   byId('run').addEventListener('click', () => {
     const growth = monthly();
-    page.swap(startRun(s.game.layout, seed(), RATES, RULES, { growth, inOrder: true }), clockStarted(RULES, growth, false));
+    const infer = grows();
+    page.swap(startRun(s.game.layout, seed(), RATES, RULES, { growth, inOrder: true, infer }), clockStarted(RULES, growth, false, infer));
   });
   byId('found').addEventListener('click', () => {
     const growth = monthly();
+    const infer = grows();
     s.picked = null;
-    page.swap(startRun(emptyLayout(), seed(), RATES, RULES, { growth, inOrder: true }), clockStarted(RULES, growth, true));
+    page.swap(startRun(emptyLayout(), seed(), RATES, RULES, { growth, inOrder: true, infer }), clockStarted(RULES, growth, true, infer));
   });
   byId('stop').addEventListener('click', () => page.swap(stopRun(s.game), 'The clock is stopped. Work in hand was finished at once.'));
   byId('play').addEventListener('click', () => {

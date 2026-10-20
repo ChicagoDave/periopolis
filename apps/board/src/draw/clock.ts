@@ -5,14 +5,14 @@
  * Public interface: drawClock, drawWork, yearLine (re-exported from wording).
  * Owner context: Board (adapter).
  */
-import { RULES, cancelJob, homesOf, occupiedOf, putFirst } from '@city/run';
+import { RULES, cancelJob, cancelOrder, homesOf, occupiedOf, putFirst } from '@city/run';
 import type { Clock, RecordRow } from '@city/run';
 import { LAYERS, POPULATION, edgeEnds } from '@city/site';
 import type { Layout, PopulationPremises } from '@city/site';
 import { button, byId, el } from '../dom.ts';
 import { cap, fmt, low, money, years } from '../format.ts';
 import type { Page } from '../page.ts';
-import { PIECE_NAME, POPULATION_PREMISE, checkTitle, noticeText, openedSentence, peopleNow, yearLine } from '../wording.ts';
+import { ORDERED_BY_CITY, PIECE_NAME, POPULATION_PREMISE, checkTitle, inferredCell, noticeText, openedSentence, peopleNow, vetoSaid, yearLine } from '../wording.ts';
 import { RATES } from '@city/site';
 import { markChip } from './money.ts';
 
@@ -62,6 +62,7 @@ function drawMonths(page: Page, layout: Layout, clock: Clock | null): void {
       el('td', 'num', fmt(m.deaths, 1)),
       el('td', 'num', fmt(m.left, 1)),
     );
+    if (clock.infer) tr.append(el('td', '', m.inferred ? inferredCell(m.inferred) : ''));
     body.append(tr);
   }
 }
@@ -76,6 +77,8 @@ export function drawClock(page: Page): void {
   byId('run').hidden = on;
   byId('found').hidden = on;
   byId('yearlybox').hidden = on;
+  byId('growbox').hidden = on;
+  byId('orderedcol').hidden = !clock?.infer;
   drawPopulation();
   drawMonths(page, s.game.layout, clock);
   now.textContent = '';
@@ -163,11 +166,13 @@ export function drawWork(page: Page): void {
     : `No work in hand. All ${hand.crews} crews are idle. Place something to give them a job.`;
   list.hidden = !hand.list.length;
   for (const j of hand.list) {
-    const li = el('li');
+    const li = el('li', j.inferred ? 'inferred' : '');
     const label = el('button', 'joblabel');
     const btns = el('span', 'jobbtns');
     const where = j.what === 'line' ? edgeEnds(j.at) : [j.at];
-    const when = j.status === 'working' ? `${years(j.left)} to go` : j.status === 'waiting' ? 'waiting for a crew' : `done, waits for its ${j.what === 'power' ? 'site' : 'homes'}`;
+    const when =
+      (j.status === 'working' ? `${years(j.left)} to go` : j.status === 'waiting' ? 'waiting for a crew' : `done, waits for its ${j.what === 'power' ? 'site' : 'homes'}`) +
+      (j.inferred ? `, ${ORDERED_BY_CITY}` : '');
     label.type = 'button';
     label.id = `job-${j.index}`;
     label.append(cap(PIECE_NAME[j.what]), el('span', '', when));
@@ -186,11 +191,12 @@ export function drawWork(page: Page): void {
       b.id = `first-${j.index}`;
       btns.append(b);
     }
+    // Cancelling a job the run ordered is a veto (ADR-0015 Decision 5): it goes through the Run, which remembers it.
     const x = button('Cancel', () => {
       s.remember();
-      s.game = { layout: s.game.layout, clock: { ...clock, jobs: cancelJob(clock.jobs, j.index) } };
+      s.game = { layout: s.game.layout, clock: j.inferred ? cancelOrder(clock, j.index) : { ...clock, jobs: cancelJob(clock.jobs, j.index) } };
       s.save();
-      page.say(`Canceled: ${PIECE_NAME[j.what]}.`);
+      page.say(j.inferred ? vetoSaid(j.what) : `Canceled: ${PIECE_NAME[j.what]}.`);
       page.render();
     });
     x.id = `cancel-${j.index}`;

@@ -200,3 +200,37 @@ describe('the months running on their own', () => {
     expect(s.game.clock?.growth?.month).toBe(2);
   });
 });
+
+describe('the city growing itself on the Board (ADR-0015)', () => {
+  const growRun = (): Game => startRun(emptyLayout(), 7, RATES, RULES, { growth: true, inOrder: true, infer: true });
+
+  it('a month step says what the city ordered after the month, saves the orders, and the timer plays on', () => {
+    const clock = fakeScheduler();
+    const store = memoryStore();
+    const s = newSession(growRun(), store);
+    const said: (string | null)[] = [];
+    const auto = newAutoRun(s, (t) => said.push(t), clock);
+    expect(auto.play()).toBe(true);
+    clock.fire();
+    expect(said[0]).toBe('Year 1, month 1: no homes stand yet, so nobody lives here. The city ordered a neighborhood for the people arriving.');
+    expect(s.game.clock?.jobs.map((j) => [j.what, j.inferred])).toEqual([['hood', true]]);
+    expect(auto.playing).toBe(true);
+    clock.fire();
+    expect(said[1]).toContain('The city ordered');
+    expect(s.game.clock?.jobs.length).toBeGreaterThan(5);
+    expect(auto.playing).toBe(true);
+    expect(restoreGame(store.load())).toEqual(s.game);
+    expect(restoreGame(store.load())?.clock?.infer).toBe(true);
+    // One undo takes the whole Play back, the city's orders with it.
+    auto.pause();
+    expect(s.undo()).toBe(true);
+    expect(s.game.clock?.jobs).toEqual([]);
+    expect(s.game.clock?.growth?.month).toBe(0);
+  });
+
+  it('a run without the control says nothing of orders and places none', () => {
+    const s = newSession(startRun(emptyLayout(), 7, RATES, RULES, { growth: true, inOrder: true }), memoryStore());
+    expect(monthStep(s)).toBe('Year 1, month 1: no homes stand yet, so nobody lives here.');
+    expect(s.game.clock?.jobs).toEqual([]);
+  });
+});
