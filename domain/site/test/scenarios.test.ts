@@ -58,10 +58,10 @@ function spokesCity(): Layout {
   for (const k of ['0,-2', '0,2']) s = must(toggleExtra(s, k, 'high', RATES));
   for (const k of ['2,-2', '-2,2']) s = must(toggleExtra(s, k, 'fields', RATES));
   for (let i = 0; i < 8; i++) s = must(addRingBuilding(s, '0,0', RATES));
-  s = must(addPlantUnit(s, '3,-1', 'power', RATES));
-  s = must(addPlantUnit(s, '3,-2', 'water', RATES));
-  s = must(addPlantUnit(s, '-3,1', 'sewage', RATES));
-  s = must(addPlantUnit(s, '-3,2', 'waste', RATES));
+  s = must(addPlantUnit(s, '0,4', 'power', RATES));
+  s = must(addPlantUnit(s, '-3,4', 'water', RATES));
+  s = must(addPlantUnit(s, '-1,4', 'sewage', RATES));
+  s = must(addPlantUnit(s, '-2,4', 'waste', RATES));
   return s;
 }
 
@@ -75,10 +75,20 @@ function loopedCity(): Layout {
   for (let i = 0; i < 6; i++) line(inner[i] ?? '', inner[(i + 1) % 6] ?? '');
   const outer = ['2,0', '2,-1', '2,-2', '1,-2', '0,-2', '-1,-1', '-2,0', '-2,1', '-2,2', '-1,2', '0,2', '1,1'];
   for (let i = 0; i < 12; i++) line(outer[i] ?? '', outer[(i + 1) % 12] ?? '');
-  line('3,-1', '3,-2');
-  line('-3,1', '-3,2');
+  // A second way to the plants on the shore: round by -1,3 to the neighborhood at -1,2, by -3,3 and -3,2 to the one
+  // at -2,2, and by 1,3 back to the line at 1,2.
+  line('-1,4', '-1,3');
+  line('-1,3', '-1,2');
+  line('-3,4', '-3,3');
+  line('-3,3', '-3,2');
+  line('-3,2', '-2,2');
+  line('0,4', '1,3');
+  line('1,3', '1,2');
+  // And a second way to the two outermost neighborhoods, round by the open ground at 3,-1 and -3,1.
   line('3,0', '3,-1');
+  line('3,-1', '2,-1');
   line('-3,0', '-3,1');
+  line('-3,1', '-2,1');
   return s;
 }
 
@@ -92,9 +102,10 @@ describe("the ledger's city on the board", () => {
     expect(Math.round(a.score.car?.acres ?? 0)).toBe(5857);
   });
 
-  it('holds 14 of 15 lines, with fine dining the one to watch', () => {
+  it('holds 15 of 16 lines, with fine dining the one to watch', () => {
     const holding = a.checks.filter((c) => c.status === 'ok');
-    expect(holding.length).toBe(14);
+    expect(holding.length).toBe(15);
+    expect(checkCalled(a.checks, 'flow').facts).toEqual({ check: 'flow', case: 'ordered', circles: 1 });
     const size = checkCalled(a.checks, 'size');
     expect(size.status).toBe('warn');
     expect(size.facts).toEqual({ check: 'size', case: 'underFine', fine: 71300, pop: 50000 });
@@ -124,7 +135,11 @@ describe("the ledger's city on the board", () => {
     expect(byId['more']?.gives).toEqual([]);
     const closure = byId['closure'];
     expect(closure?.gives.map((g) => g.id)).toEqual(['stops', 'ways']);
-    expect(bridges(starterLayout()).length).toBe(14);
+    // Ten spokes each cut off a neighborhood or two; the run of line south to the plants is a bridge that cuts off none.
+    const b = bridges(starterLayout());
+    expect(b).toHaveLength(11);
+    expect(b.filter((x) => x.cut > 0)).toHaveLength(10);
+    expect(b.find((x) => x.cut === 0)?.edge).toBe('1,1|1,2');
   });
 
   it('shows the board under a stretch test when asked, and the score of today beside it', () => {
@@ -138,21 +153,21 @@ describe("the ledger's city on the board", () => {
 
 describe('two far neighborhoods with no line', () => {
   let s = starterLayout();
-  s = must(placeNeighborhood(s, '4,-2', RATES));
-  s = must(placeNeighborhood(s, '4,-1', RATES));
+  s = must(placeNeighborhood(s, '3,0', RATES));
+  s = must(placeNeighborhood(s, '3,-1', RATES));
   const a = assess(s, RATES);
 
-  it('break three lines: the walk to work, the stop, and trips with no way', () => {
-    expect(a.checks.filter((c) => c.status === 'bad').map((c) => c.id)).toEqual(['work', 'stops', 'ways']);
+  it('break two lines, the stop and trips with no way; inside a circle every neighborhood is within the walk to work (ADR-0016)', () => {
+    expect(a.checks.filter((c) => c.status === 'bad').map((c) => c.id)).toEqual(['stops', 'ways']);
   });
 
-  it('leave 9.1% of trips with no way, and mark only themselves', () => {
+  it('leave 6.9% of trips with no way, and mark only themselves', () => {
     const ways = checkCalled(a.checks, 'ways');
     expect(ways.facts).toMatchObject({ case: 'stuck' });
-    expect(Math.round(1000 * a.score.stuck) / 10).toBe(9.1);
-    expect(ways.tiles).toEqual(['4,-2', '4,-1']);
+    expect(Math.round(1000 * a.score.stuck) / 10).toBe(6.9);
+    expect(ways.tiles).toEqual(['3,0', '3,-1']);
     expect(a.per['1,0']?.issues).toEqual([]);
-    expect(a.per['4,-2']?.issues.map((i) => i.kind)).toEqual(['farFromRingNoLine', 'noStop', 'tripsStuck']);
+    expect(a.per['3,0']?.issues.map((i) => i.kind)).toEqual(['noStop', 'tripsStuck']);
   });
 });
 
@@ -169,11 +184,11 @@ describe('growing to 100,000', () => {
   it('with loops every line holds and all four stretch tests hold, on 584 movers', () => {
     const looped = loopedCity();
     const a = assess(looped, RATES);
-    expect(a.checks.every((c) => c.status === 'ok')).toBe(true);
-    expect(a.tests.every((t) => t.gives.length === 0)).toBe(true);
+    expect(a.checks.filter((c) => c.status !== 'ok').map((c) => `${c.id}:${c.status}`)).toEqual([]);
     expect(bridges(looped)).toEqual([]);
+    expect(a.tests.filter((t) => t.gives.length).map((t) => `${t.id}:${t.gives.map((g) => g.id).join(',')}`)).toEqual([]);
     expect(Math.round(a.score.fleet)).toBe(584);
-    expect(Math.round(10 * a.score.moverKm) / 10).toBe(30.4);
+    expect(Math.round(10 * a.score.moverKm) / 10).toBe(36.3); // 30.4 km before the plants moved to the shore (ADR-0016)
   });
 });
 
@@ -191,9 +206,9 @@ describe('what the commands refuse', () => {
     for (let i = 0; i < 40; i++) s = must(addRingBuilding(s, '0,0', RATES));
     expect(addRingBuilding(s, '0,0', RATES)).toEqual({ ok: false, rejection: { reason: 'RingFull', tile: '0,0', most: 40 } });
     let p = emptyLayout();
-    for (let i = 0; i < 12; i++) p = must(addPlantUnit(p, '1,0', 'water', RATES));
-    expect(addPlantUnit(p, '1,0', 'water', RATES)).toEqual({ ok: false, rejection: { reason: 'PlantFull', tile: '1,0', most: 12 } });
-    expect(addPlantUnit(p, '1,0', 'sewage', RATES)).toEqual({ ok: false, rejection: { reason: 'TileTaken', tile: '1,0', by: 'water' } });
+    for (let i = 0; i < 12; i++) p = must(addPlantUnit(p, '4,0', 'water', RATES));
+    expect(addPlantUnit(p, '4,0', 'water', RATES)).toEqual({ ok: false, rejection: { reason: 'PlantFull', tile: '4,0', most: 12 } });
+    expect(addPlantUnit(p, '4,0', 'sewage', RATES)).toEqual({ ok: false, rejection: { reason: 'TileTaken', tile: '4,0', by: 'water' } });
   });
 
   it('a school outside a neighborhood, a stretch to itself or a non-neighbor, and erasing nothing', () => {
@@ -205,7 +220,7 @@ describe('what the commands refuse', () => {
 
   it('never changes the layout it was given', () => {
     const before = JSON.stringify(start);
-    must(placeNeighborhood(start, '4,0', RATES));
+    must(placeNeighborhood(start, '3,0', RATES));
     must(layStretch(start, '0,0', '1,0', RATES));
     must(erase(start, '0,0', RATES));
     expect(JSON.stringify(start)).toBe(before);

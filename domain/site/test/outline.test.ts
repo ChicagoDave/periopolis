@@ -75,14 +75,14 @@ describe("the city's outline", () => {
 
   it('is what the commands and the restore check against', () => {
     const start = starterLayout();
-    expect(placeNeighborhood(start, '-6,4', RATES).ok).toBe(true);
+    expect(placeNeighborhood(start, '-3,3', RATES).ok).toBe(true);
     expect(placeNeighborhood(start, '14,0', RATES)).toEqual({ ok: false, rejection: { reason: 'OffBoard', tile: '14,0' } });
     expect(placeNeighborhood(start, '0,5', RATES)).toEqual({ ok: false, rejection: { reason: 'OffBoard', tile: '0,5' } });
     const restored = restoreLayout(
-      { tiles: { '-6,4': { kind: 'hood' }, '14,0': { kind: 'hood' }, '0,5': { kind: 'hood' } }, lines: { '-6,4|-5,4': true, '13,0|14,0': true } },
+      { tiles: { '-3,3': { kind: 'hood' }, '14,0': { kind: 'hood' }, '0,5': { kind: 'hood' } }, lines: { '-3,3|-2,3': true, '13,0|14,0': true } },
       RATES,
     );
-    expect(restored).toEqual({ tiles: { '-6,4': { kind: 'hood', has: {} } }, lines: { '-5,4|-6,4': true }, circles: ['0,0'] });
+    expect(restored).toEqual({ tiles: { '-3,3': { kind: 'hood', has: {} } }, lines: { '-2,3|-3,3': true }, circles: ['0,0'] });
   });
 });
 

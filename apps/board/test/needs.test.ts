@@ -5,7 +5,7 @@
  * Owner context: Board (adapter), tests.
  */
 import { describe, expect, it } from 'vitest';
-import { RATES, allTiles, assess, emptyLayout, placeNeighborhood, proposeFor, starterLayout } from '@city/site';
+import { RATES, allTiles, assess, bandRule, emptyLayout, placeNeighborhood, proposeFor, starterLayout } from '@city/site';
 import type { Layout, TileKey } from '@city/site';
 import { RULES, startRun } from '@city/run';
 import { accept } from '../src/moves.ts';
@@ -41,7 +41,7 @@ describe('the needs card, worded', () => {
   });
 
   it('says when the site has no room', () => {
-    const full = placed(emptyLayout(), allTiles(RATES.outline));
+    const full = placed(emptyLayout(), allTiles(RATES.outline).filter((k) => !bandRule(['0,0'], k, 'home')));
     const ps = proposeFor(full, RATES);
     expect(needsNow(0, false, true)).toBe('The site has no room for the last of what it needs.');
     expect(proposalPrice(ps[0]!)).toBe('There is no room on the site for it.');
@@ -49,13 +49,13 @@ describe('the needs card, worded', () => {
 });
 
 describe('building what the city needs', () => {
-  it('Add all builds every proposal: no line broken, the tally back to 14 of 15 with one to watch', () => {
+  it('Add all builds every proposal: no line broken, the tally back to 15 of 16 with one to watch', () => {
     const m = accept({ layout: THIRTEEN, clock: null }, proposeFor(THIRTEEN, RATES));
     expect(m.changed).toBe(true);
     expect(m.said).toBe('Built 8 additions. Undo takes them back one click at a time.');
     const checks = assess(m.game.layout, RATES).checks;
     expect(checks.filter((c) => c.status === 'bad')).toEqual([]);
-    expect(checks.filter((c) => c.status === 'ok')).toHaveLength(14);
+    expect(checks.filter((c) => c.status === 'ok')).toHaveLength(15);
     expect(m.game.layout.tiles['0,0']).toEqual({ kind: 'ring', n: 9 });
     expect(m.game.layout.tiles['0,2']).toEqual({ kind: 'hood', has: { high: true, fields: true } });
     expect(proposeFor(m.game.layout, RATES)).toEqual([]);
@@ -65,7 +65,7 @@ describe('building what the city needs', () => {
     const one = placed(starterLayout(), ['2,0']);
     const m = accept({ layout: one, clock: null }, proposeFor(one, RATES));
     expect(m.said).toBe('Built: the mover line run to 2,0, on a line to the ring.');
-    expect(m.game.layout.lines['2,0|3,-1']).toBe(true);
+    expect(m.game.layout.lines['2,-1|2,0']).toBe(true);
     expect(assess(m.game.layout, RATES).checks.filter((c) => c.status === 'bad')).toEqual([]);
   });
 
@@ -78,7 +78,7 @@ describe('building what the city needs', () => {
   });
 
   it('builds nothing when there is no room, and says so', () => {
-    const full = placed(emptyLayout(), allTiles(RATES.outline));
+    const full = placed(emptyLayout(), allTiles(RATES.outline).filter((k) => !bandRule(['0,0'], k, 'home')));
     const m = accept({ layout: full, clock: null }, proposeFor(full, RATES));
     expect(m.changed).toBe(false);
     expect(m.game.layout).toBe(full);

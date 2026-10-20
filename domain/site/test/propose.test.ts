@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  bandRule,
   NEED_CHECKS,
   RATES,
   allTiles,
@@ -47,10 +48,10 @@ function tilesOf(step: Step): TileKey[] {
 
 const CASES: readonly (readonly [string, Layout])[] = [
   ['an eleventh neighborhood', hoods(starterLayout(), ['2,0'])],
-  ['one past the walk to the ring', hoods(starterLayout(), ['4,-2'])],
+  ['one past the walk to the ring, in the second circle', hoods({ ...starterLayout(), circles: ['0,0', '9,0'] }, ['12,0'])],
   ['thirteen neighborhoods', hoods(starterLayout(), ['2,0', '-3,0', '0,2'])],
   ['a lone neighborhood', hoods(emptyLayout(), ['0,0'])],
-  ['four scattered neighborhoods', hoods(emptyLayout(), ['0,0', '1,0', '3,3', '-4,2'])],
+  ['four scattered neighborhoods', hoods(emptyLayout(), ['0,0', '1,0', '2,1', '-3,2'])],
 ];
 
 describe('where each need goes', () => {
@@ -64,7 +65,7 @@ describe('where each need goes', () => {
     const p = ps[0];
     if (!p?.room) throw new Error('no room');
     expect(p.need).toEqual({ need: 'line', reach: ['2,0'], answers: ['stops', 'ways'] });
-    expect(p.steps).toEqual([{ command: 'layStretch', from: '2,0', to: '3,-1' }]);
+    expect(p.steps).toEqual([{ command: 'layStretch', from: '2,0', to: '2,-1' }]);
     expect(p.build).toBeGreaterThan(30e6);
     expect(p.build).toBeLessThan(50e6);
     expect(p.run).toBeGreaterThan(0);
@@ -74,16 +75,17 @@ describe('where each need goes', () => {
     const ps = proposeFor(hoods(starterLayout(), ['2,0', '-3,0', '0,2']), RATES);
     expect(ps.map((p) => (p.room ? p.steps : []))).toEqual([
       [{ command: 'addRingBuilding', tile: '0,0' }],
-      [{ command: 'addPlantUnit', tile: '3,-2', plant: 'water' }],
-      [{ command: 'addPlantUnit', tile: '-3,1', plant: 'sewage' }],
-      [{ command: 'addPlantUnit', tile: '-3,2', plant: 'waste' }],
+      [{ command: 'addPlantUnit', tile: '-3,4', plant: 'water' }],
+      [{ command: 'addPlantUnit', tile: '-1,4', plant: 'sewage' }],
+      [{ command: 'addPlantUnit', tile: '-2,4', plant: 'waste' }],
       [{ command: 'toggleExtra', tile: '2,0', extra: 'elementary' }],
       [{ command: 'toggleExtra', tile: '0,2', extra: 'high' }],
       [{ command: 'toggleExtra', tile: '0,2', extra: 'fields' }],
       [
-        { command: 'layStretch', from: '2,0', to: '3,-1' },
-        { command: 'layStretch', from: '-3,0', to: '-3,1' },
-        { command: 'layStretch', from: '0,2', to: '1,1' },
+        { command: 'layStretch', from: '2,0', to: '2,-1' },
+        { command: 'layStretch', from: '-3,0', to: '-2,0' },
+        { command: 'layStretch', from: '-2,0', to: '-1,0' },
+        { command: 'layStretch', from: '0,2', to: '1,2' },
       ],
     ]);
   });
@@ -141,7 +143,7 @@ describe('where each need goes', () => {
   });
 
   it('a board with no open ground for a ring says there is no room, and proposes nothing past it', () => {
-    const full = hoods(emptyLayout(), allTiles(RATES.outline));
+    const full = hoods(emptyLayout(), allTiles(RATES.outline).filter((k) => !bandRule(['0,0'], k, 'home')));
     const ps = proposeFor(full, RATES);
     expect(ps).toEqual([{ need: needsOf(full, RATES)[0], room: false }]);
     expect(ps[0]?.need.need).toBe('ring');
@@ -154,8 +156,8 @@ describe('where each need goes', () => {
     if (!last?.room) throw new Error('no room');
     const a = applyProposal(s, last.steps, RATES);
     if (!a.ok) throw new Error(a.rejection.reason);
-    expect(a.events.map((e) => e.type)).toEqual(['StretchLaid', 'StretchLaid', 'StretchLaid']);
-    expect(Object.keys(a.layout.lines)).toHaveLength(Object.keys(s.lines).length + 3);
+    expect(a.events.map((e) => e.type)).toEqual(['StretchLaid', 'StretchLaid', 'StretchLaid', 'StretchLaid']);
+    expect(Object.keys(a.layout.lines)).toHaveLength(Object.keys(s.lines).length + 4);
     expect(JSON.stringify(s)).toBe(before);
   });
 
@@ -182,10 +184,10 @@ describe('where the next neighborhood goes (ADR-0015 Decision 3)', () => {
   });
 
   it('with no ring goes next to the neighborhoods; with nothing standing, the middle; never a tile to avoid', () => {
-    const lone = hoods(emptyLayout(), ['3,3']);
+    const lone = hoods(emptyLayout(), ['2,1']);
     const at = proposeNeighborhood(lone, RATES);
     expect(at).not.toBeNull();
-    expect(kmBetween(at ?? '', '3,3', RATES.stepKm)).toBeCloseTo(RATES.stepKm, 9);
+    expect(kmBetween(at ?? '', '2,1', RATES.stepKm)).toBeCloseTo(RATES.stepKm, 9);
     expect(proposeNeighborhood(emptyLayout(), RATES)).toBe('0,0');
     expect(proposeNeighborhood(emptyLayout(), RATES, ['0,0'])).not.toBe('0,0');
     expect(kmBetween(proposeNeighborhood(emptyLayout(), RATES, ['0,0']) ?? '', '0,0', RATES.stepKm)).toBeCloseTo(RATES.stepKm, 9);

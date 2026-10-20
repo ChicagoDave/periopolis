@@ -30,7 +30,7 @@ function founding(seed: number): Game {
   g = order(g, (plan) => placeNeighborhood(plan, '0,1', RATES));
   g = order(g, (plan) => layStretch(plan, '0,0', '1,0', RATES));
   g = order(g, (plan) => layStretch(plan, '0,0', '0,1', RATES));
-  g = order(g, (plan) => addPlantUnit(plan, '3,-1', 'power', RATES));
+  g = order(g, (plan) => addPlantUnit(plan, '4,0', 'power', RATES));
   return g;
 }
 

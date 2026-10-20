@@ -1,5 +1,5 @@
 /**
- * @file The Site. A board of hexagonal tiles inside an outline, where the city is laid out; commands that lay it out; the fifteen line
+ * @file The Site. A board of hexagonal tiles inside an outline, where the city is laid out; commands that lay it out; the sixteen line
  * checks and the four stretch tests against the layout.
  * Public interface: the layout and its commands, assess, the rates, the board geometry, seating, the line network,
  * one day of its people hour by hour (the day view), what a layout needs to keep its lines whole and where each need could go, what a neighborhood lacks for people to move in (ADR-0012), a city sized to its people, and the cost of what stands (with the Ledger's cost and population names re-exported, so the Run depends on the Site
@@ -16,7 +16,8 @@ export { RATES, ratesFrom, SCHOOLS, EXTRAS, PLANTS } from './rates.ts';
 export type { SiteRates, TripShares, SchoolKind, ExtraKind, PlantKind } from './rates.ts';
 export { tileKey, tileAt, hexagon, rectangle, rectangleFrom, extent, eastWest, onBoard, allTiles, neighbors, adjacent, ringDistance, kmBetween, edgeKey, edgeEnds } from './board.ts';
 export type { TileKey, EdgeKey, Outline, Extent } from './board.ts';
-export { HOME_RINGS, BAND_RING, hexRing, circleTiles, bandOf, circleOf, inBand, circleFits, shoreTiles } from './circle.ts';
+export { HOME_RINGS, BAND_RING, hexRing, circleTiles, bandOf, circleOf, inBand, circleFits, shoreTiles, bandRule, upstreamOf } from './circle.ts';
+export type { BandVerdict } from './circle.ts';
 export { FIRST_CIRCLE, emptyLayout, starterLayout, restoreLayout, isPlantKind } from './layout.ts';
 export type { Layout, Tile, Neighborhood, Ring, Plant } from './layout.ts';
 export { placeNeighborhood, addRingBuilding, toggleExtra, addPlantUnit, layStretch, erase } from './commands.ts';

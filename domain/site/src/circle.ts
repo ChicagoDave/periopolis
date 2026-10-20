@@ -2,10 +2,15 @@
  * @file A circle: a central ring tile, three hex rings of homes within the walk, and a fourth, the band, where the
  * plants stand (ADR-0016). Circles are values laid out on the rectangular board along the shore; a tile outside every
  * circle is open to nothing.
- * Public interface: HOME_RINGS, BAND_RING, circleTiles, hexRing, bandOf, circleOf, inBand, circleFits, shoreTiles.
+ * Public interface: HOME_RINGS, BAND_RING, circleTiles, hexRing, bandOf, circleOf, inBand, circleFits, shoreTiles,
+ * bandRule, upstreamOf.
+ *
+ * The band rule (ADR-0016 Decision 2) is read off a layout's circles: a plant stands on a band, a neighborhood or ring
+ * inside one, and nothing outside every circle. A layout with no circles at all, which only the sketch's recorded
+ * fixtures carry (ADR-0003), is the sketch's free board and the rule is silent on it.
  * Owner context: Site (domain).
  */
-import { allTiles, extent, onBoard, ringDistance, tileAt, tileKey } from './board.ts';
+import { allTiles, eastWest, extent, onBoard, ringDistance, tileAt, tileKey } from './board.ts';
 import type { Outline, TileKey } from './board.ts';
 
 /** Hex rings of homes round a circle's ring: 1 to 3, every tile within the 30-minute walk of the ring. */
@@ -72,6 +77,37 @@ export function circleFits(middle: TileKey, outline: Outline): boolean {
     const [q, r] = tileAt(k);
     return onBoard(q, r, outline);
   });
+}
+
+/** What the band rule says of a tile for a kind of piece: nothing, or the rejection it earns. */
+export type BandVerdict = 'OutsideCircle' | 'OutsideBand' | 'InsideBand' | null;
+
+/**
+ * The band rule for one tile (ADR-0016 Decision 2): a plant goes on a band, a neighborhood or ring inside one, a
+ * stretch's ends anywhere in a circle; a tile outside every circle takes nothing. Silent when the layout has no circles.
+ * @param circles - the layout's circles' middles
+ * @param key - the tile
+ * @param piece - what would stand there: a plant, a home or ring, or a stretch's end
+ */
+export function bandRule(circles: readonly TileKey[] | undefined, key: TileKey, piece: 'plant' | 'home' | 'line'): BandVerdict {
+  if (!circles || !circles.length) return null;
+  const m = circleOf(circles, key);
+  if (m === null) return 'OutsideCircle';
+  const band = ringDistance(m, key) === BAND_RING;
+  if (piece === 'plant') return band ? null : 'OutsideBand';
+  if (piece === 'home') return band ? 'InsideBand' : null;
+  return null;
+}
+
+/**
+ * Whether one tile is strictly upstream of another along the shore: before it in the direction the current runs,
+ * read off the tiles' east-west positions (line 32; ADR-0016 Decision 5).
+ * @param a - the tile that would be upstream
+ * @param b - the other
+ * @param current - +1 when the current runs east, -1 when west
+ */
+export function upstreamOf(a: TileKey, b: TileKey, current: 1 | -1): boolean {
+  return (eastWest(b) - eastWest(a)) * current > 1e-9;
 }
 
 /**

@@ -284,6 +284,8 @@ export function checkTitle(id: LineCheck['id']): string {
       return 'Waste is sorted and food waste digested';
     case 'haul':
       return 'Nothing is hauled on the surface';
+    case 'flow':
+      return 'The intake is upstream of the outfall';
   }
 }
 
@@ -407,6 +409,11 @@ export function checkDetail(facts: Facts, rates: SiteRates, building = 0): strin
       if (facts.case === 'loose') return `${count(facts.count, 'plant is', 'plants are')} off the mover line. With no trucks on the surface, nothing can reach ${facts.count === 1 ? 'it' : 'them'}.`;
       void rates;
       return 'Every plant is on the mover line, so crews and freight reach it below ground.';
+    case 'flow':
+      if (facts.case === 'idle') return 'With a water plant and a sewage plant in a circle, the lake decides their order along the shore.';
+      if (facts.case === 'reversed')
+        return `In ${count(facts.circles, 'circle', 'circles')} the sewage outfall at ${list(facts.sewage)} is upstream of the water intake at ${list(facts.water)}, so the city would drink what it returns.`;
+      return `In ${facts.circles === 1 ? 'the circle' : `all ${facts.circles} circles`} the water intake is upstream of the sewage outfall along the shore.`;
   }
 }
 
@@ -437,6 +444,8 @@ export function issueText(issue: TileIssue): string {
       return 'Trips to it are past the walk, and no mover runs here';
     case 'plantOffLine':
       return 'Not on the mover line, so nothing can reach it below ground';
+    case 'flowReversed':
+      return 'This plant is on the wrong side: the sewage outfall is upstream of the water intake.';
   }
 }
 
@@ -463,6 +472,8 @@ export function needText(need: Need): string {
       return `Playing fields near ${list(need.near)}.`;
     case 'line':
       return `The mover line run to ${list(need.reach)}, on a line to the ring.`;
+    case 'intake':
+      return `A water intake upstream of the outfall at ${list(need.sewage)}.`;
   }
 }
 
@@ -547,6 +558,12 @@ export function moveSaid(tool: ToolId, outcome: Outcome, rates: SiteRates): stri
         return 'The line runs between neighboring tiles. Starting again from here.';
       case 'NothingThere':
         return 'Nothing to remove there.';
+      case 'OutsideCircle':
+        return 'That ground is outside the city\'s circles. Nothing stands there until a circle is opened.';
+      case 'OutsideBand':
+        return 'A plant stands on the outer band of a circle, by the shore.';
+      case 'InsideBand':
+        return tool === 'ring' ? 'The ring stands in the middle of a circle, inside the band.' : 'Homes stand inside the band; the band is for the plants.';
     }
   }
   const e = outcome.event;
@@ -844,6 +861,7 @@ export const INFERRED_WHY: Readonly<Record<InferredWhy, string>> = {
   schools: 'school seats',
   fields: 'the walk to the fields',
   line: 'the mover line',
+  intake: 'the intake upstream of the outfall',
   homes: 'the people arriving',
 };
 

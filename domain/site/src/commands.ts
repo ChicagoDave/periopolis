@@ -5,10 +5,12 @@
  * Owner context: Site (domain).
  *
  * A command never changes the layout it is given; it returns a new one with the event. The sentences the page shows
- * are the Board's wording of these events.
+ * are the Board's wording of these events. Every placing command keeps the band rule (ADR-0016 Decision 2): a plant
+ * on a band, a neighborhood or ring inside one, nothing outside every circle; `erase` takes anything down.
  */
 import { adjacent, edgeEnds, edgeKey, onBoard, tileAt } from './board.ts';
 import type { EdgeKey, TileKey } from './board.ts';
+import { bandRule } from './circle.ts';
 import type { Layout, Tile } from './layout.ts';
 import type { ExtraKind, PlantKind, SiteRates } from './rates.ts';
 
@@ -36,7 +38,13 @@ export type SiteRejection =
   | { readonly reason: 'NotANeighborhood'; readonly tile: TileKey; readonly extra: ExtraKind }
   | { readonly reason: 'SameTile'; readonly tile: TileKey }
   | { readonly reason: 'NotAdjacent'; readonly from: TileKey; readonly to: TileKey }
-  | { readonly reason: 'NothingThere'; readonly tile: TileKey };
+  | { readonly reason: 'NothingThere'; readonly tile: TileKey }
+  /** The tile is on no circle (ADR-0016 Decision 2). */
+  | { readonly reason: 'OutsideCircle'; readonly tile: TileKey }
+  /** A plant may stand only on a circle's band. */
+  | { readonly reason: 'OutsideBand'; readonly tile: TileKey }
+  /** A neighborhood or ring may stand only inside a circle's band. */
+  | { readonly reason: 'InsideBand'; readonly tile: TileKey };
 
 /** A command's answer. */
 export type Outcome =
@@ -60,23 +68,33 @@ function offBoard(key: TileKey, rates: SiteRates): boolean {
   return Number.isNaN(q) || Number.isNaN(r) || !onBoard(q, r, rates.outline);
 }
 
+/** The band rule's rejection for a tile, or null when the tile may hold the piece. */
+function banded(layout: Layout, key: TileKey, piece: 'plant' | 'home' | 'line'): SiteRejection | null {
+  const verdict = bandRule(layout.circles, key, piece);
+  return verdict ? { reason: verdict, tile: key } : null;
+}
+
 /**
- * Place a neighborhood on open ground.
- * @returns NeighborhoodPlaced, or OffBoard or TileTaken
+ * Place a neighborhood on open ground inside a circle's band.
+ * @returns NeighborhoodPlaced, or OffBoard, OutsideCircle, InsideBand or TileTaken
  */
 export function placeNeighborhood(layout: Layout, key: TileKey, rates: SiteRates): Outcome {
   if (offBoard(key, rates)) return refuse({ reason: 'OffBoard', tile: key });
+  const band = banded(layout, key, 'home');
+  if (band) return refuse(band);
   const t = layout.tiles[key];
   if (t) return refuse({ reason: 'TileTaken', tile: key, by: t.kind });
   return accept(withTile(layout, key, { kind: 'hood', has: {} }), { type: 'NeighborhoodPlaced', tile: key });
 }
 
 /**
- * Start a ring on open ground, or add a building to one.
- * @returns RingStarted or RingBuildingAdded, or OffBoard, TileTaken or RingFull
+ * Start a ring on open ground inside a circle's band, or add a building to one.
+ * @returns RingStarted or RingBuildingAdded, or OffBoard, OutsideCircle, InsideBand, TileTaken or RingFull
  */
 export function addRingBuilding(layout: Layout, key: TileKey, rates: SiteRates): Outcome {
   if (offBoard(key, rates)) return refuse({ reason: 'OffBoard', tile: key });
+  const band = banded(layout, key, 'home');
+  if (band) return refuse(band);
   const t = layout.tiles[key];
   if (!t) return accept(withTile(layout, key, { kind: 'ring', n: 1 }), { type: 'RingStarted', tile: key });
   if (t.kind !== 'ring') return refuse({ reason: 'TileTaken', tile: key, by: t.kind });
@@ -90,10 +108,12 @@ export function addRingBuilding(layout: Layout, key: TileKey, rates: SiteRates):
 
 /**
  * Add a school or playing fields to a neighborhood, or remove them if it has them.
- * @returns ExtraAdded or ExtraRemoved, or OffBoard or NotANeighborhood
+ * @returns ExtraAdded or ExtraRemoved, or OffBoard, OutsideCircle, InsideBand or NotANeighborhood
  */
 export function toggleExtra(layout: Layout, key: TileKey, extra: ExtraKind, rates: SiteRates): Outcome {
   if (offBoard(key, rates)) return refuse({ reason: 'OffBoard', tile: key });
+  const band = banded(layout, key, 'home');
+  if (band) return refuse(band);
   const t = layout.tiles[key];
   if (!t || t.kind !== 'hood') return refuse({ reason: 'NotANeighborhood', tile: key, extra });
   const has: Partial<Record<ExtraKind, true>> = { ...t.has };
@@ -107,11 +127,13 @@ export function toggleExtra(layout: Layout, key: TileKey, extra: ExtraKind, rate
 }
 
 /**
- * Start a plant on open ground, or add a module or unit to one of the same kind.
- * @returns PlantStarted or PlantUnitAdded, or OffBoard, TileTaken or PlantFull
+ * Start a plant on open ground on a circle's band, or add a module or unit to one of the same kind.
+ * @returns PlantStarted or PlantUnitAdded, or OffBoard, OutsideCircle, OutsideBand, TileTaken or PlantFull
  */
 export function addPlantUnit(layout: Layout, key: TileKey, plant: PlantKind, rates: SiteRates): Outcome {
   if (offBoard(key, rates)) return refuse({ reason: 'OffBoard', tile: key });
+  const band = banded(layout, key, 'plant');
+  if (band) return refuse(band);
   const t = layout.tiles[key];
   if (!t) return accept(withTile(layout, key, { kind: plant, n: 1 }), { type: 'PlantStarted', tile: key, plant });
   if (t.kind !== plant) return refuse({ reason: 'TileTaken', tile: key, by: t.kind });
@@ -125,12 +147,16 @@ export function addPlantUnit(layout: Layout, key: TileKey, plant: PlantKind, rat
 }
 
 /**
- * Lay a stretch of mover line between two neighboring tiles, or remove it if it is there.
- * @returns StretchLaid or StretchRemoved, or OffBoard, SameTile or NotAdjacent
+ * Lay a stretch of mover line between two neighboring tiles in a circle, or remove it if it is there.
+ * @returns StretchLaid or StretchRemoved, or OffBoard, OutsideCircle, SameTile or NotAdjacent
  */
 export function layStretch(layout: Layout, from: TileKey, to: TileKey, rates: SiteRates): Outcome {
   if (offBoard(from, rates)) return refuse({ reason: 'OffBoard', tile: from });
   if (offBoard(to, rates)) return refuse({ reason: 'OffBoard', tile: to });
+  const bandFrom = banded(layout, from, 'line');
+  if (bandFrom) return refuse(bandFrom);
+  const bandTo = banded(layout, to, 'line');
+  if (bandTo) return refuse(bandTo);
   if (from === to) return refuse({ reason: 'SameTile', tile: to });
   if (!adjacent(from, to, rates.outline)) return refuse({ reason: 'NotAdjacent', from, to });
   const e = edgeKey(from, to);

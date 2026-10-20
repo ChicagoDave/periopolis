@@ -34,11 +34,11 @@ const ALONE = build(emptyLayout(), (l) => placeNeighborhood(l, '0,0', RATES));
 /** One neighborhood with two reactor modules and a unit of each plant, and no school. */
 const SERVED = build(
   ALONE,
-  (l) => addPlantUnit(l, '3,-1', 'power', RATES),
-  (l) => addPlantUnit(l, '3,-1', 'power', RATES),
-  (l) => addPlantUnit(l, '3,-2', 'water', RATES),
-  (l) => addPlantUnit(l, '-3,1', 'sewage', RATES),
-  (l) => addPlantUnit(l, '-3,2', 'waste', RATES),
+  (l) => addPlantUnit(l, '4,0', 'power', RATES),
+  (l) => addPlantUnit(l, '4,0', 'power', RATES),
+  (l) => addPlantUnit(l, '-4,0', 'water', RATES),
+  (l) => addPlantUnit(l, '-4,3', 'sewage', RATES),
+  (l) => addPlantUnit(l, '-4,2', 'waste', RATES),
 );
 /** A ring with a neighborhood beside it, and no line. */
 const NO_LINE = build(emptyLayout(), (l) => addRingBuilding(l, '0,0', RATES), (l) => placeNeighborhood(l, '1,0', RATES));
@@ -130,7 +130,7 @@ describe('stops under construction', () => {
   });
 
   it('work in hand that lays no line and builds no ring puts no stop under construction', () => {
-    const g = order(run, (p) => addPlantUnit(p, '3,-2', 'water', RATES));
+    const g = order(run, (p) => addPlantUnit(p, '-4,0', 'water', RATES));
     expect(stopsBuilding(g.layout, clockOf(g).jobs, RATES)).toEqual([]);
   });
 

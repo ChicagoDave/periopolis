@@ -79,7 +79,7 @@ describe("David's founding of 2026-10-15, twenty years on the real path", () => 
     expect(hoodsOf(grown)).toBe(12);
     expect(last(grown).homes).toBe(60000);
     expect(last(grown).broken).toEqual([]);
-    expect(last(grown).held).toBe(13);
+    expect(last(grown).held).toBe(14); // 13 before the plants moved to the shore (ADR-0016 Phase 3)
     expect(grown.clock?.lineYears).toBe(0);
     expect(last(grown).heldBack).toEqual([]);
     const bag = inferredBag(grown);
@@ -113,13 +113,13 @@ describe('one neighborhood on an empty site, and nothing at all, twenty years gr
     expect(firstPeople(fromOne)).toBe(3);
     const bag = inferredBag(fromOne);
     expect(bag.hood).toBe(13);
-    expect(bag.line).toBe(18);
+    expect(bag.line).toBe(22); // 18 before the plants moved to the shore: four stretches more reach the band
     expect(bag.water).toBe(2);
   });
 
-  it('the 5 line-years: the ring the lone neighborhood lacks in its first year, and three times a piece that opened a year before its stretch', () => {
+  it('the 5 line-years: the ring the lone neighborhood lacks in its first year, the haul and the fields a year before their stretch, and a stop in year 16', () => {
     const broken = (fromOne.clock?.record ?? []).filter((r) => r.year > 0 && r.bad > 0).map((r) => `${r.year}: ${r.broken.join(', ')}`);
-    expect(broken).toEqual(['1: ring', '2: haul', '7: haul', '16: stops, ways']);
+    expect(broken).toEqual(['1: ring', '2: haul', '3: fields', '16: stops, ways']); // '7: haul' before the plants moved to the shore
   });
 
   it('from nothing: 53,698 people in 13 neighborhoods, every line held at year 20, 3 line-years, the first in year 5', () => {

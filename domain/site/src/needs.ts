@@ -43,7 +43,9 @@ export type Need =
   /** Neighborhoods with no fields within the walk or a ride: fields near them. */
   | { readonly need: 'fields'; readonly near: readonly TileKey[]; readonly answers: readonly CheckId[] }
   /** Tiles the mover line must reach, joined to the ring. */
-  | { readonly need: 'line'; readonly reach: readonly TileKey[]; readonly answers: readonly CheckId[] };
+  | { readonly need: 'line'; readonly reach: readonly TileKey[]; readonly answers: readonly CheckId[] }
+  /** An outfall upstream of an intake (line 32): a water unit upstream of these sewage plants, one circle at a time. */
+  | { readonly need: 'intake'; readonly sewage: readonly TileKey[]; readonly answers: readonly CheckId[] };
 
 /** The checks a built thing can mend; a broken one always yields a need. */
 export const NEED_CHECKS: readonly CheckId[] = [
@@ -60,13 +62,14 @@ export const NEED_CHECKS: readonly CheckId[] = [
   'sewage',
   'waste',
   'haul',
+  'flow',
 ];
 
 const LINE_CHECKS: readonly CheckId[] = ['stops', 'work', 'ways', 'haul'];
 
 /**
  * What the layout lacks in an ordinary year, one need per thing to build, in a fixed order: ring, modules, plants,
- * schools, fields, line.
+ * schools, fields, intake, line.
  * @param layout - the board
  * @param rates - the ledger's rates
  * @returns the needs; empty when no check a built thing can mend is broken
@@ -119,6 +122,9 @@ function needsFrom(core: Core, layout: Layout, rates: SiteRates): readonly Need[
 
   const fields = broken('fields');
   if (fields) out.push({ need: 'fields', near: fields.tiles.length ? fields.tiles : hoodsOf(layout), answers: ['fields'] });
+
+  const flow = broken('flow');
+  if (flow && flow.facts.check === 'flow' && flow.facts.case === 'reversed') out.push({ need: 'intake', sewage: flow.facts.sewage, answers: ['flow'] });
 
   const lineBroken = LINE_CHECKS.map(broken).filter((c): c is LineCheck => c !== null);
   if (lineBroken.length) {

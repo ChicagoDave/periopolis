@@ -15,8 +15,8 @@ describe('a city sized to its people', () => {
     const sized = sizedLayout(RATES);
     const starter = starterLayout();
     expect(sized.tiles['0,0']).toEqual({ kind: 'ring', n: 7 });
-    expect(sized.tiles['3,-1']).toEqual({ kind: 'power', n: 2 });
-    const others = (l: Layout): Layout['tiles'] => Object.fromEntries(Object.entries(l.tiles).filter(([k]) => k !== '0,0' && k !== '3,-1'));
+    expect(sized.tiles['0,4']).toEqual({ kind: 'power', n: 2 });
+    const others = (l: Layout): Layout['tiles'] => Object.fromEntries(Object.entries(l.tiles).filter(([k]) => k !== '0,0' && k !== '0,4'));
     expect(others(sized)).toEqual(others(starter));
     expect(sized.lines).toEqual(starter.lines);
   });
@@ -36,7 +36,7 @@ describe('a city sized to its people', () => {
   it('one building or module fewer would break a line', () => {
     const sized = sizedLayout(RATES);
     expect(assess({ ...sized, tiles: { ...sized.tiles, '0,0': { kind: 'ring', n: 6 } } }, RATES).checks.find((c) => c.id === 'ring')?.status).toBe('bad');
-    expect(assess({ ...sized, tiles: { ...sized.tiles, '3,-1': { kind: 'power', n: 1 } } }, RATES).checks.find((c) => c.id === 'power')?.status).toBe('bad');
+    expect(assess({ ...sized, tiles: { ...sized.tiles, '0,4': { kind: 'power', n: 1 } } }, RATES).checks.find((c) => c.id === 'power')?.status).toBe('bad');
   });
 
   it('refuses to size a city that needs something', () => {

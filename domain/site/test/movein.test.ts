@@ -29,8 +29,8 @@ function must(outcome: Outcome): Layout {
 }
 
 /** The lone neighborhood with one module: 5,000 people peak at 7.5 MW, which one 77 MW module carries only while it runs. */
-const ONE_MODULE = must(addPlantUnit(ALONE, '3,-1', 'power', RATES));
-const TWO_MODULES = must(addPlantUnit(ONE_MODULE, '3,-1', 'power', RATES));
+const ONE_MODULE = must(addPlantUnit(ALONE, '4,0', 'power', RATES));
+const TWO_MODULES = must(addPlantUnit(ONE_MODULE, '4,0', 'power', RATES));
 
 describe('a neighborhood nobody lives in', () => {
   it('lacks its stop as a watch: line 6 is amber, marks it, and counts it', () => {
@@ -196,7 +196,7 @@ describe('power with every module running (ADR-0012 Decision 3, amended 2026-10-
     const check = checkOf(ONE_MODULE, 'power');
     expect(check?.status).toBe('bad');
     expect(check?.facts).toEqual({ check: 'power', case: 'noSpare', modules: 1, peakMw: 7.5, needed: 2 });
-    expect(check?.tiles).toEqual(['3,-1']);
+    expect(check?.tiles).toEqual(['4,0']);
     expect(moveInGate(ONE_MODULE, RATES, '0,0', {}).short).toEqual(['water', 'sewage', 'waste']);
   });
 

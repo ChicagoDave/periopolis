@@ -10,7 +10,7 @@ import { RULES, notices, startRun, tick, tickMonth } from '@city/run';
 import type { Game, HeldBack, MonthRow } from '@city/run';
 import { move } from '../src/moves.ts';
 import type { ToolId } from '../src/wording.ts';
-import { checkDetail, checkTitle, heldBackLine, heldHere, issueText, linesLabel, needText, noticeText, stopsInHand, testLabel } from '../src/wording.ts';
+import { checkDetail, checkTitle, heldBackLine, heldHere, issueText, linesLabel, moveSaid, needText, noticeText, stopsInHand, testLabel } from '../src/wording.ts';
 import { DAY_NAME, DAY_PREMISE, POPULATION_PREMISE, dayCaption, hourLabel, monthLine, peopleNow } from '../src/wording.ts';
 import { PAUSED_FOR_ORDER, SPEED_NAME, clockStarted, yearLine, yearsUp } from '../src/wording.ts';
 import { INFERRED_WHY, ORDERED_BY_CITY, inferredCell, inferredLine, vetoSaid } from '../src/wording.ts';
@@ -55,7 +55,8 @@ describe('the line checks, worded', () => {
       if (c.showing) options.show = c.showing;
       if (c.now) options.now = c.now;
       const a = assess(c.state, RATES, options);
-      const worded = a.checks.map((k) => ({ id: k.id, lines: linesLabel(k.lines), title: checkTitle(k.id), detail: asSketchWorded(k.facts) }));
+      // The sketch wrote fifteen checks; `flow` (line 32, ADR-0016) is worded by the Site's own tests below.
+      const worded = a.checks.filter((k) => k.id !== 'flow').map((k) => ({ id: k.id, lines: linesLabel(k.lines), title: checkTitle(k.id), detail: asSketchWorded(k.facts) }));
       expect(worded).toEqual(c.result.rules.map((r) => ({ id: r.id, lines: r.lines, title: r.title, detail: r.detail })));
       const issues: Record<string, string[]> = {};
       for (const [k, p] of Object.entries(a.per)) issues[k] = p.issues.map(issueText);
@@ -371,5 +372,22 @@ describe('the city growing itself, worded (ADR-0015)', () => {
     expect(clockStarted(RULES, true, false, true)).toContain('The city orders what it needs as people arrive');
     expect(clockStarted(RULES, true, false, false)).not.toContain('The city orders');
     expect(clockStarted(RULES, true, true)).toBe(clockStarted(RULES, true, true, false));
+  });
+});
+
+describe('the band and the flow, worded (ADR-0016)', () => {
+  it('words the three band rejections by tool, the flow check in each case, the tile issue and the intake need', () => {
+    expect(moveSaid('hood', { ok: false, rejection: { reason: 'InsideBand', tile: '4,0' } }, RATES)).toBe('Homes stand inside the band; the band is for the plants.');
+    expect(moveSaid('ring', { ok: false, rejection: { reason: 'InsideBand', tile: '4,0' } }, RATES)).toBe('The ring stands in the middle of a circle, inside the band.');
+    expect(moveSaid('water', { ok: false, rejection: { reason: 'OutsideBand', tile: '1,0' } }, RATES)).toBe('A plant stands on the outer band of a circle, by the shore.');
+    expect(moveSaid('hood', { ok: false, rejection: { reason: 'OutsideCircle', tile: '15,-4' } }, RATES)).toBe("That ground is outside the city's circles. Nothing stands there until a circle is opened.");
+    expect(checkTitle('flow')).toBe('The intake is upstream of the outfall');
+    expect(linesLabel([32])).toBe('Line 32');
+    expect(checkDetail({ check: 'flow', case: 'idle' }, RATES)).toBe('With a water plant and a sewage plant in a circle, the lake decides their order along the shore.');
+    expect(checkDetail({ check: 'flow', case: 'ordered', circles: 1 }, RATES)).toBe('In the circle the water intake is upstream of the sewage outfall along the shore.');
+    expect(checkDetail({ check: 'flow', case: 'ordered', circles: 2 }, RATES)).toBe('In all 2 circles the water intake is upstream of the sewage outfall along the shore.');
+    expect(checkDetail({ check: 'flow', case: 'reversed', circles: 1, water: ['0,4'], sewage: ['-1,4'] }, RATES)).toBe('In 1 circle the sewage outfall at -1,4 is upstream of the water intake at 0,4, so the city would drink what it returns.');
+    expect(issueText({ kind: 'flowReversed' })).toBe('This plant is on the wrong side: the sewage outfall is upstream of the water intake.');
+    expect(needText({ need: 'intake', sewage: ['-1,4'], answers: ['flow'] })).toBe('A water intake upstream of the outfall at -1,4.');
   });
 });

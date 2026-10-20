@@ -56,17 +56,17 @@ describe('jobs and crews', () => {
 
   it("a reactor's first module takes three years with its site; the second takes one", () => {
     let g = startRun(emptyLayout(), 1, RATES, RULES);
-    const first = placeOrder(g, (plan) => addPlantUnit(plan, '3,-1', 'power', RATES), RULES);
-    expect(first.ok && first.events).toEqual([{ type: 'JobOrdered', what: 'power', at: '3,-1', total: 3, startsNow: true, withSite: true }]);
+    const first = placeOrder(g, (plan) => addPlantUnit(plan, '4,0', 'power', RATES), RULES);
+    expect(first.ok && first.events).toEqual([{ type: 'JobOrdered', what: 'power', at: '4,0', total: 3, startsNow: true, withSite: true }]);
     g = must(first);
-    const second = placeOrder(g, (plan) => addPlantUnit(plan, '3,-1', 'power', RATES), RULES);
-    expect(second.ok && second.events).toEqual([{ type: 'JobOrdered', what: 'power', at: '3,-1', total: 1, startsNow: true, withSite: false }]);
+    const second = placeOrder(g, (plan) => addPlantUnit(plan, '4,0', 'power', RATES), RULES);
+    expect(second.ok && second.events).toEqual([{ type: 'JobOrdered', what: 'power', at: '4,0', total: 1, startsNow: true, withSite: false }]);
   });
 
   it('a school waits for its homes and a module for its site; the neighborhood opens with its school', () => {
     let g = startRun(emptyLayout(), 1, RATES, RULES);
-    g = order(g, (p) => addPlantUnit(p, '3,-1', 'power', RATES));
-    g = order(g, (p) => addPlantUnit(p, '3,-1', 'power', RATES));
+    g = order(g, (p) => addPlantUnit(p, '4,0', 'power', RATES));
+    g = order(g, (p) => addPlantUnit(p, '4,0', 'power', RATES));
     g = order(g, (p) => placeNeighborhood(p, '1,0', RATES));
     g = order(g, (p) => toggleExtra(p, '1,0', 'elementary', RATES));
     expect(Object.keys(g.layout.tiles)).toEqual([]);
@@ -78,7 +78,7 @@ describe('jobs and crews', () => {
     expect(g.layout.tiles['1,0']).toEqual({ kind: 'hood', has: { elementary: true } });
     expect(g.clock?.record[2]).toMatchObject({ year: 2, pop: 5000, opened: { hood: 1, elementary: 1 } });
     g = tick(g, RATES, RULES);
-    expect(g.layout.tiles['3,-1']).toEqual({ kind: 'power', n: 2 });
+    expect(g.layout.tiles['4,0']).toEqual({ kind: 'power', n: 2 });
     expect(g.clock?.jobs).toEqual([]);
     expect(g.clock?.lineYears).toBe(g.clock?.record.filter((r) => r.year > 0).reduce((t, r) => t + r.bad, 0));
   });
@@ -123,12 +123,12 @@ describe('jobs and crews', () => {
     g = order(g, (p) => placeNeighborhood(p, '2,0', RATES));
     g = order(g, (p) => toggleExtra(p, '2,0', 'elementary', RATES));
     g = order(g, (p) => toggleExtra(p, '2,0', 'high', RATES));
-    g = order(g, (p) => addPlantUnit(p, '3,0', 'power', RATES));
-    g = order(g, (p) => addPlantUnit(p, '3,0', 'power', RATES));
+    g = order(g, (p) => addPlantUnit(p, '4,0', 'power', RATES));
+    g = order(g, (p) => addPlantUnit(p, '4,0', 'power', RATES));
     let jobs = cancelJob(g.clock?.jobs ?? [], 3);
-    expect(jobs.filter((j) => j.what === 'power')).toEqual([{ what: 'power', at: '3,0', left: 3, total: 3 }]);
+    expect(jobs.filter((j) => j.what === 'power')).toEqual([{ what: 'power', at: '4,0', left: 3, total: 3 }]);
     jobs = cancelJob(jobs, 0);
-    expect(jobs).toEqual([{ what: 'power', at: '3,0', left: 3, total: 3 }]);
+    expect(jobs).toEqual([{ what: 'power', at: '4,0', left: 3, total: 3 }]);
   });
 
   it('stopping the clock finishes the work in hand at once', () => {
@@ -186,8 +186,17 @@ describe('the promise', () => {
     lay('1,1', '1,0');
     lay('-2,1', '-1,0');
     lay('-1,-1', '0,-1');
-    lay('3,-1', '3,-2');
-    lay('-3,1', '-3,2');
+    // The plants on the shore (ADR-0016) get a second way too: round by 0,2 to the line's foot at 0,3, by 1,3 to its
+    // head at 1,2, and a loop through -1,3, -2,3 and -3,3 behind the three plants west of it.
+    lay('0,1', '0,2');
+    lay('0,2', '0,3');
+    lay('0,4', '1,3');
+    lay('1,3', '1,2');
+    lay('-1,4', '-1,3');
+    lay('-1,3', '0,3');
+    lay('-1,3', '-2,3');
+    lay('-2,3', '-3,3');
+    lay('-3,3', '-3,4');
     return s;
   })();
 
@@ -195,7 +204,7 @@ describe('the promise', () => {
     const plain = assess(starterLayout(), RATES).tests.find((t) => t.id === 'closure');
     expect(plain && plain.gives.length > 0).toBe(true);
     const a = assess(looped, RATES);
-    expect(Object.keys(looped.lines).length).toBe(26);
+    expect(Object.keys(looped.lines).length).toBe(35);
     expect(bridges(looped)).toEqual([]);
     expect(a.tests.every((t) => t.gives.length === 0)).toBe(true);
     expect(a.checks.every((c) => c.status === 'ok' || c.id === 'size')).toBe(true);
@@ -224,7 +233,8 @@ describe('the promise', () => {
 
 /** The sketch's founding script: everything else ahead of the homes, and a bypass when a closure is announced. */
 function found(seed: number, react: boolean): { game: Game; crewYears: number } {
-  let game = startRun(emptyLayout(), seed, RATES, RULES);
+  // The sketch's founding on its own free board: no circles, so the band rule is silent (ADR-0016 Decision 4).
+  let game = startRun({ ...emptyLayout(), circles: [] }, seed, RATES, RULES);
   const act = (command: (plan: Layout) => Outcome): void => {
     game = order(game, command);
   };

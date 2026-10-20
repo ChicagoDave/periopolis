@@ -1,5 +1,5 @@
 /**
- * @file What an assessment reports: the fifteen line checks as typed facts, the issues marked on each tile, the score,
+ * @file What an assessment reports: the sixteen line checks as typed facts, the issues marked on each tile, the score,
  * and the stress a layout is checked under. No sentences; the Board words these.
  * Public interface: CheckStatus, CheckId, Facts, LineCheck, TileIssue, TileLevel, Reach, TileReport, Stress, NO_STRESS,
  * CarComparison, Score, Core.
@@ -13,7 +13,7 @@ import type { Seat } from './seating.ts';
 /** How a line stands against the layout: nothing to check yet, holds, watch, or broken. */
 export type CheckStatus = 'idle' | 'ok' | 'warn' | 'bad';
 
-/** The fifteen checks. */
+/** The sixteen checks: the sketch's fifteen and `flow`, line 32 (ADR-0016 Decision 5). */
 export type CheckId =
   | 'daily'
   | 'size'
@@ -24,7 +24,8 @@ export type CheckId =
   | 'fields'
   | 'ways'
   | PlantKind
-  | 'haul';
+  | 'haul'
+  | 'flow';
 
 /** The facts behind a check's status. Each check has one shape per case. */
 export type Facts =
@@ -118,7 +119,13 @@ export type Facts =
     }
   | { readonly check: 'haul'; readonly case: 'idle' }
   | { readonly check: 'haul'; readonly case: 'loose'; readonly count: number }
-  | { readonly check: 'haul'; readonly case: 'reached' };
+  | { readonly check: 'haul'; readonly case: 'reached' }
+  /** A circle lacks a water or a sewage plant, so there is no intake and outfall to order. */
+  | { readonly check: 'flow'; readonly case: 'idle' }
+  /** In every circle the intake is upstream of the outfall; the plants that set them, circle by circle. */
+  | { readonly check: 'flow'; readonly case: 'ordered'; readonly circles: number }
+  /** An outfall upstream of an intake: the water and sewage plants at fault. */
+  | { readonly check: 'flow'; readonly case: 'reversed'; readonly circles: number; readonly water: readonly TileKey[]; readonly sewage: readonly TileKey[] };
 
 /** One line check against the layout. */
 export interface LineCheck {
@@ -138,6 +145,7 @@ export type TileIssue =
   | { readonly kind: 'farFromRingNoLine'; readonly walkMin: number }
   | { readonly kind: 'farFromRing'; readonly walkMin: number }
   | { readonly kind: 'lineMissesRing' }
+  | { readonly kind: 'flowReversed' }
   | { readonly kind: 'noStop' }
   | { readonly kind: 'pupilsUnseated'; readonly school: SchoolKind; readonly pupils: number }
   | { readonly kind: 'fieldsFar'; readonly walkMin: number }

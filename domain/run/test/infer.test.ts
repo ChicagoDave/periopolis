@@ -58,7 +58,7 @@ describe('the first month on one neighborhood', () => {
     expect(proposed.length).toBeGreaterThan(5);
     const inHand = ids(jobs(g1));
     expect(inHand).toContain('ring@0,-1');
-    expect(inHand.filter((id) => id === 'power@0,-3')).toHaveLength(2);
+    expect(inHand.filter((id) => id === 'power@0,4')).toHaveLength(2); // the shore's downstream end (ADR-0016 Decision 5)
     for (const plant of ['water', 'sewage', 'waste']) expect(inHand.some((id) => id.startsWith(`${plant}@`))).toBe(true);
     for (const x of ['elementary', 'middle', 'high', 'fields']) expect(inHand).toContain(`${x}@0,0`);
     expect(inHand.filter((id) => id.startsWith('line@')).length).toBeGreaterThanOrEqual(1);
@@ -112,10 +112,10 @@ describe('from an empty site', () => {
 describe('the player beside the run', () => {
   it('orders nothing for a need the player has already ordered', () => {
     let g = startRun(oneHood(), 7, RATES, RULES, GROW);
-    g = order(g, (p) => addPlantUnit(p, '3,-3', 'water', RATES));
+    g = order(g, (p) => addPlantUnit(p, '-4,4', 'water', RATES));
     g = months(g, 1);
     const water = ids(jobs(g)).filter((id) => id.startsWith('water@'));
-    expect(water).toEqual(['water@3,-3']);
+    expect(water).toEqual(['water@-4,4']);
     expect(jobs(g).find((j) => j.what === 'water')?.inferred).toBeUndefined();
   });
 
@@ -138,7 +138,7 @@ describe('the player beside the run', () => {
 
   it('cancelling the player\'s own job remembers nothing, and the run orders the need again', () => {
     let g = startRun(oneHood(), 7, RATES, RULES, GROW);
-    g = order(g, (p) => addPlantUnit(p, '3,-3', 'water', RATES));
+    g = order(g, (p) => addPlantUnit(p, '-4,4', 'water', RATES));
     g = months(g, 1);
     const index = jobs(g).findIndex((j) => j.what === 'water');
     g = { layout: g.layout, clock: cancelOrder(g.clock!, index) };
@@ -191,7 +191,7 @@ describe('vetoes and the homes ahead', () => {
     const twice = cancelOrder(again.clock!, again.clock!.jobs.length - 1);
     expect(twice.vetoes).toEqual(once.vetoes);
     const plain = months(startRun(oneHood(), 7, RATES, RULES, { growth: true, inOrder: true }), 1);
-    const own = order(plain, (p) => addPlantUnit(p, '3,-3', 'water', RATES));
+    const own = order(plain, (p) => addPlantUnit(p, '-4,4', 'water', RATES));
     expect(cancelOrder(own.clock!, 0).vetoes).toBeUndefined();
     const { infer: _off, ...noInfer } = clock;
     expect(cancelOrder(noInfer, index).vetoes).toBeUndefined();

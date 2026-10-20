@@ -95,17 +95,17 @@ describe("a finished tile costs the Ledger's per-tile share", () => {
     expect(rowIn(ring, 'highRiseFloor').premise).toBe('highRiseM2');
   });
   it('plants are modules and units at the groundworks premises, with a stop where the line reaches them', () => {
-    expect(rowIn(starter.tiles['3,-1'], 'reactorModules')).toMatchObject({ count: 3, unit: COSTS.reactorModuleEach.value, layer: 'groundworks' });
-    expect(rowIn(starter.tiles['3,-2'], 'plantUnits')).toMatchObject({ count: 1, unit: COSTS.plantUnitEach.value });
-    expect(rowIn(starter.tiles['-3,1'], 'plantUnits').count).toBe(1);
-    expect(rowIn(starter.tiles['-3,2'], 'stations').count).toBe(1);
+    expect(rowIn(starter.tiles['0,4'], 'reactorModules')).toMatchObject({ count: 3, unit: COSTS.reactorModuleEach.value, layer: 'groundworks' });
+    expect(rowIn(starter.tiles['-3,4'], 'plantUnits')).toMatchObject({ count: 1, unit: COSTS.plantUnitEach.value });
+    expect(rowIn(starter.tiles['-1,4'], 'plantUnits').count).toBe(1);
+    expect(rowIn(starter.tiles['-2,4'], 'stations').count).toBe(1);
   });
   it('a stretch of line is a step of mover floor at the low-rise rate plus a step of track', () => {
     const stretch = starter.stretches['0,0|1,0'];
     expect(rowIn(stretch, 'moverLineFloor').count).toBeCloseTo(RATES.stepKm * 1000 * COSTS.moverLineWidthM.value, 6);
     expect(rowIn(stretch, 'moverLineFloor').premise).toBe('lowRiseM2');
     expect(rowIn(stretch, 'moverTrack').count).toBeCloseTo(RATES.stepKm, 9);
-    expect(Object.keys(starter.stretches)).toHaveLength(14);
+    expect(Object.keys(starter.stretches)).toHaveLength(16);
   });
   it('schools and fields add no row: a neighborhood with them costs what one without them costs', () => {
     const withSchools = sumOf((starter.tiles['2,-1'] ?? []).filter((r) => kindOf(r.layer) === 'capital'));
@@ -200,19 +200,19 @@ describe('the standing city against the ledger’s column (loose by design)', ()
 
 describe('a city sized to its people costs less a person than the ledger\'s city on the board', () => {
   // Pinned as a check on the premises, not as truth (ADR-0007 Consequences, amended 2026-10-14).
-  it('to build: about 243,900 a person against the starter\'s 267,100 and the car city\'s 261,800', () => {
+  it('to build: about 244,400 a person against the starter\'s 267,600 and the car city\'s 261,800', () => {
     const sized = priced(sizedLayout(RATES));
     const car = assess(starterLayout(), RATES).score.car?.cost;
     if (!car) throw new Error('no car city');
-    expect(starter.capitalPerPerson).toBeCloseTo(267052, -1);
-    expect(sized.capitalPerPerson).toBeCloseTo(243852, -1);
+    expect(starter.capitalPerPerson).toBeCloseTo(267646, -1);
+    expect(sized.capitalPerPerson).toBeCloseTo(244446, -1);
     expect(car.capitalTotal / 50000).toBeCloseTo(261845, -1);
     expect(sized.capitalPerPerson).toBeLessThan(car.capitalTotal / 50000);
   });
 
   it('to run: about 15,400 a person against the starter\'s 15,900', () => {
     const sized = priced(sizedLayout(RATES));
-    expect(starter.runningPerPerson).toBeCloseTo(15872, -1);
-    expect(sized.runningPerPerson).toBeCloseTo(15408, -1);
+    expect(starter.runningPerPerson).toBeCloseTo(15884, -1);
+    expect(sized.runningPerPerson).toBeCloseTo(15420, -1);
   });
 });

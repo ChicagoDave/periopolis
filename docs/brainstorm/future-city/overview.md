@@ -154,7 +154,7 @@ What can stand on the site:
 - The mover line, laid in stretches between neighboring tiles. A tile the line touches has a stop.
 - At the edge: a reactor site with modules, and water, sewage and waste plants with units.
 
-The fifteen line checks:
+The fifteen line checks (a sixteenth, line 32's `flow`, joined them on 2026-10-20 with ADR-0016):
 
 | Check | Lines |
 |---|---|
@@ -209,7 +209,7 @@ stateDiagram-v2
 - **Two far neighborhoods with no line.** Three lines break, 9.1% of trips have no way to go, and only the two neighborhoods are marked.
 - **Growing to 100,000.** Reachable with every line and all four stretch tests holding, in 71 placements from the ledger's city.
 - **The shape of the mover line.** On spokes the fleet grows faster than the city: 4.3 movers per 1,000 people at 50,000 and 6.5 at 100,000. With loops it is 584 movers at 100,000 instead of 649.
-- **Closures.** All 14 stretches of the ledger's line are spokes with no way round. Left alone for 20 years the city loses 3 or 4 line-years to closures. Twelve more stretches, about 8 km, give every stop a second way.
+- **Closures.** All 14 stretches of the ledger's line are spokes with no way round. Left alone for 20 years the city loses 3 or 4 line-years to closures. Twelve more stretches, about 8 km, give every stop a second way. *Since ADR-0016 (2026-10-20) the plants stand on the shore and the starter runs 16 stretches; nineteen more give every stop and plant a second way.*
 - **Founding from nothing.** 100,000 people takes about 151 of the 200 crew-years, or about 173 with loops. A plain script that builds everything else ahead of the homes, and lays one bypass when a closure is announced, got there by year 20 with 0 or 1 broken line-years.
 
 ## Placeholders that are mine

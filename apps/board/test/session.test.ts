@@ -8,13 +8,13 @@ import { describe, expect, it } from 'vitest';
 import { RULES, placeOrder, startRun, stopRun, tick } from '@city/run';
 import type { Game } from '@city/run';
 import { RATES, addPlantUnit, addRingBuilding, assess, emptyLayout, layStretch, placeNeighborhood, starterLayout } from '@city/site';
-import type { Layout, Outcome } from '@city/site';
+import type { Layout, Outcome, TileKey } from '@city/site';
 import { move } from '../src/moves.ts';
 import { newSession } from '../src/session.ts';
 import { memoryStore, restoreGame } from '../src/storage.ts';
 import type { GameStore } from '../src/storage.ts';
 
-const placed = (): ReturnType<typeof placeNeighborhood> => placeNeighborhood(starterLayout(), '4,0', RATES);
+const placed = (): ReturnType<typeof placeNeighborhood> => placeNeighborhood(starterLayout(), '3,0', RATES);
 
 describe('the memory store and restoreGame', () => {
   it('saves a copy and gives it back; restoreGame rebuilds the game from it', () => {
@@ -54,12 +54,12 @@ describe('the session', () => {
     const store = memoryStore();
     const s = newSession({ layout: starterLayout(), clock: null }, store);
     expect(s.undo()).toBe(false);
-    const m = move(s.game, 'hood', '4,0', null);
+    const m = move(s.game, 'hood', '3,0', null);
     s.remember();
     s.game = m.game;
     s.lineFrom = '1,0';
     s.save();
-    expect(restoreGame(store.load())?.layout.tiles['4,0']).toEqual({ kind: 'hood', has: {} });
+    expect(restoreGame(store.load())?.layout.tiles['3,0']).toEqual({ kind: 'hood', has: {} });
     expect(s.undo()).toBe(true);
     expect(s.game).toEqual({ layout: starterLayout(), clock: null });
     expect(s.lineFrom).toBeNull();
@@ -112,7 +112,7 @@ describe('the view', () => {
     expect(s.view).toEqual({ at: 'tile', key: '1,0', level: 'surface' });
     expect(s.look('0,0')).toBe(true);
     expect(s.view).toEqual({ at: 'tile', key: '0,0', level: 'surface' });
-    expect(s.look('4,0')).toBe(false);
+    expect(s.look('3,0')).toBe(false);
     expect(s.view).toEqual({ at: 'tile', key: '0,0', level: 'surface' });
     const plant = Object.keys(starterLayout().tiles).find((k) => starterLayout().tiles[k]?.kind === 'power') as string;
     expect(s.look(plant)).toBe(false);
@@ -163,6 +163,11 @@ describe('the view', () => {
   });
 });
 
+/** Ten stretches inside the first circle: along row 0 from the band's west edge to its east, then two steps south. */
+const TEN_STRETCHES: readonly (readonly [TileKey, TileKey])[] = [
+  ['-4,0', '-3,0'], ['-3,0', '-2,0'], ['-2,0', '-1,0'], ['-1,0', '0,0'], ['0,0', '1,0'], ['1,0', '2,0'], ['2,0', '3,0'], ['3,0', '4,0'], ['4,0', '3,1'], ['3,1', '2,2'],
+];
+
 describe('a run built in order (ADR-0012)', () => {
   const built = (layout: Layout, ...commands: ((l: Layout) => Outcome)[]): Layout =>
     commands.reduce((l, c) => {
@@ -178,11 +183,11 @@ describe('a run built in order (ADR-0012)', () => {
   const served = built(
     emptyLayout(),
     (l) => placeNeighborhood(l, '0,0', RATES),
-    (l) => addPlantUnit(l, '3,-1', 'power', RATES),
-    (l) => addPlantUnit(l, '3,-1', 'power', RATES),
-    (l) => addPlantUnit(l, '3,-2', 'water', RATES),
-    (l) => addPlantUnit(l, '-3,1', 'sewage', RATES),
-    (l) => addPlantUnit(l, '-3,2', 'waste', RATES),
+    (l) => addPlantUnit(l, '4,0', 'power', RATES),
+    (l) => addPlantUnit(l, '4,0', 'power', RATES),
+    (l) => addPlantUnit(l, '-4,0', 'water', RATES),
+    (l) => addPlantUnit(l, '-4,3', 'sewage', RATES),
+    (l) => addPlantUnit(l, '-4,2', 'waste', RATES),
   );
 
   it('shows the board for the people admitted, and what holds them back; off the clock everyone lives there', () => {
@@ -219,8 +224,8 @@ describe('a run built in order (ADR-0012)', () => {
 
   it('lists a unit of a service the city is short of as working ahead of the stretches (ADR-0012 Decision 7)', () => {
     let g = startRun(emptyLayout(), 7, RATES, RULES, { inOrder: true });
-    for (let q = -4; q < 6; q++) g = order(g, (p) => layStretch(p, `${q},0`, `${q + 1},0`, RATES));
-    g = order(g, (p) => addPlantUnit(p, '3,-2', 'water', RATES));
+    for (const [a, b] of TEN_STRETCHES) g = order(g, (p) => layStretch(p, a, b, RATES));
+    g = order(g, (p) => addPlantUnit(p, '-4,0', 'water', RATES));
     const water = (game: Game): string | undefined => {
       const s = newSession(game, memoryStore());
       s.refresh();
@@ -237,7 +242,7 @@ describe('a run built in order (ADR-0012)', () => {
   it('lists the work in hand in the crew order: a home ordered before ten stretches waits for them', () => {
     const hand = (inOrder: boolean): string | undefined => {
       let g = order(startRun(emptyLayout(), 7, RATES, RULES, { inOrder }), (p) => placeNeighborhood(p, '0,-2', RATES));
-      for (let q = -4; q < 6; q++) g = order(g, (p) => layStretch(p, `${q},0`, `${q + 1},0`, RATES));
+      for (const [a, b] of TEN_STRETCHES) g = order(g, (p) => layStretch(p, a, b, RATES));
       const s = newSession(g, memoryStore());
       s.refresh();
       return s.hand.list.find((j) => j.what === 'hood')?.status;

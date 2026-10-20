@@ -271,7 +271,7 @@ describe('a breakdown is an emergency (ADR-0012 Decision 7)', () => {
 
   /** The ledger's city, everyone living there, its only water unit taken down. */
   function dry(): Game {
-    const g = order(startRun(starterLayout(), 7, RATES, RULES, { inOrder: true }), (p) => erase(p, '3,-2', RATES));
+    const g = order(startRun(starterLayout(), 7, RATES, RULES, { inOrder: true }), (p) => erase(p, '-3,4', RATES));
     return tick(g, RATES, RULES);
   }
 
@@ -285,7 +285,7 @@ describe('a breakdown is an emergency (ADR-0012 Decision 7)', () => {
   });
 
   it('a water unit ordered behind ten stretches takes a crew ahead of them, and restores the water', () => {
-    const g = order(tenStretches(dry()), (p) => addPlantUnit(p, '3,-2', 'water', RATES));
+    const g = order(tenStretches(dry()), (p) => addPlantUnit(p, '-4,4', 'water', RATES));
     const jobs = g.clock?.jobs ?? [];
     const water = jobs.findIndex((j) => j.what === 'water');
     const urgent = emergencyOf(g.clock as Clock);
@@ -294,14 +294,14 @@ describe('a breakdown is an emergency (ADR-0012 Decision 7)', () => {
     expect(inHand(g.layout, jobs, RULES, true, urgent).list[water]?.status).toBe('working');
     expect(inHand(g.layout, jobs, RULES, true, urgent).list.filter((j) => j.what === 'line' && j.status === 'waiting')).toHaveLength(1);
     let after = g;
-    while (after.clock && after.layout.tiles['3,-2']?.kind !== 'water') after = tick(after, RATES, RULES);
+    while (after.clock && after.layout.tiles['-4,4']?.kind !== 'water') after = tick(after, RATES, RULES);
     const row = recordOf(after)[recordOf(after).length - 1];
     expect(row?.broken).not.toContain('water');
     expect(emergencyOf(after.clock as Clock)).toEqual([]);
   });
 
   it('an order for the short kind starts now; off a clock built in order there is no emergency', () => {
-    const out = placeOrder(tenStretches(dry()), (p) => addPlantUnit(p, '3,-2', 'water', RATES), RULES);
+    const out = placeOrder(tenStretches(dry()), (p) => addPlantUnit(p, '-4,4', 'water', RATES), RULES);
     expect(out.ok && out.events.map((e) => e.type === 'JobOrdered' && e.startsNow)).toEqual([true]);
     const sketch = startRun(starterLayout(), 7, RATES, RULES);
     const broken = { ...(sketch.clock as Clock), record: [{ ...(recordOf(sketch)[0] as RecordRow), broken: ['water' as const] }] };

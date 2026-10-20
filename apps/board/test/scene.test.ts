@@ -200,11 +200,11 @@ function standingOf(game: Game): Standing {
 function founded(): Game {
   let game = startRun(emptyLayout(), 7, RATES, RULES, { growth: true, inOrder: true });
   const orders: [string, string, string | null][] = [
-    ['power', '3,-1', null],
-    ['power', '3,-1', null],
-    ['water', '3,-2', null],
-    ['sewage', '-3,1', null],
-    ['waste', '-3,2', null],
+    ['power', '4,0', null],
+    ['power', '4,0', null],
+    ['water', '-4,0', null],
+    ['sewage', '-4,3', null],
+    ['waste', '-4,2', null],
     ['ring', '0,0', null],
     ['line', '0,0', null],
     ['line', '1,0', '0,0'],
@@ -214,7 +214,7 @@ function founded(): Game {
   for (const [tool, key, from] of orders) game = move(game, tool as never, key, from).game;
   return game;
 }
-const ORDERED_TILES = ['3,-1', '3,-2', '-3,1', '-3,2', '0,0', '1,0', '2,-1'];
+const ORDERED_TILES = ['4,0', '-4,0', '-4,3', '-4,2', '0,0', '1,0', '2,-1'];
 
 describe('the scene follows the clock (ADR-0012 Decision 6, ADR-0009)', () => {
   it('at year 0 every ordered tile is a scaffold and the ordered stretch a strip of its own kind; nothing stands', () => {

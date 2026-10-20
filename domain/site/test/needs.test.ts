@@ -65,8 +65,10 @@ describe('what a layout needs', () => {
   });
 
   it('a neighborhood past the walk to the ring needs the line for work as well', () => {
-    const s = hoods(starterLayout(), ['4,-2']);
-    expect(needsOf(s, RATES)).toEqual([{ need: 'line', reach: ['4,-2'], answers: ['stops', 'work', 'ways'] }]);
+    const s = hoods({ ...starterLayout(), circles: ['0,0', '9,0'] }, ['6,0']);
+    const needs = needsOf(s, RATES);
+    expect(needs.find((n) => n.need === 'line')).toEqual({ need: 'line', reach: ['6,0'], answers: ['stops', 'work', 'ways'] });
+    expect(needs.filter((n) => n.need === 'schools').map((n) => n.need === 'schools' && n.school)).toEqual(['elementary', 'middle', 'high']);
   });
 
   it('thirteen neighborhoods outgrow the ring and the plants, and leave pupils and fields short', () => {
@@ -103,7 +105,7 @@ describe('what a layout needs', () => {
   });
 
   it('a module that carries the peak only while it runs still asks for the spare (ADR-0012 Decision 3, amended)', () => {
-    const s = must(addPlantUnit(hoods(emptyLayout(), ['0,0']), '3,-1', 'power', RATES));
+    const s = must(addPlantUnit(hoods(emptyLayout(), ['0,0']), '4,0', 'power', RATES));
     const power = assess(s, RATES).checks.find((c) => c.id === 'power');
     expect(power?.status).toBe('bad');
     expect(power?.facts.check === 'power' ? power.facts.case : null).toBe('noSpare');
@@ -114,10 +116,10 @@ describe('what a layout needs', () => {
     const layouts = [
       starterLayout(),
       hoods(starterLayout(), ['2,0']),
-      hoods(starterLayout(), ['4,-2']),
+      hoods({ ...starterLayout(), circles: ['0,0', '9,0'] }, ['6,0']),
       hoods(starterLayout(), THIRTEEN),
       hoods(emptyLayout(), ['0,0']),
-      hoods(emptyLayout(), ['0,0', '1,0', '3,3']),
+      hoods(emptyLayout(), ['0,0', '1,0', '2,1']),
     ];
     for (const s of layouts) {
       expect(answered(needsOf(s, RATES))).toEqual(mendable(s).sort());
@@ -133,13 +135,14 @@ describe('what a layout needs', () => {
     s = must(toggleExtra(s, '0,2', 'high', RATES));
     s = must(toggleExtra(s, '0,2', 'fields', RATES));
     s = must(layStretch(s, '1,0', '2,0', RATES));
-    s = must(layStretch(s, '-3,1', '-3,0', RATES));
+    s = must(layStretch(s, '-1,0', '-2,0', RATES));
+    s = must(layStretch(s, '-2,0', '-3,0', RATES));
     s = must(layStretch(s, '0,1', '0,2', RATES));
     expect(needsOf(s, RATES)).toEqual([]);
     const checks = assess(s, RATES).checks;
     expect(checks.filter((c) => c.status === 'bad')).toEqual([]);
     expect(checks.filter((c) => c.status === 'warn').map((c) => c.id)).toEqual(['size']);
-    expect(checks.filter((c) => c.status === 'ok')).toHaveLength(14);
+    expect(checks.filter((c) => c.status === 'ok')).toHaveLength(15);
   });
 
   it('asks nothing of the layout it reads', () => {

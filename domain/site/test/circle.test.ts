@@ -122,11 +122,11 @@ describe('the circles ride through every command and proposal', () => {
       ['NeighborhoodPlaced', placeNeighborhood(two, '3,0', RATES)],
       ['RingBuildingAdded', addRingBuilding(two, '0,0', RATES)],
       ['ExtraAdded', toggleExtra(two, '1,0', 'high', RATES)],
-      ['PlantUnitAdded', addPlantUnit(two, '3,-1', 'power', RATES)],
+      ['PlantUnitAdded', addPlantUnit(two, '4,0', 'power', RATES)],
       ['StretchLaid', layStretch(two, '2,-1', '3,-1', RATES)],
       ['StretchRemoved', layStretch(two, '0,0', '1,0', RATES)],
       ['LinesThroughTileRemoved', erase(two, '0,0', RATES)],
-      ['TileCleared', erase(two, '3,-2', RATES)],
+      ['TileCleared', erase(two, '-3,4', RATES)],
     ];
     for (const [name, o] of cases) {
       expect(o.ok, name).toBe(true);

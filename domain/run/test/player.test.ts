@@ -36,8 +36,9 @@ function months(game: Game, n: number): Game {
 const ids = (g: Game): string[] => (g.clock?.jobs ?? []).map((j) => pieceId(j.what, j.at));
 
 describe('the take-down veto', () => {
-  // A run from one neighborhood: by the end of year 3 the run's ring, plants, schools and line stand.
-  const g3 = months(startRun(oneHood(), 7, RATES, RULES, GROW), 36);
+  // A run from one neighborhood: by the end of year 5 the run's ring, plants, schools, fields and line stand (the
+  // line to the shore's plants is four stretches longer since ADR-0016, so the fields wait a year or two more).
+  const g3 = months(startRun(oneHood(), 7, RATES, RULES, GROW), 60);
   const built = g3.clock?.built ?? [];
 
   it('remembers what the run built once it stands', () => {
@@ -107,23 +108,23 @@ describe('orders and the work in hand', () => {
     const three = order(g0, (p) => {
       let l = p;
       for (let i = 0; i < 3; i++) {
-        const o = addPlantUnit(l, '0,-3', 'power', RATES);
+        const o = addPlantUnit(l, '0,-4', 'power', RATES);
         if (!o.ok) return o;
         l = o.layout;
       }
-      return addPlantUnit(p, '0,-3', 'power', RATES).ok ? { ok: true, layout: l, event: { type: 'PlantUnitAdded', tile: '0,-3', plant: 'power', units: 3 } } : addPlantUnit(p, '0,-3', 'power', RATES);
+      return addPlantUnit(p, '0,-4', 'power', RATES).ok ? { ok: true, layout: l, event: { type: 'PlantUnitAdded', tile: '0,-4', plant: 'power', units: 3 } } : addPlantUnit(p, '0,-4', 'power', RATES);
     });
     expect(three.clock?.jobs.map((j) => j.total)).toEqual([RULES.firstModule, RULES.build.power, RULES.build.power]);
     expect(three.clock?.jobs.map((j) => j.left)).toEqual([RULES.firstModule, RULES.build.power, RULES.build.power]);
     let standing = g0.layout;
-    const site = addPlantUnit(standing, '0,-3', 'power', RATES);
+    const site = addPlantUnit(standing, '0,-4', 'power', RATES);
     if (!site.ok) throw new Error('refused');
     standing = site.layout;
     const g1 = startRun(standing, 7, RATES, RULES, HAND);
     const two = order(g1, (p) => {
-      const first = addPlantUnit(p, '0,-3', 'power', RATES);
+      const first = addPlantUnit(p, '0,-4', 'power', RATES);
       if (!first.ok) return first;
-      return addPlantUnit(first.layout, '0,-3', 'power', RATES);
+      return addPlantUnit(first.layout, '0,-4', 'power', RATES);
     });
     expect(two.clock?.jobs.map((j) => j.total)).toEqual([RULES.build.power, RULES.build.power]);
   });

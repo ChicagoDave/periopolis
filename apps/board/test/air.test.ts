@@ -58,11 +58,11 @@ function standingOf(game: Game): Standing {
 function foundedYear3(): Game {
   let game = startRun(emptyLayout(), 7, RATES, RULES, { growth: true, inOrder: true });
   const orders: [string, string][] = [
-    ['power', '3,-1'],
-    ['power', '3,-1'],
-    ['water', '3,-2'],
-    ['sewage', '-3,1'],
-    ['waste', '-3,2'],
+    ['power', '4,0'],
+    ['power', '4,0'],
+    ['water', '-4,0'],
+    ['sewage', '-4,3'],
+    ['waste', '-4,2'],
     ['hood', '1,0'],
     ['hood', '2,-1'],
   ];

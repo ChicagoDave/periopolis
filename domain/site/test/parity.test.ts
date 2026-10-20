@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  bandRule,
   edgeEnds,
   tileAt,
   RATES,
@@ -204,6 +205,20 @@ function placedTiles(): TileKey[] {
   return [...out];
 }
 
+/** A recorded restore result with what the band rule forbids dropped, and the first circle beside it. */
+function admitted(result: { tiles: Record<string, { kind: string }>; lines: Record<string, true> }): unknown {
+  const tiles: Record<string, unknown> = {};
+  for (const [k, t] of Object.entries(result.tiles)) {
+    if (!bandRule(['0,0'], k, t.kind === 'hood' || t.kind === 'ring' ? 'home' : 'plant')) tiles[k] = t;
+  }
+  const lines: Record<string, true> = {};
+  for (const e of Object.keys(result.lines)) {
+    const [a, b] = edgeEnds(e);
+    if (!bandRule(['0,0'], a, 'line') && !bandRule(['0,0'], b, 'line')) lines[e] = true;
+  }
+  return { tiles, lines, circles: ['0,0'] };
+}
+
 describe('rates from the ledger', () => {
   it('match the sketch', () => {
     const r = fixture.rates;
@@ -236,7 +251,9 @@ describe('assessment parity with the sketch', () => {
       const options: { show?: TestId | null; now?: Stress | null } = {};
       if (c.showing) options.show = c.showing;
       if (c.now) options.now = c.now;
-      const got = countIssues(assess(c.state, RATES, options));
+      // The sketch recorded fifteen checks; `flow` (line 32, ADR-0016) is the Site's own and is left out of the compare.
+      const full = countIssues(assess(c.state, RATES, options)) as { checks: readonly { id: string }[] };
+      const got = { ...full, checks: full.checks.filter((k) => k.id !== 'flow') };
       const out: string[] = [];
       differences(got, reshapeEvaluation(c.result), c.name, out);
       expect(out).toEqual([]);
@@ -286,7 +303,8 @@ describe('restoring a layout from storage', () => {
   for (const c of fixture.cleanCases) {
     it(c.name, () => {
       // The sketch had no circles; a restored layout carries the first (ADR-0016), beside the recorded fields.
-      const want: unknown = c.result === null ? null : { ...(c.result as object), circles: ['0,0'] };
+      // The sketch's restore knew no band; the record holds on what the band admits (ADR-0016 Decision 2).
+      const want: unknown = c.result === null ? null : admitted(c.result as { tiles: Record<string, { kind: string }>; lines: Record<string, true> });
       expect(restoreLayout(c.raw, RATES)).toEqual(want);
     });
   }

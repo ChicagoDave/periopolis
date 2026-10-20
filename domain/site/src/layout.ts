@@ -5,7 +5,7 @@
  */
 import { adjacent, allTiles, edgeEnds, edgeKey, tileKey } from './board.ts';
 import type { EdgeKey, TileKey } from './board.ts';
-import { circleFits } from './circle.ts';
+import { bandRule, circleFits } from './circle.ts';
 import { EXTRAS, PLANTS } from './rates.ts';
 import type { ExtraKind, PlantKind, SiteRates } from './rates.ts';
 
@@ -89,14 +89,19 @@ export function starterLayout(): Layout {
   line([0, 1], [1, 1]);
   line([-1, 1], [-2, 1]);
   line([-1, 0], [-1, -1]);
-  tiles[tileKey(3, -1)] = { kind: 'power', n: 3 };
-  tiles[tileKey(3, -2)] = { kind: 'water', n: 1 };
-  tiles[tileKey(-3, 1)] = { kind: 'sewage', n: 1 };
-  tiles[tileKey(-3, 2)] = { kind: 'waste', n: 1 };
-  line([2, -1], [3, -1]);
-  line([2, -1], [3, -2]);
-  line([-2, 1], [-3, 1]);
-  line([-2, 1], [-3, 2]);
+  // The plants on the shore side of the band (ADR-0016 Decisions 4 and 5): intake upstream of outfall, the reactors
+  // beside the sewage plant whose water cools them, reached by the line run south from the neighborhood at 1,1 through
+  // open ground at 1,2 and 0,3, so the ring-2 tiles the scenarios build on stay open.
+  tiles[tileKey(-3, 4)] = { kind: 'water', n: 1 };
+  tiles[tileKey(-2, 4)] = { kind: 'waste', n: 1 };
+  tiles[tileKey(-1, 4)] = { kind: 'sewage', n: 1 };
+  tiles[tileKey(0, 4)] = { kind: 'power', n: 3 };
+  line([1, 1], [1, 2]);
+  line([1, 2], [0, 3]);
+  line([0, 3], [0, 4]);
+  line([0, 3], [-1, 4]);
+  line([-1, 4], [-2, 4]);
+  line([-2, 4], [-3, 4]);
   return { tiles, lines, circles: [FIRST_CIRCLE] };
 }
 
@@ -108,6 +113,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Rebuild a layout from anything, keeping only what the board allows. Anything loaded from storage comes through here.
  * Circles are kept when their middle is a tile whose whole circle fits the board, once each; a layout stored with
  * none, or with none that fit, restores with the first (ADR-0016: there are no saved cities from before the circles).
+ * What the band rule forbids is dropped as an off-board tile is: a plant off a band, a home or ring on one, and any
+ * piece or stretch outside every circle.
  * @param raw - whatever was stored
  * @param rates - the site's outline and limits
  * @returns a layout, or null when the input is not even an object
@@ -119,16 +126,25 @@ export function restoreLayout(raw: unknown, rates: SiteRates): Layout | null {
   const rawTiles = isRecord(raw['tiles']) ? raw['tiles'] : {};
   const rawLines = isRecord(raw['lines']) ? raw['lines'] : {};
   const valid = allTiles(rates.outline);
+  const circles: TileKey[] = [];
+  const rawCircles = Array.isArray(raw['circles']) ? raw['circles'] : [];
+  for (const m of rawCircles) {
+    if (typeof m !== 'string' || circles.includes(m) || !valid.includes(m) || !circleFits(m, rates.outline)) continue;
+    circles.push(m);
+  }
+  if (!circles.length) circles.push(FIRST_CIRCLE);
   for (const k of Object.keys(rawTiles)) {
     const t = rawTiles[k];
     if (!valid.includes(k) || !isRecord(t)) continue;
     const kind = t['kind'];
     if (kind === 'hood') {
+      if (bandRule(circles, k, 'home')) continue;
       const has: Partial<Record<ExtraKind, true>> = {};
       const rawHas = t['has'];
       if (isRecord(rawHas)) for (const x of EXTRAS) if (rawHas[x]) has[x] = true;
       tiles[k] = { kind: 'hood', has };
     } else if (kind === 'ring' || (typeof kind === 'string' && isPlantKind(kind))) {
+      if (bandRule(circles, k, kind === 'ring' ? 'home' : 'plant')) continue;
       const most = kind === 'ring' ? rates.ringMax : rates.plantMax;
       const n = Math.max(1, Math.min(most, Math.round(Number(t['n']) || 1)));
       tiles[k] = kind === 'ring' ? { kind, n } : { kind, n };
@@ -137,13 +153,9 @@ export function restoreLayout(raw: unknown, rates: SiteRates): Layout | null {
   for (const e of Object.keys(rawLines)) {
     if (e.indexOf('|') < 0) continue;
     const [a, b] = edgeEnds(e);
-    if (valid.includes(a) && valid.includes(b) && adjacent(a, b, rates.outline)) lines[edgeKey(a, b)] = true;
+    if (!valid.includes(a) || !valid.includes(b) || !adjacent(a, b, rates.outline)) continue;
+    if (bandRule(circles, a, 'line') || bandRule(circles, b, 'line')) continue;
+    lines[edgeKey(a, b)] = true;
   }
-  const circles: TileKey[] = [];
-  const rawCircles = Array.isArray(raw['circles']) ? raw['circles'] : [];
-  for (const m of rawCircles) {
-    if (typeof m !== 'string' || circles.includes(m) || !valid.includes(m) || !circleFits(m, rates.outline)) continue;
-    circles.push(m);
-  }
-  return { tiles, lines, circles: circles.length ? circles : [FIRST_CIRCLE] };
+  return { tiles, lines, circles };
 }

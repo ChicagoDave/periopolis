@@ -1,5 +1,5 @@
 /**
- * @file The assessment of a layout under one stress: the fifteen line checks over the real distances between tiles,
+ * @file The assessment of a layout under one stress: the sixteen line checks over the real distances between tiles,
  * the trips those distances make, and the score.
  * Public interface: assessCore.
  * Owner context: Site (domain).
@@ -7,6 +7,7 @@
 import { deriveCarCity } from '@city/ledger';
 import type { CappedNeed, CountedNeed } from '@city/ledger';
 import { kmBetween } from './board.ts';
+import { circleOf, upstreamOf } from './circle.ts';
 import type { EdgeKey, TileKey } from './board.ts';
 import type { CheckId, CheckStatus, Core, Facts, LineCheck, Score, Stress, TileIssue, TileLevel, TileReport } from './checks.ts';
 import type { Layout, Neighborhood } from './layout.ts';
@@ -482,6 +483,30 @@ export function assessCore(
     if (!plants.length || !some) check('haul', [5], 'idle', { check: 'haul', case: 'idle' });
     else if (loose.length) check('haul', [5], 'bad', { check: 'haul', case: 'loose', count: loose.length }, loose);
     else check('haul', [5], 'ok', { check: 'haul', case: 'reached' });
+  }
+  // Line 32: in every circle the water plant's intake is upstream of the sewage plant's outfall along the shore
+  // (ADR-0016 Decision 5). The intake is the upstream-most water plant, the outfall the downstream-most sewage plant.
+  {
+    const circles = layout.circles ?? [];
+    const waters = of('water');
+    const sewages = of('sewage');
+    const judged = circles.filter((m) => waters.some((k) => circleOf(circles, k) === m) && sewages.some((k) => circleOf(circles, k) === m));
+    const badWater: TileKey[] = [];
+    const badSewage: TileKey[] = [];
+    for (const m of judged) {
+      const w = waters.filter((k) => circleOf(circles, k) === m);
+      const sw = sewages.filter((k) => circleOf(circles, k) === m);
+      const intake = w.reduce((best, k) => (upstreamOf(k, best, rates.current) ? k : best));
+      const outfall = sw.reduce((best, k) => (upstreamOf(best, k, rates.current) ? k : best));
+      if (!upstreamOf(intake, outfall, rates.current)) {
+        badWater.push(intake);
+        badSewage.push(outfall);
+      }
+    }
+    for (const k of badWater.concat(badSewage)) flag(k, 'bad', { kind: 'flowReversed' });
+    if (!judged.length) check('flow', [32], 'idle', { check: 'flow', case: 'idle' });
+    else if (badWater.length) check('flow', [32], 'bad', { check: 'flow', case: 'reversed', circles: badWater.length, water: badWater, sewage: badSewage }, badWater.concat(badSewage));
+    else check('flow', [32], 'ok', { check: 'flow', case: 'ordered', circles: judged.length });
   }
 
   // What has been built, and how the city compares with a car city of the same size.

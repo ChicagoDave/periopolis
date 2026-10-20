@@ -48,7 +48,7 @@ test('a first-time visitor sees what the Board claims, the three marks, the sour
 });
 
 test("the opening city holds 14 of 15 lines, and a stretch test can be shown", async ({ page }) => {
-  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
   await expect(page.locator('#clocknow')).toHaveText('The clock is stopped. What you place is built at once.');
   await expect(page.locator('#rule-size .chip')).toHaveText('Watch');
   await expect(page.locator('#rule-size .detail')).toHaveText('Fine dining wants 71,300 people in the city. It has 50,000, which is 70% of that.');
@@ -56,7 +56,7 @@ test("the opening city holds 14 of 15 lines, and a stretch test can be shown", a
   expect(chips).toEqual(['Holds', 'Holds', 'Holds', 'Gives']);
   await page.click('#test-closure');
   await expect(page.locator('#bannertext')).toHaveText('Stretch test: the board shows the city with one stretch of mover line closed for repairs.');
-  await expect(page.locator('#tally')).toHaveText('12 of 15 hold, 2 broken, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('13 of 16 hold, 2 broken, 1 to watch. Click one to mark its tiles.');
   await page.click('#today');
   await expect(page.locator('#banner')).toBeHidden();
   await page.click('#tool-inspect');
@@ -85,26 +85,22 @@ test("the opening city holds 14 of 15 lines, and a stretch test can be shown", a
   await expect(page.locator('#spentbox')).toBeHidden();
 });
 
-test('two far neighborhoods with no line break three lines and are the only tiles marked', async ({ page }) => {
-  await place(page, 'hood', ['4,-2', '4,-1']);
+test('two neighborhoods at the circle\'s edge with no line break two lines and are the only tiles marked', async ({ page }) => {
+  await place(page, 'hood', ['3,0', '3,-1']);
   await expect(page.locator('#said')).toHaveText('A neighborhood of 5,000 people.');
-  await expect(page.locator('#tally')).toHaveText('11 of 15 hold, 3 broken, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('13 of 16 hold, 2 broken, 1 to watch. Click one to mark its tiles.');
   await expect(page.locator('#rule-ways .chip')).toHaveText('Broken');
-  await expect(page.locator('#rule-ways .detail')).toHaveText('9.1% of trips are longer than people will walk and have no mover to take. Run the mover line to the tiles marked.');
+  await expect(page.locator('#rule-ways .detail')).toHaveText('6.9% of trips are longer than people will walk and have no mover to take. Run the mover line to the tiles marked.');
   await expect(page.locator('#board .tile.bad')).toHaveCount(2);
-  await expect(tile(page, '4,-2')).toHaveClass(/bad/);
+  await expect(tile(page, '3,0')).toHaveClass(/bad/);
   await expect(tile(page, '1,0')).not.toHaveClass(/bad/);
   await page.click('#tool-inspect');
-  await tile(page, '4,-2').click();
+  await tile(page, '3,0').click();
   const issues = await page.locator('#inspector .issues li').allTextContents();
-  expect(issues).toEqual([
-    'A 34-minute walk from the ring, with no mover line to it',
-    'No mover stop',
-    '29% of its trips are past the walk with no mover to take',
-  ]);
+  expect(issues).toEqual(['No mover stop', '22% of its trips are past the walk with no mover to take']);
   await page.click('#undo');
   await page.click('#undo');
-  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
 });
 
 test('founding a city from nothing: orders, three years, a building site and the work in hand', async ({ page }) => {
@@ -114,11 +110,11 @@ test('founding a city from nothing: orders, three years, a building site and the
   await expect(page.locator('#said')).toHaveText('An empty site, year 0, 10 crews. Place your first orders, then press Next year. Undo brings the old city back.');
   await expect(page.locator('#moneynow')).toHaveText('Nothing stands, so nothing costs anything yet.');
   await expect(page.locator('#spentnow')).toHaveText('Nothing spent yet. Year 0 counts for nothing.');
-  await place(page, 'power', ['3,-1', '3,-1']);
+  await place(page, 'power', ['4,0', '4,0']);
   await expect(page.locator('#said')).toHaveText('Ordered: reactor module. 1 year of work, starting now.');
-  await place(page, 'water', ['3,-2']);
-  await place(page, 'sewage', ['-3,1']);
-  await place(page, 'waste', ['-3,2']);
+  await place(page, 'water', ['-4,0']);
+  await place(page, 'sewage', ['-4,3']);
+  await place(page, 'waste', ['-4,2']);
   await place(page, 'ring', ['0,0']);
   await place(page, 'line', ['0,0', '1,0', '2,-1', '3,-1']);
   await expect(page.locator('#said')).toHaveText('Ordered: stretch of mover line. 1 year of work, starting now.');
@@ -204,13 +200,13 @@ test("the ledger's city run to year 20 records every year, survives a reload and
 
 test('undo, clear and storage: tiles come and go, the board survives a reload, and a bad save falls back to the starter', async ({ page }) => {
   await expect(page.locator('#undo')).toBeDisabled();
-  await place(page, 'hood', ['4,0']);
-  await expect(tile(page, '4,0')).toHaveClass(/hood/);
-  await place(page, 'hood', ['4,0']);
+  await place(page, 'hood', ['3,0']);
+  await expect(tile(page, '3,0')).toHaveClass(/hood/);
+  await place(page, 'hood', ['3,0']);
   await expect(page.locator('#said')).toHaveText('That tile already holds a neighborhood.');
   await page.click('#undo');
   await expect(page.locator('#said')).toHaveText('Undone.');
-  await expect(tile(page, '4,0')).toHaveClass(/open/);
+  await expect(tile(page, '3,0')).toHaveClass(/open/);
   await expect(page.locator('#undo')).toBeDisabled();
   await place(page, 'ring', ['0,0']);
   await expect(page.locator('#said')).toHaveText('The ring has 9 buildings.');
@@ -231,7 +227,7 @@ test('undo, clear and storage: tiles come and go, the board survives a reload, a
   await page.evaluate(() => localStorage.setItem('future-city-builder-v1', '{not json'));
   await page.reload();
   await expect(page.locator('#said')).toHaveText("This is the ledger's city of 50,000. Pick a tool and change it, or clear the site and start your own.");
-  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
 });
 
 test("a tile's ground: the drawn homes, entries and ring buildings are the Ground's, the levels swap, and the map comes back whole", async ({ page }) => {
@@ -271,7 +267,7 @@ test("a tile's ground: the drawn homes, entries and ring buildings are the Groun
   // The site is a rectangle of 158 tiles along the shore (ADR-0006, ADR-0016), drawn inside one outline.
   await expect(page.locator('#board .tile')).toHaveCount(158);
   await expect(page.locator('#board rect.outline')).toHaveCount(1);
-  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
   await tile(page, '0,0').click();
   await page.click('#look');
   await expect(page.locator('#said')).toHaveText('The ring: 8 buildings of 25 stories, 272 m across, round a 6.5-acre plaza. Below, the stop.');
@@ -311,7 +307,7 @@ test('a placed neighborhood shows what the city needs, and Add all builds it bac
   await expect(page.locator('#tally')).toContainText('broken');
   await page.locator('#needlist li').first().getByRole('button', { name: 'Add' }).click();
   await expect(page.locator('#said')).toHaveText('Built: the mover line run to 2,0, on a line to the ring.');
-  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
   await expect(page.locator('#needlist li')).toHaveCount(0);
   // Two more neighborhoods: now the ring, the plants, the schools and the fields fall short as well.
   await place(page, 'hood', ['-3,0', '0,2']);
@@ -319,7 +315,7 @@ test('a placed neighborhood shows what the city needs, and Add all builds it bac
   await expect(page.locator('#addall')).toBeVisible();
   await page.click('#addall');
   await expect(page.locator('#said')).toHaveText('Built 8 additions. Undo takes them back one click at a time.');
-  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
   await expect(page.locator('#needsnow')).toHaveText('The city needs nothing more to keep its lines whole.');
   // Undo takes the additions back together, as one move.
   await page.click('#undo');
@@ -330,9 +326,9 @@ test('the ledger\'s city sized to its people: one ring building and one reactor 
   await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
   await page.click('#sized');
   await expect(page.locator('#said')).toHaveText("The ledger's city sized to its 50,000 people: 7 ring buildings and 2 reactor modules, one of each fewer, and every line it held still holds. Undo brings yours back.");
-  await expect(page.locator('#tally')).toHaveText('14 of 15 hold, 1 to watch. Click one to mark its tiles.');
+  await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
   await expect(page.locator('#moneynow')).toContainText('$12.2 B to build');
-  await expect(page.locator('#moneynow')).toContainText('$243,852 a person');
+  await expect(page.locator('#moneynow')).toContainText('$244,446 a person');
   await expect(page.locator('#needsnow')).toHaveText('The city needs nothing more to keep its lines whole.');
   await page.click('#undo');
   await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
@@ -364,10 +360,10 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
   await expect(page.locator('#daynow')).toHaveText('A summer weekday, and nobody lives here yet: no trips, no power drawn, every mover parked.');
   // People move in only when the city carries them (ADR-0012): two reactor modules, so the peak holds with one down,
   // and a unit of water, sewage and waste. With no school, only the childless share may live there.
-  await place(page, 'power', ['3,-1', '3,-1']);
-  await place(page, 'water', ['3,-2']);
-  await place(page, 'sewage', ['-3,1']);
-  await place(page, 'waste', ['-3,2']);
+  await place(page, 'power', ['4,0', '4,0']);
+  await place(page, 'water', ['-4,0']);
+  await place(page, 'sewage', ['-4,3']);
+  await place(page, 'waste', ['-4,2']);
   await place(page, 'hood', ['1,0', '2,-1']);
   await page.click('#month');
   await expect(page.locator('#said')).toHaveText('Year 1, month 1: no homes stand yet, so nobody lives here.');
@@ -444,7 +440,7 @@ test('the months run on their own: Play moves the people, an order pauses, a rel
   await expect(page.locator('#peoplenow')).not.toContainText('The start of year 1.');
   await expect(page.locator('#said')).toContainText('people in homes for 50,000.');
   // An order placed while the months run pauses them and says so; the month then holds.
-  await place(page, 'hood', ['4,0']);
+  await place(page, 'hood', ['3,0']);
   await expect(page.locator('#said')).toContainText('Ordered: neighborhood.');
   await expect(page.locator('#said')).toContainText('Paused: your order is in. Press Play to carry on.');
   await expect(page.locator('#play')).toHaveText('Play');
@@ -474,7 +470,7 @@ test('the months run on their own: Play moves the people, an order pauses, a rel
   await expect(page.locator('#peoplenow')).toContainText('The start of year 20.');
 });
 
-test("the site from the air: the ledger's city as 36 blocks of 238 stories on a canvas, painted, and the map comes back", async ({ page }) => {
+test("the site from the air: the ledger's city as 38 blocks of 238 stories on a canvas, painted, and the map comes back", async ({ page }) => {
   await expect(page.locator('#angledcanvas')).toBeHidden();
   await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'false');
   await page.click('#angled');
@@ -483,11 +479,11 @@ test("the site from the air: the ledger's city as 36 blocks of 238 stories on a 
   await expect(page.locator('#angledcanvas')).toBeVisible();
   await expect(page.locator('#board')).toBeHidden();
   // What was painted is the scene: 14 strips of line, 10 neighborhoods, 8 ring buildings and 4 plants, their stories summed.
-  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-blocks', '36');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-blocks', '38');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-stories', '238');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lod', 'far');
   await expect(page.locator('#viewbar')).toBeVisible();
-  await expect(page.locator('#viewtext')).toHaveText('The site from the air: 36 blocks, 238 stories in all.');
+  await expect(page.locator('#viewtext')).toHaveText('The site from the air: 38 blocks, 238 stories in all.');
   await expect(page.locator('#levels')).toBeHidden();
   // The canvas is painted: a good share of its pixels are not the empty ground.
   const painted = await page.evaluate(() => {
@@ -519,10 +515,10 @@ test("the site from the air: the ledger's city as 36 blocks of 238 stories on a 
 test('the site from the air follows the clock: scaffolds for what is ordered, blocks as the crews finish, homes lit as people arrive (ADR-0012, ADR-0009)', async ({ page }) => {
   await page.uncheck('#grow');
   await page.click('#found');
-  await place(page, 'power', ['3,-1', '3,-1']);
-  await place(page, 'water', ['3,-2']);
-  await place(page, 'sewage', ['-3,1']);
-  await place(page, 'waste', ['-3,2']);
+  await place(page, 'power', ['4,0', '4,0']);
+  await place(page, 'water', ['-4,0']);
+  await place(page, 'sewage', ['-4,3']);
+  await place(page, 'waste', ['-4,2']);
   await place(page, 'hood', ['1,0', '2,-1']);
   await page.click('#angled');
   // Year 0: six tiles on order, nothing standing.
@@ -638,7 +634,7 @@ test('the city grows itself: from nothing, Play founds it, the work in hand says
   // Two neighborhoods can open in one year, so the homes are watched leaving zero rather than reaching one figure.
   await expect(page.locator('#clocknow')).not.toContainText('Homes for 0 people', { timeout: 30000 });
   await expect(page.locator('#play')).toHaveText('Pause');
-  await place(page, 'hood', ['4,0']);
+  await place(page, 'hood', ['3,0']);
   await expect(page.locator('#said')).toContainText('Ordered: neighborhood.');
   await expect(page.locator('#said')).toContainText('Paused: your order is in. Press Play to carry on.');
   await expect(page.locator('#play')).toHaveText('Play');
