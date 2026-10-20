@@ -1,7 +1,7 @@
 # Session Plan: I-7 The sim infers growth — the run orders what the city must build as people arrive
 
 **Created**: 2026-10-19
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: On a run that opts in, the Run itself orders the next neighborhood, plant unit, reactor module, school, fields or stretch as people arrive and homes fill, instead of waiting for the player; the player watches the city grow and intervenes. Needs its own decision (what it may order, from what signal, how it pays, how the player's orders and vetoes sit beside it). Not the pace of growth (ADR-0009 Decision 3) and not the removal of the yearly mode.
 **Bounded contexts touched**: Run (domain, primary); Site (read only: `needsOf`, `proposeFor`, `applyProposal`); Board (wording, toggle, pause rule)
 **Key domain language**: Need, Proposal, Order, Admission (lived in / held back), Month clock (growth), Emergency, Planned board

@@ -53,4 +53,4 @@ Not decided here: the pace of growth (ADR-0009 Decision 3 keeps the sourced rate
 
 ## Session
 
-Session bae1e1, 2026-10-19; Phase 1 of `docs/work/sim-infers-growth/plan.md`.
+Session bae1e1, 2026-10-19; Phase 1 of `docs/work/archive/sim-infers-growth/plan.md`.

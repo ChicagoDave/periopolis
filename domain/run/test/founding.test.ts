@@ -1,5 +1,5 @@
 /**
- * @file The founding run on the real path (ADR-0015, Phase 5 of `docs/work/sim-infers-growth/plan.md`): David's
+ * @file The founding run on the real path (ADR-0015, Phase 5 of `docs/work/archive/sim-infers-growth/plan.md`): David's
  * founding of 2026-10-15 (`docs/work/tests/city-261015.txt`) and one neighborhood on an empty site, each run twenty
  * years through the real Run on the month clock, built in order, with the city growing itself; and the same founding
  * by hand beside it. The figures here are the record ADR-0015's Consequences carry, pinned as a check on the premises,
