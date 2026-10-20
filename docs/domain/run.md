@@ -2,7 +2,7 @@
 
 **Purpose.** Twenty years on the clock. Crews turn orders into buildings over years, people move in as their homes are finished (or, on a run with growth, month by month at the citywide pace, ADR-0009), and the stretches line 18 allows for happen to the city on a timeline dealt at the start of a run. Each year the city is checked as it stands, and every broken line counts one line-year against the run.
 
-**Package.** `@city/run` (`domain/run`). Pure and deterministic; depends on `@city/site` alone. The one random source is a seeded generator, so a run replays from its seed. Public interface: `startRun`, `stopRun`, `tick`, `tickMonth`, the month clock (`growthOn`, `monthStep`, `occupiedOf`, `homesOf`), who may live where (`admit`, `limitsOf`, `childlessOf`), the crew order (`classOf`, `crewed`, `emergencyOf`), `placeOrder`, `cancelJob`, `putFirst`, `inHand`, `notices`, `stressAt`, `restoreClock`, `totalSpend`, and the rules.
+**Package.** `@city/run` (`domain/run`). Pure and deterministic; depends on `@city/site` alone. The one random source is a seeded generator, so a run replays from its seed. Public interface: `startRun`, `stopRun`, `tick`, `tickMonth`, the month clock (`growthOn`, `monthStep`, `occupiedOf`, `homesOf`), who may live where (`admit`, `limitsOf`, `childlessOf`), the crew order (`classOf`, `crewed`, `emergencyOf`), `placeOrder`, `cancelJob`, `putFirst`, `inHand`, `notices`, `stressAt`, `restoreClock`, `totalSpend`, and the rules. With `infer` (ADR-0015, planned) the run orders for itself; its interface is added here when Phase 2 of `docs/work/sim-infers-growth/plan.md` lands it.
 
 **Consumers.** The Board shows the clock card, the work in hand and the notices, and turns clicks into orders. Since 2026-10-19 every run the Board starts is on the month clock unless the player asks for the yearly mode, and the Board's own timer calls `tickMonth` once a month at a chosen speed; the Run's default (`growth` absent, the sketch's clock) and the parity suite are unchanged.
 
@@ -32,6 +32,9 @@
 | Line-year | One line broken for one year, summed over years 1 on. Year 0 is noted and does not count. | Mine |
 | Standing | What stands costs at the end of a year, by layer, from the Site's cost of what stands under that year's stress: the three built layers as the capital standing, the three yearly ones as the year's bill. | Mine |
 | Spend | The year's outlay by layer (ADR-0007 Decisions 6 and 14). To build is paid as things finish: a built layer's spend is what stands at the end of the year less what stood a year before, so a piece taken down, or a fleet that shrinks with the people, comes off that year's spend. To run is paid every year: a yearly layer's spend is the year's bill. Year 0 spends nothing; what already stood was paid before the clock started. `totalSpend` sums the record by layer, by year and in all, years 1 on. | Yours |
+| Inferred order | On a run started with `{ infer: true }` (ADR-0015; needs `growth` and `inOrder`): an order the run places itself, through `placeOrder`, from one of two signals read each month after the people move. Needs: every proposal `proposeFor` makes on the planned board becomes an order, so nothing already ordered is ordered twice. Homes: when the homes ahead of arrivals (every neighborhood standing or in hand, less the people living there) fall below 30 months of arrivals at the citywide pace, one neighborhood is ordered, where `proposeNeighborhood` puts it, at most one a month. Recorded on the month as a typed fact; the Board words it. | Yours (2026-10-19) |
+| Veto | The player cancelling a job the run ordered, or taking down a piece the run built. The clock remembers the piece (kind and place) for the rest of the run and never orders it again; the player ordering it themselves lifts the veto. The player's own pieces are never vetoed. | Yours (2026-10-19) |
+| Lead | How far ahead of arrivals the run orders homes: 30 months at the citywide pace, 12,000 people. A premise on the run's rules, Mine. | Mine |
 
 ## The year
 
@@ -63,6 +66,19 @@ Each event is one of the four stretch tests come true. A city where every line h
   - When a lived-in neighborhood is left short of water, sewage, waste or power by a squeeze, nobody leaves, the line is broken and counts, and a unit of the short kind in hand takes a crew ahead of everything else.
   - Without `inOrder` the same orders play exactly as the sketch's clock: homes first, 30,000 people at year 2, line 6 broken (the parity suite).
 - **The ledger's city with growth**: full from the start, it refills its 181 leavers a month and stays at 50,000; it records the same lines and the same capital spend as the run without growth.
+
+- **The city grows itself** (ADR-0015, `infer`; planned, Phases 2 to 5 of `docs/work/sim-infers-growth/plan.md`):
+  - Given one neighborhood on an empty site and a run with growth, in order and `infer`, when the first month passes, then the ring, two modules, the three plant units, the three schools, the fields and the stretches to the ring are in the work in hand as inferred orders, each recorded on the month with the need it answers, and the player has placed nothing.
+  - Given the same run, when its homes ahead of arrivals fall below 12,000, then one neighborhood is ordered that month on the open tile nearest the ring, recorded with `homes` as its reason, and never more than one a month; from an empty site the first month orders the first neighborhood.
+  - Given the same run left alone for twenty years, then every neighborhood that opens is admitted the year it opens or the year after, the people grow at the pace, and the spend summed over layers equals the cost of what stands plus the running bills, as any run's does.
+  - Given a run with `infer` and the same pieces ordered by hand on a run without it, then both pay the same sum to build what stands at year 20.
+  - Given a need the player has already ordered, when the month passes, then the run orders nothing for it.
+  - Given an inferred job the player cancels, when the need re-arises, then the run does not order it again; when the player orders that piece themselves, it is theirs and the veto is lifted. Given a player's own piece taken down, then the run orders what the need asks the next month.
+  - Given people living there left short of water by a squeeze, when the month passes, then a water unit is ordered that month and takes a crew ahead of every class.
+  - Given a need the board has no room for, then it is recorded on the month as `NoRoom` and nothing is ordered for it.
+  - Given `infer` asked for without `growth` or without `inOrder`, then `startRun` refuses with an error. Given a run without `infer`, then the clock, the record and the parity fixtures are byte-identical to today's.
+  - Given a stored run with `infer` and its vetoes, when it is read back, then it carries on inferring and the vetoes hold; stored without vetoes, it restores with none.
+  - On the Board: Play on a one-neighborhood city grows it in view with no order from the player; an inferred order does not pause the months and a player's order still does; one Play is one undo step and takes the run's orders back with it; the work in hand marks inferred jobs and Cancel on one is a veto; "Let the city grow itself" is on by default and off keeps today's clock.
 
 ## Acceptance
 
