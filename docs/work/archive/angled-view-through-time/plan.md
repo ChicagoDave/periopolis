@@ -1,7 +1,7 @@
 # Session Plan: The 3D angled view that moves through time
 
 **Created**: 2026-10-19
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Queued**: Was queued behind board-auto-run-by-month, DONE and archived 2026-10-19; this plan is next. `.current-plan` is set when its Phase 1 starts.
 **Overall scope**: An angled (oblique/isometric) view of the city with building heights, entered from the tile map, that follows the Board's month clock: as the run plays, it shows the city as it stands that month. A new projection and renderer over the same Ground output, not a new Ground (physical-city "Out of scope").
 **Bounded contexts touched**: Board (apps/board) primarily; Ground (domain/ground) only in branch A; Run (domain/run) read, not changed.
@@ -91,4 +91,4 @@ What does "moves through time" mean?
 - **Exit state**: Under-construction tiles show their actual rows going up and homes filling as people arrive.
 - **Demonstration**: Ground's suite green with the fraction 1 equals full plan invariant; a scene test across months shows story sums rising monotonically to the finished figure.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: ABANDONED (2026-10-19: David chose branch B in the prior session; branch A was never taken up)

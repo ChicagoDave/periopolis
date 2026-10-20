@@ -9,7 +9,7 @@
 
 David, 2026-10-19: a 3D model of the city as it moves through time. The physical-city plan (`docs/work/archive/physical-city/plan.md`, DONE 2026-10-13) drew one tile's ground as a plan view and left the angled view with heights to a later plan, built so that choosing it would be cheap: the Ground returns plan-view shapes in metres plus each building's story count, and all drawing sits in the Board. `docs/brainstorm/future-city/techstack.md` keeps an angled view on the web as "extruded footprints under a tilted camera", and draws the line at a full simulation with every person and mover animated, which is a game engine's job and not chosen.
 
-Of two readings of "moves through time", David chose branch B (2026-10-19): finished things appear on the tilted map as the run completes them, under-construction tiles marked and homes lit by occupancy (Phase 3 of `docs/work/angled-view-through-time/plan.md`); the ground of a neighborhood growing as crews build it stays a later plan. The Board is one self-contained page on GitHub Pages (ADR-0011), 193 kB built.
+Of two readings of "moves through time", David chose branch B (2026-10-19): finished things appear on the tilted map as the run completes them, under-construction tiles marked and homes lit by occupancy (Phase 3 of `docs/work/archive/angled-view-through-time/plan.md`); the ground of a neighborhood growing as crews build it stays a later plan. The Board is one self-contained page on GitHub Pages (ADR-0011), 193 kB built.
 
 ## Decision
 
@@ -29,4 +29,4 @@ Of two readings of "moves through time", David chose branch B (2026-10-19): fini
 
 ## Session
 
-Session 2c0551, 2026-10-19; Phase 2 of `docs/work/angled-view-through-time/plan.md`.
+Session 2c0551, 2026-10-19; Phase 2 of `docs/work/archive/angled-view-through-time/plan.md`.
