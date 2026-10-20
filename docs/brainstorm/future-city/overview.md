@@ -75,6 +75,12 @@ Line 29 was added on 2026-10-14 while accepting the money premises (`money.md`, 
 
 29. "The city indemnifies all citizens - no insurance is carried by an individual."
 
+Lines 30 to 32 were added on 2026-10-20 in the setting brainstorm (`setting.md`): the city stands on a lake shore, on one of the Great Lakes. David took them as drafted.
+
+30. "The city stands on a lake shore, on one of the Great Lakes."
+31. "The city draws no more water than its source yields, and returns what it takes, treated."
+32. "The intake is upstream of the outfall."
+
 A proposal to add moving sidewalks was made and withdrawn ("Okay belts are bad").
 
 ## Core concepts

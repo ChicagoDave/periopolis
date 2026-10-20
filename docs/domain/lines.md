@@ -1,6 +1,6 @@
 # The lines
 
-A **line** is one numbered premise. Everything in the city is checked against the lines. Lines 1 to 19 are worded as published in the ledger; 20 to 23 are in David's words from the conversation of 8 to 12 October 2026. All 23 are **yours**.
+A **line** is one numbered premise. Everything in the city is checked against the lines. Lines 1 to 19 are worded as published in the ledger; 20 to 23 are in David's words from the conversation of 8 to 12 October 2026; 24 to 29 are the money lines (`docs/brainstorm/future-city/money.md`); 30 to 32 are the setting, a lake shore, added 2026-10-20 (`docs/brainstorm/future-city/setting.md`). All are **yours**.
 
 | # | Line | Where it is answered |
 |---|---|---|
@@ -27,5 +27,8 @@ A **line** is one numbered premise. Everything in the city is checked against th
 | 21 | "We're spit balling this targeting construction timelines out 20 years." Anything licensed or demonstrated today counts as available. | Run: twenty years on the clock; a reactor site takes three. |
 | 22 | "Waste has to have recycling systems, water treatment." | Site: drinking water, sewage and waste plants. Not in the ledger yet. |
 | 23 | Restrictions on paper and plastic; personal drinking containers; no commercial mail. | Not checked anywhere yet. |
+| 30 | "The city stands on a lake shore, on one of the Great Lakes." | Site: the shore is one edge of the site; the plants' band faces it (ADR-0016). |
+| 31 | "The city draws no more water than its source yields, and returns what it takes, treated." | On a Great Lake the yield is not the limit; the return is the rule. Not checked anywhere yet. |
+| 32 | "The intake is upstream of the outfall." | Site: along the shore, the water plant's intake and the sewage plant's outfall are apart in the current's direction; the reactors stand by the sewage plant. Decided in ADR-0016. |
 
 A proposal to add moving sidewalks was made and withdrawn.
