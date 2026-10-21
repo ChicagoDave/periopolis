@@ -14,6 +14,7 @@
   --sign: #0B6B49; --sign-ink: #FFFFFF; --new: #0B6B49;
   --flag: #8F5600; --flag-bg: #FBF1DC; --bad: #B3261E; --bad-bg: #FBE9E7; --ok-bg: #DCEEE4;
   --ground: #E1E8DF; --hood: #FCFDFA; --hood-edge: #93A699; --plant: #C6D1CB; --plant-edge: #74867B;
+  --band: #EDE6D3; --outside: #EEF1EC; --lake: #CFE0E6; --lake-ink: #2F5966;
   --display: "Overpass", "Helvetica Neue", Arial, sans-serif;
   --body: "Source Serif 4", Georgia, "Times New Roman", serif;
   --data: "Overpass Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -24,7 +25,7 @@
     --rule: #2F3E35; --rule-2: #222D27; --field: #0A0F0D;
     --sign: #0E7A54; --sign-ink: #FFFFFF; --new: #5CCBA0;
     --flag: #E5AE45; --flag-bg: #2B2414; --bad: #FF8A80; --bad-bg: #331A18; --ok-bg: #143326;
-    --ground: #131A16; --hood: #26332C; --hood-edge: #52675A; --plant: #2E3B45; --plant-edge: #627585; color-scheme: dark;
+    --ground: #131A16; --hood: #26332C; --hood-edge: #52675A; --plant: #2E3B45; --plant-edge: #627585; --band: #2A271D; --outside: #101512; --lake: #15282E; --lake-ink: #8CC3D2; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
@@ -32,7 +33,7 @@
   --rule: #2F3E35; --rule-2: #222D27; --field: #0A0F0D;
   --sign: #0E7A54; --sign-ink: #FFFFFF; --new: #5CCBA0;
   --flag: #E5AE45; --flag-bg: #2B2414; --bad: #FF8A80; --bad-bg: #331A18; --ok-bg: #143326;
-  --ground: #131A16; --hood: #26332C; --hood-edge: #52675A; --plant: #2E3B45; --plant-edge: #627585; color-scheme: dark;
+  --ground: #131A16; --hood: #26332C; --hood-edge: #52675A; --plant: #2E3B45; --plant-edge: #627585; --band: #2A271D; --outside: #101512; --lake: #15282E; --lake-ink: #8CC3D2; color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: border-box; }
 body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
@@ -104,6 +105,13 @@ p { margin: 0; }
 .tile.hood .hex { fill: var(--hood); stroke: var(--hood-edge); }
 .tile.ring .hex { fill: var(--sign); stroke: var(--sign); }
 .tile.power .hex, .tile.water .hex, .tile.sewage .hex, .tile.waste .hex { fill: var(--plant); stroke: var(--plant-edge); }
+.tile.open.band .hex { fill: var(--band); }
+.tile.outside .hex { fill: var(--outside); stroke-opacity: .3; }
+.circleedge { fill: none; stroke: var(--ink-2); stroke-width: 1.6; stroke-linecap: round; }
+.circleedge.closed { stroke-dasharray: 3 4; stroke-opacity: .6; }
+#board text.circlelabel { fill: var(--ink-2); font: 600 7.5px var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.lake { fill: var(--lake); }
+#board text.laketext { fill: var(--lake-ink); font: 600 7.5px var(--display); letter-spacing: .06em; }
 .tile:hover .hex { stroke: var(--ink-2); stroke-width: 1.6; }
 .tile.warn .hex { stroke: var(--flag); stroke-width: 2.4; }
 .tile.bad .hex { stroke: var(--bad); stroke-width: 2.4; }

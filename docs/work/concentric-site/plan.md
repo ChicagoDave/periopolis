@@ -101,8 +101,8 @@
 - **Deliverable**: Frame from `extent(outline)`; circle edge and band drawn; wording in `wording.ts` for every new rejection and fact (type checker reports a miss); e2e flows count the new drawn tiles instead of 115; a flow showing a plant refused off the band and the city growing into a second circle
 - **Exit state**: The built page shows concentric circles with the band; flows pass
 - **Demonstration**: `pnpm --filter @city/board test` and `pnpm --filter @city/board test:e2e` green, the flow asserting the drawn tile count and the band refusal sentence
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: 2026-10-21 — the map draws each circle's edge and name, its band tinted, the ground outside every circle faint, a closed circle dashed, and the lake below the south edge with the current; tiles carry `data-ground`; the inspector offers only what the band rule allows and closes or reopens a circle; wording for the ground, the circle names, closing, reopening and the lake (every rejection and fact of Phases 3 to 6 was worded in its own phase). Flows: the starter shows 158 tiles, 24 band, 97 outside, one circle edge, the lake, and refuses a plant at `2,0`, a neighborhood at `4,0` and one at `8,0` with their sentences; a full first circle saved in the browser, run with the city growing itself, opens `9,0` in its first month ("a new circle opens at 9,0"), 48 band and 36 outside tiles, is closed, records no room, is reopened by the player and orders its first neighborhood at `9,-1`, and undo and reload keep the closed circle. `pnpm -r typecheck` clean; `pnpm -r test` 91+27+212+229+197 = 756 passed (1 new); `pnpm --filter @city/board test:e2e` 18 passed (29.8 s, 2 new) [verified: test event "Tests passed" (91+27+212+229+197 = 756 and 18 e2e passed), 2026-10-21T16:10:58Z, after the last source and test edit (16:09:28Z; later edits are docs); typecheck is the session's report]
+- **Status**: DONE
 
 ### Phase 8: Founding run on the real path — past 100,000 into the second circle
 - **Tier**: Small

@@ -2,11 +2,14 @@
  * @file The Board's flows in a browser, on the built page: the front door, the opening city, two far neighborhoods, a founding run
  * through year 3, the ledger's city run to year 20, undo and storage, a tile's ground zoomed into at both levels, what
  * the city needs, the city sized to its people, a city founded month by month with its day hour by hour, and a
- * neighborhood standing empty while its line is under construction (ADR-0012), and a city that grows itself (ADR-0015).
+ * neighborhood standing empty while its line is under construction (ADR-0012), a city that grows itself (ADR-0015), and
+ * the circles and the band: the band refusing what does not stand there, and a full circle growing into the second
+ * (ADR-0016).
  * Owner context: Board (adapter), tests.
  */
 import { planNeighborhood, planRing } from '@city/ground';
-import { RATES } from '@city/site';
+import { RATES, applyProposal, emptyLayout, placeNeighborhood, proposeFor, proposeNeighborhood } from '@city/site';
+import type { Layout } from '@city/site';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { dirname, join } from 'node:path';
@@ -653,4 +656,105 @@ test('the city grows itself: from nothing, Play founds it, the work in hand says
   await expect(page.locator('#play')).toHaveText('Play');
   await page.click('#month');
   await expect(page.locator('#said')).toContainText('The city ordered');
+});
+
+/** One circle filled by the Site's own proposals: 36 neighborhoods and everything they call for (ADR-0016). */
+function fullCircle(): Layout {
+  const settle = (layout: Layout): Layout => {
+    let s = layout;
+    for (let round = 0; round < 50; round++) {
+      const steps = proposeFor(s, RATES).flatMap((p) => (p.room ? p.steps : []));
+      if (!steps.length) return s;
+      const a = applyProposal(s, steps, RATES);
+      if (!a.ok) throw new Error(a.rejection.reason);
+      s = a.layout;
+    }
+    throw new Error('never settled');
+  };
+  let s = emptyLayout();
+  for (let i = 0; i < 40; i++) {
+    const at = proposeNeighborhood(s, RATES);
+    if (!at) return s;
+    const o = placeNeighborhood(s, at, RATES);
+    if (!o.ok) throw new Error(o.rejection.reason);
+    s = settle(o.layout);
+  }
+  throw new Error('the circle never filled');
+}
+
+test('the circles and the band: the first circle drawn with its band and the lake, and a plant off the band, a home on it and anything outside refused (ADR-0016)', async ({ page }) => {
+  await expect(page.locator('#board .tile')).toHaveCount(158);
+  await expect(page.locator('#board path.circleedge')).toHaveCount(1);
+  await expect(page.locator('#board path.circleedge')).toHaveAttribute('data-circle', '0,0');
+  await expect(page.locator('#board .tile.band')).toHaveCount(24);
+  await expect(page.locator('#board .tile.outside')).toHaveCount(97);
+  await expect(page.locator('#board text.circlelabel')).toHaveText(['First circle']);
+  await expect(page.locator('#board rect.lake')).toHaveCount(1);
+  await expect(page.locator('#board text.laketext')).toHaveText(['Lake', 'current runs east →']);
+  await expect(tile(page, '-3,4')).toHaveAttribute('data-ground', 'band');
+  // A plant off the band, a neighborhood on it, and a neighborhood outside every circle: each refused, nothing placed.
+  await place(page, 'power', ['2,0']);
+  await expect(page.locator('#said')).toHaveText('A plant stands on the outer band of a circle, by the shore.');
+  await expect(tile(page, '2,0')).toHaveClass(/open/);
+  await place(page, 'hood', ['4,0']);
+  await expect(page.locator('#said')).toHaveText('Homes stand inside the band; the band is for the plants.');
+  await place(page, 'hood', ['8,0']);
+  await expect(page.locator('#said')).toHaveText("That ground is outside the city's circles. Nothing stands there until a circle is opened.");
+  await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
+  // The inspector offers only what may stand: plants on the band, homes and the ring inside it, nothing outside.
+  await page.click('#tool-inspect');
+  await tile(page, '4,0').click();
+  await expect(page.locator('#inspector')).toContainText('Open ground on the band, where the plants stand.');
+  await expect(page.locator('#inspector .row button')).toHaveText(['Reactor module', 'Water plant', 'Sewage plant', 'Waste works']);
+  await tile(page, '2,0').click();
+  await expect(page.locator('#inspector .row button')).toHaveText(['Neighborhood', 'Ring building']);
+  await tile(page, '8,0').click();
+  await expect(page.locator('#inspector')).toContainText("Ground outside the city's circles.");
+  await expect(page.locator('#inspector .row')).toHaveCount(0);
+  await expect(page.locator('#close-circle')).toHaveCount(0);
+});
+
+test('a full circle grows into the second: the month it has no room the city opens 9,0, the player may close it and open it again, and the next homes go there (ADR-0016)', async ({ page }) => {
+  const full = fullCircle();
+  await page.evaluate((saved) => localStorage.setItem('future-city-builder-v1', saved), JSON.stringify({ tiles: full.tiles, lines: full.lines, circles: full.circles, clock: null }));
+  await page.reload();
+  await expect(page.locator('#board .tile.hood')).toHaveCount(36);
+  await expect(page.locator('#board path.circleedge')).toHaveCount(1);
+  await expect(page.locator('#grow')).toBeChecked();
+  await page.click('#run');
+  await page.click('#month');
+  await expect(page.locator('#said')).toContainText('The city is full to its walk, so a new circle opens at 9,0 for the people arriving.');
+  await expect(page.locator('#board path.circleedge')).toHaveCount(2);
+  await expect(page.locator('#board .tile.outside')).toHaveCount(36);
+  await expect(page.locator('#board .tile.band')).toHaveCount(48);
+  await expect(page.locator('#board text.circlelabel')).toHaveText(['First circle', 'Second circle']);
+  await page.click('#monthbox summary');
+  await expect(page.locator('#monthrows tr').last().locator('td').last()).toHaveText('circle at 9,0');
+  // Closed while empty: the circle goes, dashed where it stood, and is not opened again.
+  await tile(page, '9,0').click();
+  await expect(page.locator('#close-circle')).toHaveText('Close this circle');
+  await page.click('#close-circle');
+  await expect(page.locator('#said')).toHaveText('Closed: the circle at 9,0. The city will not open it again; open it yourself to lift the veto.');
+  await expect(page.locator('#board path.circleedge:not(.closed)')).toHaveCount(1);
+  await expect(page.locator('#board path.circleedge.closed')).toHaveCount(1);
+  await expect(page.locator('#board .tile.outside')).toHaveCount(97);
+  await page.click('#month');
+  await expect(page.locator('#said')).toContainText('The site has no room for the people arriving.');
+  await expect(page.locator('#board path.circleedge')).toHaveCount(2);
+  await expect(page.locator('#board path.circleedge.closed')).toHaveCount(1);
+  // Opened again by the player: the veto is lifted, and the next month's homes go beside the new middle.
+  await tile(page, '9,0').click();
+  await page.click('#reopen-circle');
+  await expect(page.locator('#said')).toHaveText('A circle opens at 9,0: its ring in the middle, three rings of homes, and a band by the shore for its plants.');
+  await expect(page.locator('#board path.circleedge.closed')).toHaveCount(0);
+  await expect(page.locator('#board path.circleedge')).toHaveCount(2);
+  await page.click('#month');
+  await expect(page.locator('#said')).toContainText('The city ordered a neighborhood for the people arriving.');
+  await expect(tile(page, '9,-1')).toHaveClass(/site/);
+  // Undo takes the month back, then the player's opening: the circle stands closed again.
+  await page.click('#undo');
+  await page.click('#undo');
+  await expect(page.locator('#board path.circleedge.closed')).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator('#board path.circleedge.closed')).toHaveCount(1);
 });

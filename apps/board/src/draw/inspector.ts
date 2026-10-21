@@ -1,14 +1,18 @@
 /**
- * @file The inspector: the tile you picked, in facts and buttons.
+ * @file The inspector: the tile you picked, in facts and buttons. On open ground it offers only what the band rule
+ * lets stand there (ADR-0016 Decision 2); on the middle of an empty circle the city opened, a way to close it, and on
+ * the middle of a circle the player closed, a way to open it again (ADR-0016 Decision 3).
  * Public interface: drawInspector.
  * Owner context: Board (adapter).
  */
-import { EXTRAS, RATES, SCHOOLS } from '@city/site';
+import { RULES, circleId, placeOrder, vetoCircle } from '@city/run';
+import { EXTRAS, RATES, SCHOOLS, bandRule, openCircle } from '@city/site';
 import type { ExtraKind, TileKey } from '@city/site';
 import { button, byId, el } from '../dom.ts';
 import { fmt, years } from '../format.ts';
 import type { Page } from '../page.ts';
-import { SITE_NAME, heldHere, issueText, planCaption } from '../wording.ts';
+import { CIRCLE_CLOSE, CIRCLE_REOPEN, GROUND_TEXT, SITE_NAME, circleClosedSaid, heldHere, issueText, moveSaid, planCaption } from '../wording.ts';
+import { groundOf } from './board.ts';
 import { planAt } from './ground.ts';
 import { TOOLS, toolCalled } from './tray.ts';
 
@@ -35,6 +39,42 @@ function extraButtons(page: Page, k: TileKey, has: Readonly<Partial<Record<Extra
   return row;
 }
 
+/**
+ * On a circle's middle while the clock runs: close an empty circle the city opened (the Run's `vetoCircle`), or open
+ * again a circle the player closed (the player's own `openCircle` through `placeOrder`, which lifts the veto).
+ */
+function circleButtons(page: Page, picked: TileKey): void {
+  const { s } = page;
+  const clock = s.game.clock;
+  if (!clock) return;
+  const box = byId('inspector');
+  const shut = vetoCircle(s.game, picked);
+  if (shut !== s.game) {
+    const b = button(CIRCLE_CLOSE, () => {
+      s.remember();
+      s.game = shut;
+      s.save();
+      page.say(circleClosedSaid(picked));
+      page.render();
+    });
+    b.id = 'close-circle';
+    box.append(b);
+  } else if ((clock.vetoes ?? []).includes(circleId(picked))) {
+    const b = button(CIRCLE_REOPEN, () => {
+      const out = placeOrder(s.game, (plan) => openCircle(plan, picked, RATES), RULES);
+      if (out.ok) {
+        s.remember();
+        s.game = out.game;
+        s.save();
+        page.say(moveSaid('hood', { ok: true, layout: out.game.layout, event: out.siteEvent }, RATES));
+      } else page.say(moveSaid('hood', out, RATES));
+      page.render();
+    });
+    b.id = 'reopen-circle';
+    box.append(b);
+  }
+}
+
 export function drawInspector(page: Page): void {
   const { s } = page;
   const box = byId('inspector');
@@ -58,11 +98,17 @@ export function drawInspector(page: Page): void {
     return;
   }
   if (!t) {
-    box.append(el('h2', '', 'Open ground'), el('p', 'quiet', `${fmt(RATES.tileAcres)} acres with nothing on it.`));
-    const row = el('div', 'row');
-    row.append(el('span', 'lab', 'Build here'));
-    for (const id of ['hood', 'ring', 'power', 'water', 'sewage', 'waste'] as const) row.append(button(toolCalled(id).name, () => page.apply(id, picked)));
-    box.append(row);
+    const circles = s.game.layout.circles ?? [];
+    box.append(el('h2', '', 'Open ground'), el('p', 'quiet', `${fmt(RATES.tileAcres)} acres with nothing on it. ${GROUND_TEXT[groundOf(circles, picked)]}`));
+    // Only what the band rule lets stand here is offered (ADR-0016 Decision 2); the Site says which.
+    const allowed = (['hood', 'ring', 'power', 'water', 'sewage', 'waste'] as const).filter((id) => !bandRule(circles, picked, id === 'hood' || id === 'ring' ? 'home' : 'plant'));
+    if (allowed.length) {
+      const row = el('div', 'row');
+      row.append(el('span', 'lab', 'Build here'));
+      for (const id of allowed) row.append(button(toolCalled(id).name, () => page.apply(id, picked)));
+      box.append(row);
+    }
+    circleButtons(page, picked);
     return;
   }
   box.append(el('h2', '', SITE_NAME[t.kind]));

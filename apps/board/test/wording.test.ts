@@ -13,7 +13,7 @@ import type { ToolId } from '../src/wording.ts';
 import { checkDetail, checkTitle, heldBackLine, heldHere, issueText, linesLabel, moveSaid, needText, noticeText, stopsInHand, testLabel } from '../src/wording.ts';
 import { DAY_NAME, DAY_PREMISE, POPULATION_PREMISE, dayCaption, hourLabel, monthLine, peopleNow } from '../src/wording.ts';
 import { PAUSED_FOR_ORDER, SPEED_NAME, clockStarted, yearLine, yearsUp } from '../src/wording.ts';
-import { INFERRED_WHY, ORDERED_BY_CITY, inferredCell, inferredLine, vetoSaid } from '../src/wording.ts';
+import { CIRCLE_CLOSE, CIRCLE_REOPEN, GROUND_TEXT, INFERRED_WHY, LAKE_LABEL, ORDERED_BY_CITY, circleClosedSaid, circleName, currentLabel, inferredCell, inferredLine, vetoSaid } from '../src/wording.ts';
 import type { Inferred, InferredWhy } from '@city/run';
 import siteRecorded from '../../../domain/site/test/fixtures/parity.json';
 import runRecorded from '../../../domain/run/test/fixtures/parity.json';
@@ -396,5 +396,22 @@ describe('the band and the flow, worded (ADR-0016)', () => {
     expect(checkDetail({ check: 'flow', case: 'reversed', circles: 1, water: ['0,4'], sewage: ['-1,4'] }, RATES)).toBe('In 1 circle the sewage outfall at -1,4 is upstream of the water intake at 0,4, so the city would drink what it returns.');
     expect(issueText({ kind: 'flowReversed' })).toBe('This plant is on the wrong side: the sewage outfall is upstream of the water intake.');
     expect(needText({ need: 'intake', sewage: ['-1,4'], answers: ['flow'] })).toBe('A water intake upstream of the outfall at -1,4.');
+  });
+});
+
+describe('the circles, the band and the lake on the map (ADR-0016)', () => {
+  it('words open ground by where it lies, names the circles, and words closing and opening a circle and the lake', () => {
+    expect(GROUND_TEXT).toEqual({
+      inside: 'Open ground inside the band, for homes and the ring.',
+      band: 'Open ground on the band, where the plants stand.',
+      outside: "Ground outside the city's circles. Nothing stands here until a circle is opened.",
+    });
+    expect([0, 1, 2, 5].map(circleName)).toEqual(['First circle', 'Second circle', 'Third circle', 'Circle 6']);
+    expect(circleClosedSaid('9,0')).toBe('Closed: the circle at 9,0. The city will not open it again; open it yourself to lift the veto.');
+    expect(CIRCLE_CLOSE).toBe('Close this circle');
+    expect(CIRCLE_REOPEN).toBe('Open the circle again');
+    expect(LAKE_LABEL).toBe('Lake');
+    expect(currentLabel(1)).toBe('current runs east →');
+    expect(currentLabel(-1)).toBe('← current runs west');
   });
 });

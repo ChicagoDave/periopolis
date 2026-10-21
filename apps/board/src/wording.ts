@@ -7,7 +7,8 @@
  * addedSaid; and the month clock and the day (ADR-0009): POPULATION_PREMISE, DAY_PREMISE, DAY_NAME, monthLine,
  * peopleNow, hourLabel, dayCaption; and who is held back (ADR-0012): heldBackLine, heldHere; and the clock's own
  * sentences: yearLine, yearsUp, clockStarted, PAUSED_FOR_ORDER, SPEED_NAME; the run ordering for itself (ADR-0015): INFERRED_WHY,
- * inferredLine, inferredCell, ORDERED_BY_CITY, vetoSaid; and the angled view: angledCaption, ANGLED_LABEL, TILT_NAME.
+ * inferredLine, inferredCell, ORDERED_BY_CITY, vetoSaid; the circles and the band (ADR-0016): GroundKind, GROUND_TEXT,
+ * circleName, circleClosedSaid, CIRCLE_REOPEN, CIRCLE_CLOSE, LAKE_LABEL, currentLabel; and the angled view: angledCaption, ANGLED_LABEL, TILT_NAME.
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
@@ -931,6 +932,49 @@ export const ORDERED_BY_CITY = 'ordered by the city';
 /** Said when the player cancels a job the run ordered: a veto (ADR-0015 Decision 5). */
 export function vetoSaid(what: PieceKind): string {
   return `Vetoed: ${PIECE_NAME[what]}. The city will not order it there again; order it yourself to lift the veto.`;
+}
+
+/** Where open ground lies (ADR-0016): inside a circle's band, on it, or outside every circle. */
+export type GroundKind = 'inside' | 'band' | 'outside';
+
+/** What open ground is for, by where it lies. */
+export const GROUND_TEXT: Readonly<Record<GroundKind, string>> = {
+  inside: 'Open ground inside the band, for homes and the ring.',
+  band: 'Open ground on the band, where the plants stand.',
+  outside: "Ground outside the city's circles. Nothing stands here until a circle is opened.",
+};
+
+const ORDINAL = ['First', 'Second', 'Third', 'Fourth', 'Fifth'] as const;
+
+/**
+ * A circle's name on the map, by its place in the layout's list: "First circle", "Second circle".
+ * @param index - 0 for the first circle
+ */
+export function circleName(index: number): string {
+  const ordinal = ORDINAL[index];
+  return ordinal ? `${ordinal} circle` : `Circle ${index + 1}`;
+}
+
+/** Said when the player closes a circle the city opened (ADR-0016 Decision 3, the veto of ADR-0015 Decision 5). */
+export function circleClosedSaid(middle: TileKey): string {
+  return `Closed: the circle at ${middle}. The city will not open it again; open it yourself to lift the veto.`;
+}
+
+/** The inspector's button on an empty circle the city opened. */
+export const CIRCLE_CLOSE = 'Close this circle';
+
+/** The inspector's button on the middle of a circle the player closed. */
+export const CIRCLE_REOPEN = 'Open the circle again';
+
+/** The lake along the south edge of the site, off the board (ADR-0016 Decision 5). */
+export const LAKE_LABEL = 'Lake';
+
+/**
+ * The way the current runs along the shore, for the map's lake (line 32).
+ * @param current - +1 when it runs east, -1 when west
+ */
+export function currentLabel(current: 1 | -1): string {
+  return current > 0 ? 'current runs east →' : '← current runs west';
 }
 
 /** Said when an order placed while the months were running pauses them. */

@@ -259,6 +259,7 @@ Yours to decide:
 - Whether bills and statements count as commercial mail (counted as commercial).
 - How far the paper and plastic rules of line 23 reach (taken as the items named).
 - What the tool is for outside engineering. *Stated 2026-10-14 in `docs/objectives/sustainable-city-shown.md`: close the gaps (O-1). O-2, showing the Board to people who build cities, was withdrawn 2026-10-18: no outreach, the work is the sim itself.*
+- Whether to make it a game people play, as Permit Pending (https://permit.petercai.com) is: a landing page with scenarios, a story layer worded from the Run's facts, a goal to chase, a 3D view. *Raised by David 2026-10-21 out of curiosity and parked for a rainy day; the assessment that session: Periopolis's constraint would be the mirror of theirs ("you are a god, but physics and arithmetic are not negotiable"), and the ledger with its marks is what they lack. Not a decision; nothing planned.*
 
 Still unknown:
 
