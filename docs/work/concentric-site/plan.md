@@ -80,7 +80,7 @@
 - **Exit state**: The Site can lay out two circles and hold the lines across them; `pnpm -r test` green
 - **Demonstration**: Vitest placing a full first circle and a second circle's first neighborhood with plants in its band and the stretches joining them, asserting lines 5 and 16 hold
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: CURRENT (since 2026-10-20)
 
 ### Phase 6: The run orders the second circle when the first is full
 - **Tier**: Medium
