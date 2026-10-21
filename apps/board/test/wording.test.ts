@@ -178,7 +178,7 @@ describe('the month clock, worded (ADR-0009)', () => {
       'Deaths: 9.2 a year per 1,000 people',
       'People who move house: 8.7% a year',
       'Movers who leave the city: 50% of them',
-      'Arrivals into empty homes: 4,800 people a year at most, citywide',
+      'People joining the waiting list: 30,000 a year, moving in as homes stand empty',
       'People in homes with no school-age children: 60% of people',
     ]);
   });
@@ -285,7 +285,7 @@ describe('built in order, worded (ADR-0012)', () => {
 
   it('a neighborhood short of a service is worded empty whatever seats it also lacks; a month with no homes names none', () => {
     expect(heldBackLine([empty])).toBe('1 neighborhood stands empty, waiting for power.');
-    const bare: MonthRow = { year: 1, month: 1, people: 0, homes: 0, arrived: 0, births: 0, deaths: 0, left: 0, spend: {} as MonthRow['spend'], heldBack: [empty] };
+    const bare: MonthRow = { year: 1, month: 1, people: 0, homes: 0, joined: 0, arrived: 0, waiting: 0, births: 0, deaths: 0, left: 0, spend: {} as MonthRow['spend'], heldBack: [empty] };
     expect(monthLine(bare)).toBe('Year 1, month 1: no homes stand yet, so nobody lives here.');
   });
 

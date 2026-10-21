@@ -2,7 +2,8 @@
  * @file Population: one month of a city's people from yearly rates, each a premise with a mark. The homes as built are
  * the capacity (5,000 a tile, which Ground draws and the capital rows price); what moves is occupancy, how many live in
  * them (ADR-0009). Births and deaths change the people in the homes; people who move house and leave the city empty
- * homes; people arrive into empty homes at no more than a citywide pace, the fastest new town's.
+ * homes; people who want to live here join a waiting list at a yearly demand, and move from it into empty homes, so the
+ * homes, not the demand, are the limit (David, 2026-10-21: the city is enormously popular).
  * Public interface: PopulationPremises, POPULATION, PopulationMonth, monthOf.
  * Owner context: Ledger (domain).
  *
@@ -22,8 +23,8 @@ export interface PopulationPremises {
   readonly movingShare: Marked;
   /** Share of those movers who leave the city. */
   readonly leavingShare: Marked;
-  /** Most people who arrive in a year, citywide, however many homes stand empty. */
-  readonly arrivalsPerYear: Marked;
+  /** People who join the waiting list in a year, wanting to live here; they move in as homes stand empty. */
+  readonly demandPerYear: Marked;
   /** Share of people who live in households with no school-age children: who may move into a neighborhood whose
    * pupils have no seats yet (ADR-0012 Decision 3). */
   readonly childlessShare: Marked;
@@ -46,10 +47,9 @@ export const POPULATION: PopulationPremises = {
     mark: accept(sourced('Census CPS: 8.7% of people moved in 2022', 2022, 'https://census.gov/library/stories/2023/09/why-people-move.html')),
   },
   leavingShare: { value: 0.5, mark: { kind: 'mine' } },
-  arrivalsPerYear: {
-    value: 4800,
-    mark: accept(sourced('Census: Irvine, CA grew from 62,134 (1980) to 110,330 (1990), about 4,800 a year', 1990, 'https://www.census.gov/')),
-  },
+  // Mine (David, 2026-10-21): above the 25,000 homes a year ten crews can finish, so a list forms and the build pace is
+  // the limit. The sourced comparison is Frisco, TX, past 100,000: about 8,350 a year in 2010-2020, mostly migration.
+  demandPerYear: { value: 30000, mark: { kind: 'mine' } },
   // Mine until a source is accepted (ADR-0012 Decision 3). The figure to find is the Census ACS count of people living
   // in households with no member aged 5 to 17, over all people in households.
   childlessShare: { value: 0.6, mark: { kind: 'mine' } },
@@ -63,8 +63,12 @@ export interface PopulationMonth {
   readonly deaths: number;
   /** People who moved house and left the city. */
   readonly left: number;
-  /** People who moved into empty homes. */
+  /** People who joined the waiting list. */
+  readonly joined: number;
+  /** People who moved from the waiting list into empty homes. */
   readonly arrived: number;
+  /** People on the waiting list at the end of the month. */
+  readonly waiting: number;
   /** People at the end of the month. */
   readonly to: number;
   /** Homes as built, in people (capacity). */
@@ -74,21 +78,25 @@ export interface PopulationMonth {
 const MONTHS = 12;
 
 /**
- * One month of a city's people.
+ * One month of a city's people: a twelfth of the year's demand joins the waiting list, and as many from the list as
+ * there are empty homes move in.
  * @param people - people at the start of the month
- * @param capacity - the homes as built, in people
+ * @param capacity - the homes open to arrivals, in people
+ * @param waiting - people on the waiting list at the start of the month
  * @param k - the premises; POPULATION when left out
- * @returns the month's births, deaths, leavers and arrivals, and the people at its end
- * @throws RangeError when people or capacity is negative or not a number
+ * @returns the month's births, deaths, leavers, joiners and arrivals, the people at its end and the list left waiting
+ * @throws RangeError when people, capacity or waiting is negative or not a number
  */
-export function monthOf(people: number, capacity: number, k: PopulationPremises = POPULATION): PopulationMonth {
+export function monthOf(people: number, capacity: number, waiting: number, k: PopulationPremises = POPULATION): PopulationMonth {
   if (!(people >= 0)) throw new RangeError(`people must be zero or more, not ${people}`);
   if (!(capacity >= 0)) throw new RangeError(`capacity must be zero or more, not ${capacity}`);
+  if (!(waiting >= 0)) throw new RangeError(`waiting must be zero or more, not ${waiting}`);
   const births = (people * k.birthsPerThousand.value) / 1000 / MONTHS;
   const deaths = (people * k.deathsPerThousand.value) / 1000 / MONTHS;
   const left = (people * k.movingShare.value * k.leavingShare.value) / MONTHS;
   const stayed = Math.max(0, people + births - deaths - left);
-  // Arrivals fill empty homes only; births in full homes are the stress band's crowding, not arrivals.
-  const arrived = Math.min(Math.max(0, capacity - stayed), k.arrivalsPerYear.value / MONTHS);
-  return { from: people, births, deaths, left, arrived, to: stayed + arrived, capacity };
+  const joined = k.demandPerYear.value / MONTHS;
+  // Arrivals come off the list into empty homes only; births in full homes are the stress band's crowding, not arrivals.
+  const arrived = Math.min(Math.max(0, capacity - stayed), waiting + joined);
+  return { from: people, births, deaths, left, joined, arrived, to: stayed + arrived, capacity, waiting: waiting + joined - arrived };
 }

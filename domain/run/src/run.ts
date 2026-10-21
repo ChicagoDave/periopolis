@@ -255,7 +255,7 @@ function yearPasses(game: Game, clock: Clock, rates: SiteRates, rules: RunRules,
       ...lived,
       record: [...clock.record, row],
       lineYears: clock.lineYears + row.bad,
-      growth: { month: 0, occupied: month12.occupied, months: closed },
+      growth: { month: 0, occupied: month12.occupied, waiting: month12.waiting, months: closed },
     },
   };
 }
@@ -426,8 +426,9 @@ function inferredOf(raw: readonly unknown[], tiles: readonly TileKey[]): Inferre
 }
 
 /**
- * The month clock read back from storage: the month, each standing neighborhood's people (no more than it holds), and
- * the months recorded. Anything else is dropped; a stored clock without growth restores without it.
+ * The month clock read back from storage: the month, each standing neighborhood's people (no more than it holds), the
+ * waiting list, and the months recorded. Anything else is dropped; a stored clock without growth restores without it,
+ * and one stored before the waiting list restores with nobody waiting and months that record nobody joining.
  */
 function growthOf(raw: unknown, layout: Layout, rates: SiteRates, rules: RunRules): Growth | null {
   if (!isRecord(raw) || !whole(raw['month'], 0, 11)) return null;
@@ -446,13 +447,17 @@ function growthOf(raw: unknown, layout: Layout, rates: SiteRates, rules: RunRule
     if (!isRecord(m) || !whole(m['year'], 1, rules.years) || !whole(m['month'], 1, 12)) continue;
     const { births, deaths, left, arrived, people, homes } = m;
     if (!num(births) || !num(deaths) || !num(left) || !num(arrived) || !num(people) || !num(homes)) continue;
+    const joined = num(m['joined']) ? m['joined'] : 0;
+    const waiting = num(m['waiting']) ? m['waiting'] : 0;
     months.push({
       year: m['year'] as number,
       month: m['month'] as number,
       births,
       deaths,
       left,
+      joined,
       arrived,
+      waiting,
       people,
       homes,
       spend: moneyOf(m['spend']),
@@ -460,7 +465,8 @@ function growthOf(raw: unknown, layout: Layout, rates: SiteRates, rules: RunRule
       ...(Array.isArray(m['inferred']) && inferredOf(m['inferred'], allTiles(rates.outline)).length ? { inferred: inferredOf(m['inferred'], allTiles(rates.outline)) } : {}),
     });
   }
-  return { month: raw['month'] as number, occupied, months };
+  const waiting = raw['waiting'];
+  return { month: raw['month'] as number, occupied, waiting: typeof waiting === 'number' && Number.isFinite(waiting) && waiting >= 0 ? waiting : 0, months };
 }
 
 const RESIDENCES: readonly Residence[] = ['all', 'childless'];

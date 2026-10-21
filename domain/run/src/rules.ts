@@ -24,8 +24,9 @@ export interface RunRules {
   readonly firstModule: number;
   /** Years until the last child of a K to 5 wave has left high school. */
   readonly wave: number;
-  /** On a run that orders for itself (ADR-0015): months of arrivals at the citywide pace to keep homes ahead of.
-   * Mine (David, 2026-10-19): a neighborhood takes a crew two years and fills in about twelve and a half months. */
+  /** On a run that orders for itself (ADR-0015): months of the waiting list's demand to keep homes ahead of.
+   * Mine (David, 2026-10-19, 30 months; on demand rather than the old citywide pace, David 2026-10-21): enough homes in
+   * hand that the crews, not the lead, limit how fast the city builds. */
   readonly lead: number;
 }
 

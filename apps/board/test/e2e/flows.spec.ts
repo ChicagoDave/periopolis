@@ -337,7 +337,7 @@ test('the ledger\'s city sized to its people: one ring building and one reactor 
   await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
 });
 
-test('a city founded month by month: homes fill at Irvine\'s pace, a month step moves the people, and the day lists 24 hours for them (ADR-0009)', async ({ page }) => {
+test('a city founded month by month: homes fill off the waiting list as they open, a month step moves the people, and the day lists 24 hours for them (ADR-0009)', async ({ page }) => {
   // The opening city's day, every neighborhood full.
   await expect(page.locator('#daynow')).toContainText('A summer weekday for 50,000 people: 147,727 trips');
   await page.click('#daybox summary');
@@ -348,7 +348,7 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
   await expect(page.locator('#daypremises .chip.mark')).toHaveCount(7);
   await page.click('#popbox summary');
   await expect(page.locator('#poppremises li')).toHaveCount(6);
-  await expect(page.locator('#poppremises li').nth(4)).toContainText('Arrivals into empty homes: 4,800 people a year at most, citywide');
+  await expect(page.locator('#poppremises li').nth(4)).toContainText('People joining the waiting list: 30,000 a year, moving in as homes stand empty');
   await expect(page.locator('#poppremises li').last()).toContainText('People in homes with no school-age children: 60% of people');
 
   // The month clock is the Board's default run; the city growing itself (ADR-0015) is turned off for the pinned figures.
@@ -378,18 +378,19 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
   await expect(page.locator('#clocknow')).toContainText('Year 2 of 20.');
   await expect(page.locator('#said')).toContainText('2 neighborhoods stand empty, waiting for power.');
   await expect(page.locator('#peoplenow')).toHaveText('The start of year 3. 0 people living in homes for 10,000.');
-  // Year 3, when both modules open and the first 400 move in.
+  // Year 3, when both modules open and the childless share of both neighborhoods, 6,000, move in off the list at once.
   await page.click('#tick');
   await expect(page.locator('#clocknow')).toContainText('Year 3 of 20.');
-  await expect(page.locator('#peoplenow')).toHaveText('The start of year 4. 400 people living in homes for 10,000.');
-  await expect(page.locator('#daynow')).toContainText('A summer weekday for 400 people:');
+  await expect(page.locator('#peoplenow')).toHaveText('The start of year 4. 6,000 people living in homes for 10,000.');
+  await expect(page.locator('#daynow')).toContainText('A summer weekday for 6,000 people:');
   await page.click('#month');
   await expect(page.locator('#said')).toHaveText(
-    'Year 4, month 1: 799 people in homes for 10,000. 400 moved in, 0.4 born, 0.3 died and 1.5 moved away. ' +
+    'Year 4, month 1: 6,000 people in homes for 10,000. 21 moved in, 5.3 born, 4.6 died and 21.8 moved away. ' +
       '2 neighborhoods hold only households with no school-age children, waiting for elementary, middle-school and high-school seats.',
   );
-  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 799 people living in homes for 10,000.');
-  await expect(page.locator('#daynow')).toContainText('A summer weekday for 799 people:');
+  // The month's leavers' homes go to people off the list, so the city stays at the share it may hold.
+  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000.');
+  await expect(page.locator('#daynow')).toContainText('A summer weekday for 6,000 people:');
   await page.click('#tool-inspect');
   await tile(page, '1,0').click();
   await expect(page.locator('#inspector .held')).toHaveText('Only households with no school-age children live here. It waits for elementary, middle-school and high-school seats.');
@@ -398,7 +399,7 @@ test('a city founded month by month: homes fill at Irvine\'s pace, a month step 
   await expect(page.locator('#monthrows tr')).toHaveCount(37);
   // The month clock survives a reload.
   await page.reload();
-  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 799 people living in homes for 10,000.');
+  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000.');
 });
 
 test('a neighborhood stands empty until the city carries it, and line 6 says when its line is under construction (ADR-0012)', async ({ page }) => {
@@ -537,16 +538,16 @@ test('the site from the air follows the clock: scaffolds for what is ordered, bl
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-stories', '12');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lit', '0.00');
   await expect(page.locator('#viewtext')).toContainText('1 tile under construction. 0% of the homes are lit.');
-  // Year 3: both modules open and the first 400 move in, into one of the two neighborhoods.
+  // Year 3: both modules open and the childless share of both neighborhoods moves in off the waiting list at once.
   await page.click('#tick');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-sites', '0');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-stories', '14');
-  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lit', '0.04');
-  await expect(page.locator('#viewtext')).toHaveText('The site from the air: 6 blocks, 14 stories in all. 4% of the homes are lit.');
-  // A month later more have come, and the view, still from the air, shows it.
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lit', '0.60');
+  await expect(page.locator('#viewtext')).toHaveText('The site from the air: 6 blocks, 14 stories in all. 60% of the homes are lit.');
+  // A month later the leavers' homes are taken again off the list, and the view, still from the air, shows as many lit.
   await page.click('#month');
-  const lit = Number(await page.locator('#angledcanvas').getAttribute('data-lit'));
-  expect(lit).toBeGreaterThan(0.04);
+  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000.');
+  await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lit', '0.60');
   await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'true');
 });
 

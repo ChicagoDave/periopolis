@@ -1,8 +1,8 @@
 /**
  * @file The month clock (ADR-0009), on the real Ledger and Site: a run without growth is the sketch's clock; the
  * ledger's city, full, stays full month by month and its twelve months' running spend is the year's; the sized city
- * founded from nothing fills at the citywide pace, about Irvine's, and the neighborhood filling leaves its daily list
- * short; months advance one at a time to the year's end; a stored month clock reads back.
+ * founded from nothing fills as fast as its homes stand, off a waiting list that grows past them, and the neighborhood
+ * filling leaves its daily list short; months advance one at a time to the year's end; a stored month clock reads back.
  * Owner context: Run (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
@@ -125,23 +125,22 @@ describe('the month clock', () => {
     }
   });
 
-  it('the sized city founded from nothing fills at the citywide pace, about Irvine\'s 4,800 a year, and is full by year 16', () => {
+  it('the sized city founded from nothing fills as fast as its homes stand, full by year 6, while the list grows', () => {
     const g = yearsOf(foundSized(42), 20);
     const arrived = (year: number): number => sum(monthsIn(g, year), (m) => m.arrived);
-    const left = (year: number): number => sum(monthsIn(g, year), (m) => m.left);
+    const end = (year: number): MonthRow | undefined => monthsIn(g, year).at(-1);
     expect(arrived(1)).toBe(0);
-    for (let year = 3; year <= 15; year++) expect(arrived(year)).toBeCloseTo(4800, 6);
-    for (let year = 1; year <= 20; year++) expect(arrived(year)).toBeLessThanOrEqual(4800 + 1e-6);
-    // Net of the leavers, the city grows by 2,600 to 4,700 a year while it fills: Irvine added about 4,800.
-    for (let year = 4; year <= 15; year++) {
-      expect(arrived(year) - left(year)).toBeGreaterThan(2600);
-      expect(arrived(year) - left(year)).toBeLessThan(4800);
-    }
-    const end = (year: number): number => monthsIn(g, year).at(-1)?.people ?? Number.NaN;
-    expect(end(15)).toBeLessThan(50000);
-    expect(end(16)).toBeCloseTo(50000, 6);
-    expect(end(20)).toBeCloseTo(50000, 6);
+    // Every year the people are the homes as built: the list is longer than the homes, so every home is taken the
+    // year it opens (30,000 a year join, Mine, David 2026-10-21).
+    for (let year = 2; year <= 20; year++) expect(end(year)?.people).toBeCloseTo(end(year)?.homes ?? Number.NaN, 6);
+    expect(end(5)?.people).toBeLessThan(50000);
+    expect(end(6)?.people).toBeCloseTo(50000, 6);
+    expect(end(20)?.people).toBeCloseTo(50000, 6);
+    // Full, the leavers' homes go to people off the list: 4.35% leave, and 0.15% are born to the city.
     expect(sum(monthsIn(g, 20), (m) => m.left)).toBeCloseTo(50000 * 0.087 * 0.5, 2);
+    expect(arrived(20)).toBeCloseTo(50000 * (0.087 * 0.5 - (10.7 - 9.2) / 1000), 2);
+    // What the homes cannot take waits: the list gains 30,000 a year less who moved in.
+    for (let year = 7; year <= 20; year++) expect((end(year)?.waiting ?? 0) - (end(year - 1)?.waiting ?? 0)).toBeCloseTo(30000 - arrived(year), 2);
   });
 
   it('while a neighborhood fills, its daily list is a watch, not a break; full, it is fed', () => {

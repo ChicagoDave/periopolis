@@ -135,17 +135,28 @@ describe("David's founding, people when served (city-261015)", () => {
     expect(power?.kind === 'power' ? power.n : 0).toBe(2);
   });
 
-  it('with growth, people arrive only once it opens, at no more than 4,800 a year, until the homes are full', () => {
+  it('with growth, people wait on the list until it opens, then move in off the list, until the homes are full', () => {
     const g = run(withSchools(founding({ inOrder: true, growth: true })));
     const rows = recordOf(g);
     const opened = rows.findIndex((r) => r.pop > 0);
     expect(opened).toBeGreaterThan(2);
     for (const r of rows.slice(0, opened)) expect(r.pop).toBe(0);
-    // Arrivals, month by month: none before it opens, never more than the citywide pace allows.
+    // Month by month: nobody moves in before it opens, while 2,500 a month join the list and wait.
     const months = g.clock?.growth?.months ?? [];
-    expect(months.filter((m) => m.year < opened).every((m) => m.people === 0 && m.arrived === 0)).toBe(true);
-    expect(months.every((m) => m.arrived <= POPULATION.arrivalsPerYear.value / 12 + 1e-9)).toBe(true);
-    expect(months.filter((m) => m.year === opened + 1).reduce((t, m) => t + m.arrived, 0)).toBeCloseTo(POPULATION.arrivalsPerYear.value, 6);
+    const join = POPULATION.demandPerYear.value / 12;
+    const before = months.filter((m) => m.year < opened);
+    expect(before.every((m) => m.people === 0 && m.arrived === 0 && m.joined === join)).toBe(true);
+    expect(before.at(-1)?.waiting).toBeCloseTo(join * before.length, 6);
+    // The list keeps its count: each month it gains who joined and loses who moved in, and nobody moves in off an empty list.
+    let waiting = 0;
+    for (const m of months) {
+      expect(m.arrived).toBeLessThanOrEqual(waiting + m.joined + 1e-9);
+      waiting += m.joined - m.arrived;
+      expect(m.waiting).toBeCloseTo(waiting, 6);
+    }
+    expect(g.clock?.growth?.waiting).toBeCloseTo(waiting, 6);
+    // The list is longer than the homes, so the year it opens ends with every home taken.
+    expect(rows[opened]?.pop).toBe(6 * RATES.hood);
     // Every month built in order says what holds the neighborhoods back; once open, nothing does.
     expect(g.clock?.growth?.months.every((m) => Array.isArray(m.heldBack))).toBe(true);
     expect(g.clock?.growth?.months.filter((m) => m.year > opened).every((m) => m.heldBack?.length === 0)).toBe(true);
@@ -336,19 +347,39 @@ describe('a stored run keeps who lives where', () => {
     expect(back?.record[8]?.heldBack).toEqual([{ hood: '0,-1', short: ['power'], seats: [] }]);
   });
 
-  it('a month clock built in order carries on from storage, still filling only what was admitted', () => {
-    // Year 8: everyone admitted, the homes still filling at the pace.
+  it('a month clock built in order carries on from storage with its waiting list, still filling only what was admitted', () => {
+    // Year 8: everyone admitted, the homes full, and the list holding everyone the homes could not.
     let g = withSchools(founding({ inOrder: true, growth: true }));
     while (g.clock && g.clock.year < 8) g = tick(g, RATES, RULES);
-    const people = g.clock?.growth?.months.at(-1)?.people ?? 0;
-    expect(people).toBeGreaterThan(0);
-    expect(people).toBeLessThan(6 * RATES.hood);
-    const back = restoreClock(JSON.parse(JSON.stringify(g.clock)), g.layout, RATES, RULES);
+    expect(g.clock?.growth?.months.at(-1)?.people).toBeCloseTo(6 * RATES.hood, 6);
+    const waiting = g.clock?.growth?.waiting ?? 0;
+    expect(waiting).toBeGreaterThan(100000);
+    const stored = JSON.parse(JSON.stringify(g.clock)) as Record<string, unknown>;
+    const back = restoreClock(stored, g.layout, RATES, RULES);
+    expect(back?.growth?.waiting).toBe(waiting);
+    expect(back?.growth?.months.map((m) => [m.joined, m.waiting])).toEqual(g.clock?.growth?.months.map((m) => [m.joined, m.waiting]));
     const resumed = tickMonth({ layout: g.layout, clock: back }, RATES, RULES);
     const live = tickMonth(g, RATES, RULES);
     expect(resumed.clock?.growth?.occupied).toEqual(live.clock?.growth?.occupied);
+    expect(resumed.clock?.growth?.waiting).toBe(live.clock?.growth?.waiting);
+    // The leavers' homes go to people off the list.
     expect(resumed.clock?.growth?.months.at(-1)?.arrived).toBeGreaterThan(0);
     expect(resumed.clock?.lived).toEqual(live.clock?.lived);
     expect(back?.growth?.months.map((m) => m.heldBack)).toEqual(g.clock?.growth?.months.map((m) => m.heldBack));
+  });
+
+  it('a month clock stored before the waiting list restores with nobody waiting, and drops a list that is not a count', () => {
+    let g = withSchools(founding({ inOrder: true, growth: true }));
+    while (g.clock && g.clock.year < 4) g = tick(g, RATES, RULES);
+    const stored = JSON.parse(JSON.stringify(g.clock)) as { growth: Record<string, unknown> & { months: Record<string, unknown>[] } };
+    const old = { ...stored.growth, months: stored.growth.months.map(({ joined: _j, waiting: _w, ...m }) => m) };
+    delete (old as Record<string, unknown>)['waiting'];
+    const back = restoreClock({ ...stored, growth: old }, g.layout, RATES, RULES);
+    expect(back?.growth?.waiting).toBe(0);
+    expect(back?.growth?.months).toHaveLength(stored.growth.months.length);
+    expect(back?.growth?.months.every((m) => m.joined === 0 && m.waiting === 0)).toBe(true);
+    for (const bad of [-5, 'many', Number.NaN, null]) {
+      expect(restoreClock({ ...stored, growth: { ...stored.growth, waiting: bad } }, g.layout, RATES, RULES)?.growth?.waiting).toBe(0);
+    }
   });
 });

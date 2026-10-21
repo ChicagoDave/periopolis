@@ -47,7 +47,7 @@ const ids = (list: readonly Job[]): string[] => list.map((j) => pieceId(j.what, 
 const orders = (facts: readonly Inferred[] | undefined): string[] =>
   (facts ?? []).flatMap((f) => (f.type === 'InferredOrder' ? f.events.map((e) => pieceId(e.what, e.at)) : []));
 
-const LEAD = (RULES.lead * POPULATION.arrivalsPerYear.value) / 12;
+const LEAD = (RULES.lead * POPULATION.demandPerYear.value) / 12;
 
 describe('the first month on one neighborhood', () => {
   const g0 = startRun(oneHood(), 7, RATES, RULES, GROW);
@@ -81,11 +81,30 @@ describe('the first month on one neighborhood', () => {
     expect(hoodsOf(g1)).toHaveLength(1);
     expect(lastMonth(g1).inferred?.filter((f) => f.type === 'InferredOrder' && f.why === 'homes')).toHaveLength(1);
     expect(homesAhead(g1, RATES)).toBeLessThan(LEAD);
-    const g2 = months(g1, 1);
-    expect(hoodsOf(g2)).toHaveLength(2);
-    const g3 = months(g2, 1);
+    // At 30 months of 30,000 a year the lead is 75,000 homes: three months order three neighborhoods, still short of it.
+    const g3 = months(g1, 2);
+    expect(hoodsOf(g3)).toHaveLength(3);
+    expect(homesAhead(g3, RATES)).toBeLessThan(LEAD);
+  });
+
+  it('stops ordering neighborhoods once the homes ahead reach the lead', () => {
+    // A lead of 5 months of demand is 12,500 homes: the empty lone neighborhood and one in hand fall short, two reach it.
+    const short = { ...RULES, lead: 5 };
+    const lead = (short.lead * POPULATION.demandPerYear.value) / 12;
+    const step = (g: Game, n: number): Game => {
+      let at = g;
+      for (let i = 0; i < n; i++) at = tickMonth(at, RATES, short);
+      return at;
+    };
+    const hoodsOf = (g: Game): string[] => ids(jobs(g)).filter((id) => id.startsWith('hood@'));
+    const s1 = step(startRun(oneHood(), 7, RATES, short, GROW), 1);
+    expect(hoodsOf(s1)).toHaveLength(1);
+    expect(homesAhead(s1, RATES)).toBeLessThan(lead);
+    const s2 = step(s1, 1);
+    expect(hoodsOf(s2)).toHaveLength(2);
+    const g3 = step(s2, 1);
     expect(hoodsOf(g3)).toHaveLength(2);
-    expect(homesAhead(g3, RATES)).toBeGreaterThanOrEqual(LEAD);
+    expect(homesAhead(g3, RATES)).toBeGreaterThanOrEqual(lead);
     // Each new neighborhood is next to the ring at 0,-1, where the Site put it.
     const plan = planned(g3.layout, g3.clock?.jobs ?? []);
     const ring = Object.keys(plan.tiles).find((k) => plan.tiles[k]?.kind === 'ring');

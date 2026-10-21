@@ -106,7 +106,7 @@ export function inferStep(game: Game, rates: SiteRates, rules: RunRules): { read
     g = out.game;
     facts.push({ type: 'InferredOrder', why: p.need.need, events: out.events });
   }
-  const lead = (rules.lead * POPULATION.arrivalsPerYear.value) / MONTHS;
+  const lead = (rules.lead * POPULATION.demandPerYear.value) / MONTHS;
   if (homesAhead(g, rates) < lead && g.clock) {
     const avoid = vetoes.filter((v) => splitPiece(v)[0] === 'hood').map((v) => splitPiece(v)[1]);
     const at = proposeNeighborhood(planned(g.layout, g.clock.jobs), rates, avoid);

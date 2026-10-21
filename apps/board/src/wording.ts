@@ -692,7 +692,7 @@ export const POPULATION_PREMISE: Readonly<Record<keyof PopulationPremises, { rea
   deathsPerThousand: { name: 'Deaths', value: (v) => `${num(v, 1)} a year per 1,000 people` },
   movingShare: { name: 'People who move house', value: (v) => `${num(100 * v, 1)}% a year` },
   leavingShare: { name: 'Movers who leave the city', value: (v) => `${num(100 * v)}% of them` },
-  arrivalsPerYear: { name: 'Arrivals into empty homes', value: (v) => `${num(v)} people a year at most, citywide` },
+  demandPerYear: { name: 'People joining the waiting list', value: (v) => `${num(v)} a year, moving in as homes stand empty` },
   childlessShare: { name: 'People in homes with no school-age children', value: (v) => `${num(100 * v)}% of people` },
 };
 

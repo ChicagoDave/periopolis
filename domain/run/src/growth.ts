@@ -1,7 +1,7 @@
 /**
  * @file The month clock (ADR-0009): who lives in the finished neighborhoods, month by month. Each month the city's
- * people change by the Ledger's `monthOf` (births, deaths, movers who leave, arrivals into empty homes at no more than
- * the citywide pace); the change is shared among the neighborhoods, and arrivals fill empty homes in the board's tile
+ * people change by the Ledger's `monthOf` (births, deaths, movers who leave, and arrivals from the waiting list into empty
+ * homes); the change is shared among the neighborhoods, and arrivals fill empty homes in the board's tile
  * order. Construction stays a yearly step; a month records its people and its share of the running bill. On a clock built
  * in order (ADR-0012) arrivals fill only the neighborhoods admitted, up to what each may hold.
  * Public interface: Growth, MonthRow, MoveIn, growthOn, monthStep, occupiedOf, homesOf.
@@ -25,7 +25,11 @@ export interface MonthRow {
   readonly births: number;
   readonly deaths: number;
   readonly left: number;
+  /** People who joined the waiting list. */
+  readonly joined: number;
   readonly arrived: number;
+  /** People on the waiting list at the month's end. */
+  readonly waiting: number;
   /** People living in the city at the month's end. */
   readonly people: number;
   /** Homes as built, in people. */
@@ -56,6 +60,8 @@ export interface Growth {
   readonly month: number;
   /** People living in each finished neighborhood. */
   readonly occupied: Readonly<Record<TileKey, number>>;
+  /** People on the waiting list, wanting to live here. */
+  readonly waiting: number;
   /** Every month so far, in order. */
   readonly months: readonly MonthRow[];
 }
@@ -75,7 +81,8 @@ export function homesOf(layout: Layout, rates: SiteRates): number {
 }
 
 /**
- * Growth starting on what stands: every neighborhood that already stands is lived in, full; the clock starts at month 0.
+ * Growth starting on what stands: every neighborhood that already stands is lived in, full; the clock starts at month 0
+ * with nobody waiting (Mine, David 2026-10-21).
  * @param layout - what stands when the run starts
  * @param rates - the ledger's rates
  * @param limits - on a clock built in order, the most each neighborhood may hold: it starts that full
@@ -83,7 +90,7 @@ export function homesOf(layout: Layout, rates: SiteRates): number {
 export function growthOn(layout: Layout, rates: SiteRates, limits?: Readonly<Record<TileKey, number>>): Growth {
   const occupied: Record<TileKey, number> = {};
   for (const h of hoodsOf(layout, rates)) occupied[h] = limits ? (limits[h] ?? 0) : rates.hood;
-  return { month: 0, occupied, months: [] };
+  return { month: 0, occupied, waiting: 0, months: [] };
 }
 
 /**
@@ -112,7 +119,7 @@ function billOf(
 
 /**
  * One month passes for the city's people: births, deaths and movers who leave are shared among the neighborhoods by
- * their occupants; arrivals fill empty homes in tile order, no more than the citywide pace allows.
+ * their occupants; arrivals come off the waiting list into empty homes in tile order, and any not placed stay on it.
  * @param layout - what stands this month
  * @param growth - the month clock before the month
  * @param year - the year the month belongs to
@@ -139,7 +146,7 @@ export function monthStep(
   const homes = hoods.length * rates.hood;
   // Arrivals come for the homes open to them: on a clock built in order, only what the admitted may hold.
   const open = moveIn ? hoods.reduce((t, h) => t + (moveIn.limits[h] ?? 0), 0) : homes;
-  const m: PopulationMonth = monthOf(people, open);
+  const m: PopulationMonth = monthOf(people, open, growth.waiting);
   // Births, deaths and leavers fall on each neighborhood by its share of the people.
   const kept = people > 0 ? (people + m.births - m.deaths - m.left) / people : 0;
   const occupied: Record<TileKey, number> = {};
@@ -162,11 +169,13 @@ export function monthStep(
     births: m.births,
     deaths: m.deaths,
     left: m.left,
+    joined: m.joined,
     arrived: m.arrived - toPlace,
+    waiting: m.waiting + toPlace,
     people: hoods.reduce((t, h) => t + (occupied[h] ?? 0), 0),
     homes,
     spend,
     ...(moveIn ? { heldBack: moveIn.held } : {}),
   };
-  return { month, occupied, months: [...growth.months, row] };
+  return { month, occupied, waiting: m.waiting + toPlace, months: [...growth.months, row] };
 }

@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { LAYERS, RATES, addPlantUnit, addRingBuilding, allTiles, edgeEnds, emptyLayout, erase, layStretch, placeNeighborhood, starterLayout, toggleExtra } from '@city/site';
 import type { ExtraKind, Layout, Outcome, PlantKind } from '@city/site';
-import { RULES, classOf, emergencyOf, inHand, pieceId, placeOrder, putFirst, restoreClock, startRun, tick, tickMonth, totalSpend } from '../src/index.ts';
+import { RULES, classOf, emergencyOf, inHand, pieceId, placeOrder, planned, putFirst, restoreClock, startRun, tick, tickMonth, totalSpend } from '../src/index.ts';
 import type { Game, OrderEvent, OrderOutcome, PieceKind } from '../src/index.ts';
 
 const GROW = { growth: true, inOrder: true, infer: true } as const;
@@ -36,9 +36,10 @@ function months(game: Game, n: number): Game {
 const ids = (g: Game): string[] => (g.clock?.jobs ?? []).map((j) => pieceId(j.what, j.at));
 
 describe('the take-down veto', () => {
-  // A run from one neighborhood: by the end of year 5 the run's ring, plants, schools, fields and line stand (the
-  // line to the shore's plants is four stretches longer since ADR-0016, so the fields wait a year or two more).
-  const g3 = months(startRun(oneHood(), 7, RATES, RULES, GROW), 60);
+  // A run from one neighborhood: by the end of year 9 the run's ring, plants, schools, fields and line stand. The lead
+  // is 30 months of the waiting list's demand, so the run orders a neighborhood a month and the schools, plants and
+  // stretches those need take the crews first; fields are the second class and wait until year 9.
+  const g3 = months(startRun(oneHood(), 7, RATES, RULES, GROW), 108);
   const built = g3.clock?.built ?? [];
 
   it('remembers what the run built once it stands', () => {
@@ -88,16 +89,21 @@ describe('what the run built, stored and read back', () => {
     expect(back?.built).toEqual(g.clock?.built);
     const tampered = restoreClock({ ...stored, built: ['ring@0,-1', 'nothing@9,9', 'line@0,0|0,1', 7] }, g.layout, RATES, RULES);
     expect(tampered?.built).toEqual(['ring@0,-1', 'line@0,0|0,1']);
+    // Take the water plant down unit by unit, built and in hand, until its tile is clear: the piece is down then.
     const water = (back?.built ?? []).find((id) => id.startsWith('water@')) ?? '';
+    const at = water.slice('water@'.length);
     const restored: Game = { layout: g.layout, clock: back };
-    const taken = order(restored, (p) => erase(p, water.slice('water@'.length), RATES));
+    let taken = restored;
+    for (let i = 0; i < 20 && planned(taken.layout, taken.clock?.jobs ?? []).tiles[at]; i++) taken = order(taken, (p) => erase(p, at, RATES));
+    expect(planned(taken.layout, taken.clock?.jobs ?? []).tiles[at]).toBeUndefined();
     expect(taken.clock?.vetoes).toContain(water);
     expect(taken.clock?.built).not.toContain(water);
-    // A player's order that cancels one of the run's jobs is a veto too: the second ring building is still in hand.
+    // A player's order that cancels one of the run's jobs is a veto too: one of the ring buildings still in hand.
+    const rings = (game: Game): number => (game.clock?.jobs ?? []).filter((j) => j.what === 'ring').length;
     expect(g.clock?.jobs.some((j) => j.what === 'ring' && j.inferred)).toBe(true);
     const cancelled = order(restored, (p) => erase(p, '0,-1', RATES));
     expect(cancelled.clock?.vetoes).toContain('ring@0,-1');
-    expect(cancelled.clock?.jobs.some((j) => j.what === 'ring')).toBe(false);
+    expect(rings(cancelled)).toBe(rings(g) - 1);
     expect(cancelled.layout.tiles['0,-1']).toEqual(g.layout.tiles['0,-1']);
   });
 });

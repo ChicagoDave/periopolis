@@ -184,7 +184,13 @@ describe('what a frame costs', () => {
   });
 
   it('a month where only who lives where changed repaints only the tiles whose lit share moved, clipped once', () => {
-    const before = foundedYear3();
+    // Off the waiting list every admitted home fills the month it opens, so a month moves who lives where only where a
+    // neighborhood stands part empty: here one emptied by half (as a run saved before the waiting list may hold it).
+    const year3 = foundedYear3();
+    const growth = year3.clock?.growth;
+    if (!year3.clock || !growth) throw new Error('no month clock');
+    const half = Object.keys(growth.occupied)[0] ?? '';
+    const before: Game = { ...year3, clock: { ...year3.clock, growth: { ...growth, occupied: { ...growth.occupied, [half]: (growth.occupied[half] ?? 0) / 2 } } } };
     const after = tickMonth(before, RATES, RULES);
     const sceneBefore = sceneOf(before.layout, RATES, 'far', standingOf(before));
     const sceneAfter = sceneOf(after.layout, RATES, 'far', standingOf(after));

@@ -266,7 +266,8 @@ describe('the scene follows the clock (ADR-0012 Decision 6, ADR-0009)', () => {
     const occupied = livingOf(game.layout, game.clock as NonNullable<Game['clock']>, RATES).occupied ?? {};
     const people = Object.values(occupied).reduce((t, n) => t + n, 0);
     expect(people).toBeGreaterThan(0);
-    expect(people).toBeLessThan(RATES.hood);
+    // Held to the childless share for want of seats, each home block is part lit.
+    expect(Object.values(occupied).some((n) => n > 0 && n < RATES.hood)).toBe(true);
     const far = sceneOf(game.layout, RATES, 'far', standingOf(game));
     for (const b of far.blocks.filter((b) => b.kind === 'hood')) close(b.lit, (occupied[b.key] ?? 0) / RATES.hood);
     close(far.lit, people / (2 * RATES.hood));
