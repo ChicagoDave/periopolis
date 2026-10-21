@@ -51,7 +51,7 @@
 - **Exit state**: Full workspace tests green including Board unit and e2e flows; the record states the measured outcome without claiming a brake that is not there.
 - **Demonstration**: Run the full suite (past.test.ts included) and the Board e2e flow; `#poppremises` shows the demand line and the population view shows the list.
 - **Demonstrated**: 
-- **Status**: PENDING
+- **Status**: CURRENT (since 2026-10-21)
 
 ### Phase 3: Decision record, docs, close issue 8
 - **Tier**: Small
