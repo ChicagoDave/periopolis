@@ -19,6 +19,7 @@ import type { SiteEvent, SiteRejection } from './commands.ts';
 import { costOf } from './cost.ts';
 import type { Layout } from './layout.ts';
 import { lineNetwork } from './network.ts';
+import type { LineNetwork } from './network.ts';
 import { needsOf } from './needs.ts';
 import type { Need } from './needs.ts';
 import type { ExtraKind, PlantKind, SiteRates } from './rates.ts';
@@ -110,28 +111,42 @@ export function applyProposal(
 
 /**
  * Where the next neighborhood goes (ADR-0015 Decision 3, narrowed by ADR-0016 to the tiles inside a circle's band):
- * the open tile nearest the ring, or nearest the standing neighborhoods when there is no ring, or beside the circle's
- * middle when nothing stands (the middle is the ring's); first in the board's tile order among equals. On a layout
- * with no circles, the sketch's rule: the middle itself. Nothing here changes the layout.
+ * in the first circle, in the layout's order, with an open home tile, the open tile nearest that circle's ring, or
+ * nearest its standing neighborhoods when it has no ring, or beside its middle when nothing stands in it (the middle
+ * is the ring's); first in the board's tile order among equals. A circle fills before the next is used. On a layout
+ * with no circles, the sketch's rule: the open tile nearest the ring, the neighborhoods, or the middle itself.
+ * Nothing here changes the layout.
  * @param layout - the board
  * @param rates - the ledger's rates
  * @param avoid - tiles not to name, whatever else they are
- * @returns the tile `placeNeighborhood` would accept, or null when no tile is open
+ * @returns the tile `placeNeighborhood` would accept, or null when no tile is open in any circle
  */
 export function proposeNeighborhood(layout: Layout, rates: SiteRates, avoid: readonly TileKey[] = []): TileKey | null {
   const tiles = allTiles(rates.outline);
-  const middle = layout.circles?.[0] ?? '0,0';
-  // With nothing standing the first neighborhood goes beside the middle, which is kept for the ring (ADR-0016).
-  const open = tiles.filter((k) => !layout.tiles[k] && !avoid.includes(k) && !bandRule(layout.circles, k, 'home') && (k !== middle || !layout.circles?.length));
-  const rings = tiles.filter((k) => layout.tiles[k]?.kind === 'ring');
-  const hoods = tiles.filter((k) => layout.tiles[k]?.kind === 'hood');
-  const targets = rings.length ? rings : hoods.length ? hoods : [middle];
-  let best: { key: TileKey; km: number } | null = null;
-  for (const k of open) {
-    const km = targets.reduce((m, t) => Math.min(m, kmBetween(k, t, rates.stepKm)), Infinity);
-    if (!best || km < best.km - 1e-9) best = { key: k, km };
+  const circles = layout.circles ?? [];
+  const ofKind = (kind: string, m: TileKey | null): TileKey[] => tiles.filter((k) => layout.tiles[k]?.kind === kind && (m === null || circleOf(circles, k) === m));
+  const nearestTo = (open: readonly TileKey[], targets: readonly TileKey[]): TileKey | null => {
+    let best: { key: TileKey; km: number } | null = null;
+    for (const k of open) {
+      const km = targets.reduce((m, t) => Math.min(m, kmBetween(k, t, rates.stepKm)), Infinity);
+      if (!best || km < best.km - 1e-9) best = { key: k, km };
+    }
+    return best ? best.key : null;
+  };
+  if (!circles.length) {
+    const open = tiles.filter((k) => !layout.tiles[k] && !avoid.includes(k));
+    const rings = ofKind('ring', null);
+    const hoods = ofKind('hood', null);
+    return nearestTo(open, rings.length ? rings : hoods.length ? hoods : ['0,0']);
   }
-  return best ? best.key : null;
+  for (const m of circles) {
+    const open = tiles.filter((k) => !layout.tiles[k] && !avoid.includes(k) && k !== m && circleOf(circles, k) === m && !bandRule(circles, k, 'home'));
+    if (!open.length) continue;
+    const rings = ofKind('ring', m);
+    const hoods = ofKind('hood', m);
+    return nearestTo(open, rings.length ? rings : hoods.length ? hoods : [m]);
+  }
+  return null;
 }
 
 function priced(layout: Layout, rates: SiteRates): { build: number; run: number } {
@@ -163,11 +178,13 @@ function stepsFor(need: Need, layout: Layout, rates: SiteRates, avoid: readonly 
 
   switch (need.need) {
     case 'ring': {
-      // The circle's middle holds its ring (ADR-0016 Decision 1) when it is open; else the open tile nearest the homes.
-      const hoods = ofKind('hood');
-      const middle = hoods.length ? circleOf(layout.circles, hoods[0] ?? '') : null;
+      // The circle's middle holds its ring (ADR-0016 Decision 1) when it is open; else the open tile in that circle
+      // nearest its homes. On a layout with no circles, the open tile nearest the homes.
+      const inCircle = (k: TileKey): boolean => need.circle === null || circleOf(layout.circles, k) === need.circle;
+      const hoods = ofKind('hood').filter(inCircle);
+      const middle = need.circle;
       const kept = middle !== null && open.includes(middle) && !avoided('ring', middle) ? middle : null;
-      const at = kept ?? nearest(openFor('home').filter((k) => !avoided('ring', k)), (k) => hoods.reduce((t, h) => t + km(k, h), 0));
+      const at = kept ?? nearest(openFor('home').filter((k) => inCircle(k) && !avoided('ring', k)), (k) => hoods.reduce((t, h) => t + km(k, h), 0));
       return at && need.buildings <= rates.ringMax ? times(need.buildings, () => ({ command: 'addRingBuilding', tile: at })) : null;
     }
     case 'ringBuildings': {
@@ -177,9 +194,9 @@ function stepsFor(need: Need, layout: Layout, rates: SiteRates, avoid: readonly 
       return has + need.add <= rates.ringMax ? times(need.add, () => ({ command: 'addRingBuilding', tile: need.tile })) : null;
     }
     case 'modules':
-      return plantSteps('power', need.add, layout, rates, openFor('plant').filter((k) => !avoided('power', k)), avoided);
+      return plantSteps('power', need.add, need.circle, layout, rates, openFor('plant').filter((k) => !avoided('power', k)), avoided);
     case 'plantUnits':
-      return plantSteps(need.plant, need.add, layout, rates, openFor('plant').filter((k) => !avoided(need.plant, k)), avoided);
+      return plantSteps(need.plant, need.add, need.circle, layout, rates, openFor('plant').filter((k) => !avoided(need.plant, k)), avoided);
     case 'intake': {
       // A water unit on the open shore tile farthest upstream of the outfall in the first faulted circle, or on the
       // band when the shore has none (ADR-0016 Decision 5).
@@ -209,15 +226,18 @@ function stepsFor(need: Need, layout: Layout, rates: SiteRates, avoid: readonly 
 }
 
 /**
- * Units on the plants of a kind that have room, then a new plant. On a circle board (ADR-0016 Decision 5) the new
- * plant goes on the band's shore side: water on the open shore tile farthest upstream, sewage on the one farthest
- * downstream of every water plant in its circle, a reactor or waste works on the open tile nearest the circle's sewage
- * plant; a tile off the shore only when the shore is full. Without circles, the sketch's rule: an open tile that
- * borders no neighborhood or ring when there is one, nearest the line, and farthest from the ring among equals.
+ * Units on the circle's plants of a kind that have room, then a new plant on its band. A circle's people are served
+ * by its own band (ADR-0016 Decisions 1 and 3), so the need names the circle and nothing goes in another. On a circle
+ * board (Decision 5) the new plant goes on the band's shore side: water on the open shore tile farthest upstream,
+ * sewage on the one farthest downstream of every water plant in its circle, a reactor or waste works on the open tile
+ * nearest the circle's sewage plant; a tile off the shore only when the shore is full; no room when the band is full.
+ * Without circles (the need's circle null), the sketch's rule: an open tile that borders no neighborhood or ring when
+ * there is one, nearest the line, and farthest from the ring among equals.
  */
 function plantSteps(
   plant: PlantKind,
   add: number,
+  circle: TileKey | null,
   layout: Layout,
   rates: SiteRates,
   open: readonly TileKey[],
@@ -228,15 +248,16 @@ function plantSteps(
   let left = add;
   for (const k of tiles) {
     const t = layout.tiles[k];
-    if (!t || t.kind !== plant || avoided(plant, k)) continue;
+    if (!t || t.kind !== plant || avoided(plant, k) || (circle !== null && circleOf(layout.circles, k) !== circle)) continue;
     const room = rates.plantMax - t.n;
     for (let i = 0; i < Math.min(room, left); i++) steps.push({ command: 'addPlantUnit', tile: k, plant });
     left -= Math.min(room, left);
   }
   if (left <= 0) return steps;
   if (left > rates.plantMax) return null;
-  const shoreAt = layout.circles?.length ? shorePlantTile(plant, layout, rates, open) : null;
-  if (shoreAt) {
+  if (circle !== null) {
+    const shoreAt = shorePlantTile(plant, circle, layout, rates, open);
+    if (!shoreAt) return null;
     for (let i = 0; i < left; i++) steps.push({ command: 'addPlantUnit', tile: shoreAt, plant });
     return steps;
   }
@@ -266,39 +287,35 @@ function plantSteps(
 }
 
 /**
- * Where a new plant goes on a circle board: the band's shore side, intake upstream of outfall, the reactor and the
- * waste works beside the sewage plant (ADR-0016 Decision 5). The circle is the first in the layout's order with an open
- * band tile; its shore tiles come first, the rest of its band when the shore is full.
- * @returns the tile, or null when no band tile is open
+ * Where a new plant goes on one circle's band: the shore side, intake upstream of outfall, the reactor and the waste
+ * works beside the sewage plant (ADR-0016 Decision 5). The circle's shore tiles come first, the rest of its band when
+ * the shore is full.
+ * @returns the tile, or null when no band tile of the circle is open
  */
-function shorePlantTile(plant: PlantKind, layout: Layout, rates: SiteRates, open: readonly TileKey[]): TileKey | null {
+function shorePlantTile(plant: PlantKind, m: TileKey, layout: Layout, rates: SiteRates, open: readonly TileKey[]): TileKey | null {
   const circles = layout.circles ?? [];
   const current = rates.current;
-  const ofKindIn = (kind: PlantKind, m: TileKey): TileKey[] =>
-    allTiles(rates.outline).filter((k) => layout.tiles[k]?.kind === kind && circleOf(circles, k) === m);
-  for (const m of circles) {
-    const band = open.filter((k) => circleOf(circles, k) === m);
-    if (!band.length) continue;
-    const shore = shoreTiles(m, rates.outline).filter((k) => band.includes(k));
-    const pool = shore.length ? shore : band;
-    const upstreamMost = (ks: readonly TileKey[]): TileKey | null => ks.reduce<TileKey | null>((b, k) => (b === null || upstreamOf(k, b, current) ? k : b), null);
-    const downstreamMost = (ks: readonly TileKey[]): TileKey | null => ks.reduce<TileKey | null>((b, k) => (b === null || upstreamOf(b, k, current) ? k : b), null);
-    if (plant === 'water') return upstreamMost(pool);
-    if (plant === 'sewage') {
-      const waters = ofKindIn('water', m);
-      const below = pool.filter((k) => waters.every((w) => upstreamOf(w, k, current)));
-      return downstreamMost(below.length ? below : pool);
-    }
-    const sewage = ofKindIn('sewage', m);
-    if (!sewage.length) return downstreamMost(pool);
-    let best: { key: TileKey; km: number } | null = null;
-    for (const k of pool) {
-      const km = sewage.reduce((t, s) => Math.min(t, kmBetween(k, s, rates.stepKm)), Infinity);
-      if (!best || km < best.km - 1e-9) best = { key: k, km };
-    }
-    return best ? best.key : null;
+  const ofKindIn = (kind: PlantKind): TileKey[] => allTiles(rates.outline).filter((k) => layout.tiles[k]?.kind === kind && circleOf(circles, k) === m);
+  const band = open.filter((k) => circleOf(circles, k) === m);
+  if (!band.length) return null;
+  const shore = shoreTiles(m, rates.outline).filter((k) => band.includes(k));
+  const pool = shore.length ? shore : band;
+  const upstreamMost = (ks: readonly TileKey[]): TileKey | null => ks.reduce<TileKey | null>((b, k) => (b === null || upstreamOf(k, b, current) ? k : b), null);
+  const downstreamMost = (ks: readonly TileKey[]): TileKey | null => ks.reduce<TileKey | null>((b, k) => (b === null || upstreamOf(b, k, current) ? k : b), null);
+  if (plant === 'water') return upstreamMost(pool);
+  if (plant === 'sewage') {
+    const waters = ofKindIn('water');
+    const below = pool.filter((k) => waters.every((w) => upstreamOf(w, k, current)));
+    return downstreamMost(below.length ? below : pool);
   }
-  return null;
+  const sewage = ofKindIn('sewage');
+  if (!sewage.length) return downstreamMost(pool);
+  let best: { key: TileKey; km: number } | null = null;
+  for (const k of pool) {
+    const km = sewage.reduce((t, s) => Math.min(t, kmBetween(k, s, rates.stepKm)), Infinity);
+    if (!best || km < best.km - 1e-9) best = { key: k, km };
+  }
+  return best ? best.key : null;
 }
 
 /** For each tile reached through the board, the tiles from it to the nearest target, or absent when none. */
@@ -332,35 +349,24 @@ function served(layout: Layout, rates: SiteRates): TileKey[] {
 }
 
 /**
- * The shortest run of stretches from each tile to reach to the line that joins the ring, one tile after another,
- * never over an avoided stretch.
+ * The line that reaches each tile, laid by the fewest stretches, never over an avoided stretch. On a circle board each
+ * tile is joined first to its own circle's ring (ADR-0016 Decision 3: a circle's homes walk to their own ring) and then,
+ * when its network is not the first circle's ring's, that whole network is joined to it by the shortest run, so the
+ * line is one line and crosses the seam from band to band. On a layout with no circles, the sketch's rule: the line
+ * that joins any ring.
+ * @returns the stretches, or null when no ring stands or a tile cannot be reached
  */
 function lineSteps(reach: readonly TileKey[], layout: Layout, rates: SiteRates, avoidedEdge: (e: string) => boolean = () => false): Step[] | null {
+  const tiles = allTiles(rates.outline);
+  const circles = layout.circles ?? [];
+  const rings = tiles.filter((k) => layout.tiles[k]?.kind === 'ring');
+  if (!rings.length) return null;
+  const main = (circles.length ? rings.find((g) => circleOf(circles, g) === circles[0]) : undefined) ?? rings[0];
+  if (main === undefined) return null;
   const steps: Step[] = [];
   let lines: Record<string, true> = { ...layout.lines };
-  for (const from of reach) {
-    const targets = served({ ...layout, lines }, rates);
-    if (!targets.length) return null;
-    if (targets.includes(from)) continue;
-    const back: Record<TileKey, TileKey | null> = { [from]: null };
-    const queue = [from];
-    let hit: TileKey | null = null;
-    for (let i = 0; i < queue.length && !hit; i++) {
-      const here = queue[i];
-      if (here === undefined) break;
-      for (const n of neighbors(here, rates.outline)) {
-        if (n in back || bandRule(layout.circles, n, 'line') || avoidedEdge(edgeKey(here, n))) continue;
-        back[n] = here;
-        if (targets.includes(n)) {
-          hit = n;
-          break;
-        }
-        queue.push(n);
-      }
-    }
-    if (!hit) return null;
-    const path: TileKey[] = [];
-    for (let k: TileKey | null = hit; k !== null; k = back[k] ?? null) path.push(k);
+  const joined = (net: LineNetwork, k: TileKey, goals: readonly TileKey[]): boolean => goals.some((g) => k === g || net.segments(k, g) !== null);
+  const lay = (path: readonly TileKey[]): void => {
     for (let i = path.length - 1; i > 0; i--) {
       const a = path[i];
       const b = path[i - 1];
@@ -370,6 +376,64 @@ function lineSteps(reach: readonly TileKey[], layout: Layout, rates: SiteRates, 
       lines = { ...lines, [e]: true };
       steps.push({ command: 'layStretch', from: a, to: b });
     }
+  };
+  for (const from of reach) {
+    // First, the tile's own ring: the rings of its circle, or any ring on a layout with no circles.
+    const own = circles.length ? rings.filter((g) => circleOf(circles, g) === circleOf(circles, from)) : rings;
+    const goals = own.length ? own : [main];
+    let net = lineNetwork(lines);
+    if (!joined(net, from, goals)) {
+      const path = route([from], tiles.filter((k) => joined(net, k, goals)), layout, rates, avoidedEdge);
+      if (!path) return null;
+      lay(path);
+      net = lineNetwork(lines);
+    }
+    // Then one line: its network joined to the first ring's by the shortest run, across the seam when it must.
+    if (!joined(net, from, [main])) {
+      const sources = tiles.filter((k) => k === from || net.segments(from, k) !== null);
+      const path = route(sources, tiles.filter((k) => joined(net, k, [main])), layout, rates, avoidedEdge);
+      if (!path) return null;
+      lay(path);
+    }
   }
   return steps.length ? steps : null;
+}
+
+/**
+ * The shortest run of tiles from any source to any target, one neighbor after another, never onto a tile the band rule
+ * keeps the line off nor over an avoided stretch; the target first, the source last.
+ * @returns the tiles, or null when no target can be reached
+ */
+function route(
+  sources: readonly TileKey[],
+  targets: readonly TileKey[],
+  layout: Layout,
+  rates: SiteRates,
+  avoidedEdge: (e: string) => boolean,
+): TileKey[] | null {
+  if (!targets.length) return null;
+  const back: Record<TileKey, TileKey | null> = {};
+  const queue: TileKey[] = [];
+  for (const s of sources) {
+    back[s] = null;
+    queue.push(s);
+  }
+  let hit: TileKey | null = null;
+  for (let i = 0; i < queue.length && !hit; i++) {
+    const here = queue[i];
+    if (here === undefined) break;
+    for (const n of neighbors(here, rates.outline)) {
+      if (n in back || bandRule(layout.circles, n, 'line') || avoidedEdge(edgeKey(here, n))) continue;
+      back[n] = here;
+      if (targets.includes(n)) {
+        hit = n;
+        break;
+      }
+      queue.push(n);
+    }
+  }
+  if (!hit) return null;
+  const path: TileKey[] = [];
+  for (let k: TileKey | null = hit; k !== null; k = back[k] ?? null) path.push(k);
+  return path;
 }

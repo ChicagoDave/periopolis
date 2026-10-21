@@ -8,12 +8,14 @@
  * Owner context: Site (domain).
  *
  * Like the needs (ADR-0008), the gate is read off the checks, never worked out a second time: a neighborhood lacks a
- * service exactly when that service's check is broken (for power, broken short of carrying, not short of a spare),
- * and lacks seats of a kind exactly when that school check is broken at its tile. The Site does not know who is waiting or why; the Run says which people to count.
+ * service exactly when that service's check is broken for its own circle (ADR-0016: a circle's homes are served by its
+ * own band; for power, broken short of carrying, not short of a spare), and lacks seats of a kind exactly when that
+ * school check is broken at its tile. The Site does not know who is waiting or why; the Run says which people to count.
  */
 import { assessCore } from './assess.ts';
 import type { TileKey } from './board.ts';
 import type { CheckId, Stress } from './checks.ts';
+import { circleOf } from './circle.ts';
 import { NO_STRESS } from './checks.ts';
 import type { Layout } from './layout.ts';
 import { PLANTS, SCHOOLS } from './rates.ts';
@@ -49,10 +51,19 @@ export function moveInGate(
 ): MoveInGate {
   if (layout.tiles[hood]?.kind !== 'hood') throw new Error(`${hood} is not a standing neighborhood`);
   const core = assessCore(layout, stress, rates, occupied, childless);
-  const broken = (id: CheckId): boolean => core.checks.some((c) => c.id === id && c.status === 'bad');
-  // A spare module is lines 20 and 21's standard, not the gate's: `noSpare` carries the people.
-  const spareOnly = core.checks.some((c) => c.id === 'power' && c.facts.check === 'power' && c.facts.case === 'noSpare');
-  const short = PLANTS.filter((p) => broken(p) && !(p === 'power' && spareOnly));
+  const circles = layout.circles ?? [];
+  const mine = circles.length ? circleOf(circles, hood) : null;
+  // A service is short for this neighborhood when its own circle is among those the check names short.
+  const shortHere = (id: CheckId): boolean =>
+    core.checks.some((c) => {
+      if (c.id !== id || c.status !== 'bad') return false;
+      const f = c.facts;
+      const circleShort = f.check === 'power' || f.check === 'water' || f.check === 'sewage' || f.check === 'waste';
+      // A spare module is lines 20 and 21's standard, not the gate's: `noSpare` carries the people.
+      if (!circleShort || f.case !== 'short') return false;
+      return f.short.some((s) => s.circle === mine);
+    });
+  const short = PLANTS.filter(shortHere);
   const seats = SCHOOLS.filter((kind) => core.checks.some((c) => c.id === kind && c.status === 'bad' && c.tiles.includes(hood)));
   return { hood, short, seats };
 }

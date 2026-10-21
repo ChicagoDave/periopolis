@@ -79,15 +79,15 @@
 - **Deliverable**: `openCircle(layout, middle)` → `CircleOpened` / `OffBoard` / `CircleOverlaps`, ground with no crew or price; band, placement, proposal and `flow` rules per circle; the walk measured to a neighborhood's own ring; the line crossing the seam band to band so `haul` holds in both; Board wording for the event and rejections; tests from the seventh scenario
 - **Exit state**: The Site can lay out two circles and hold the lines across them; `pnpm -r test` green
 - **Demonstration**: Vitest placing a full first circle and a second circle's first neighborhood with plants in its band and the stretches joining them, asserting lines 5 and 16 hold
-- **Demonstrated**: 
-- **Status**: CURRENT (since 2026-10-20)
+- **Demonstrated**: 2026-10-20 — `openCircle(layout, middle)` answers `CircleOpened` / `OffBoard` / `CircleOverlaps` (naming the shared tile), ground with no crew or price, worded by the Board; a circle's homes are served by its own ring and its own band: the ring and the four plant checks are judged circle by circle (`CircleShort` in the facts' `short` list, a circle-less layout one group), `ring` / `modules` / `plantUnits` needs carry their circle and are met in it or have no room, the move-in gate reads its own circle, `proposeNeighborhood` fills the first circle before the next (then `9,-1`), and the line proposal joins a tile to its own ring then its network to the first ring's across the seam band to band; `second.test.ts` places a full first circle and the second circle's first neighborhood proposed every need, with the second ring at `9,0`, its four plants in its band, a seam stretch band to band, `haul` reached, `work` within, `flow` ordered in two circles, no line broken. mutation-verification: 0 RED, its gaps closed (vetoed ring per circle, the gate both ways and `noSpare`, the seam run alone, every line end in a circle, the circle-less rule, the full band's need). Found for Phase 6: `placeOrder` keeps the draft's circles. `pnpm -r typecheck` clean; `pnpm -r test` 91+27+211+221+196 = 746 passed (10 new); `pnpm --filter @city/board test:e2e` 16 passed (27.4 s, before the last test-only edits) [verified: test event "Tests passed" (746 passed, 16 passed), 2026-10-21T04:19:59Z, no later edit event; typecheck is the session's report]
+- **Status**: DONE
 
 ### Phase 6: The run orders the second circle when the first is full
 - **Tier**: Medium
 - **Budget**: ~250 tool calls
 - **Domain focus**: Run — `inferStep` orders the second circle on `NoRoom` through `placeOrder`; vetoes; spend equal to hand-ordered
 - **Entry state**: Phase 5 done
-- **Deliverable**: Inference extended per ADR-0016 (c); a typed fact for the second circle ordered; tests from run.md scenarios (circle full -> circle ordered -> next neighborhood in it; a veto of the circle is remembered; the run without infer unchanged; the parity suite byte-identical)
+- **Deliverable**: `placeOrder` carries the command's `circles` into the game's layout (found in Phase 5: it keeps the draft's, so `openCircle` through it is lost); inference extended per ADR-0016 (c); a typed fact for the second circle ordered; tests from run.md scenarios (circle full -> circle ordered -> next neighborhood in it; a veto of the circle is remembered; the run without infer unchanged; the parity suite byte-identical)
 - **Exit state**: A run on the month clock grows past the first circle on its own
 - **Demonstration**: Vitest run from a full first circle ticking months and asserting a neighborhood stands in the second circle with its plants built first
 - **Demonstrated**: 

@@ -1,16 +1,17 @@
 /**
  * @file Layout commands: what a player may do to the board, each answering with an event or a rejection.
  * Public interface: SiteEvent, SiteRejection, Outcome, placeNeighborhood, addRingBuilding, toggleExtra, addPlantUnit,
- * layStretch, erase.
+ * layStretch, erase, openCircle.
  * Owner context: Site (domain).
  *
  * A command never changes the layout it is given; it returns a new one with the event. The sentences the page shows
  * are the Board's wording of these events. Every placing command keeps the band rule (ADR-0016 Decision 2): a plant
- * on a band, a neighborhood or ring inside one, nothing outside every circle; `erase` takes anything down.
+ * on a band, a neighborhood or ring inside one, nothing outside every circle; `erase` takes anything down. `openCircle`
+ * lays out another circle: ground, not a piece, open the moment it answers (ADR-0016 Decisions 1 and 3).
  */
 import { adjacent, edgeEnds, edgeKey, onBoard, tileAt } from './board.ts';
 import type { EdgeKey, TileKey } from './board.ts';
-import { bandRule } from './circle.ts';
+import { bandRule, circleFits, circleOf, circleTiles } from './circle.ts';
 import type { Layout, Tile } from './layout.ts';
 import type { ExtraKind, PlantKind, SiteRates } from './rates.ts';
 
@@ -27,7 +28,9 @@ export type SiteEvent =
   | { readonly type: 'StretchRemoved'; readonly edge: EdgeKey }
   | { readonly type: 'LinesThroughTileRemoved'; readonly tile: TileKey; readonly edges: readonly EdgeKey[] }
   | { readonly type: 'UnitRemoved'; readonly tile: TileKey; readonly kind: Tile['kind']; readonly left: number }
-  | { readonly type: 'TileCleared'; readonly tile: TileKey; readonly kind: Tile['kind'] };
+  | { readonly type: 'TileCleared'; readonly tile: TileKey; readonly kind: Tile['kind'] }
+  /** Another circle laid out on the board, by its middle (ADR-0016 Decision 3). */
+  | { readonly type: 'CircleOpened'; readonly middle: TileKey };
 
 /** Why a command refused. */
 export type SiteRejection =
@@ -44,7 +47,9 @@ export type SiteRejection =
   /** A plant may stand only on a circle's band. */
   | { readonly reason: 'OutsideBand'; readonly tile: TileKey }
   /** A neighborhood or ring may stand only inside a circle's band. */
-  | { readonly reason: 'InsideBand'; readonly tile: TileKey };
+  | { readonly reason: 'InsideBand'; readonly tile: TileKey }
+  /** A circle at this middle would take a tile (`shared`) that is already another circle's. */
+  | { readonly reason: 'CircleOverlaps'; readonly tile: TileKey; readonly shared: TileKey };
 
 /** A command's answer. */
 export type Outcome =
@@ -167,6 +172,20 @@ export function layStretch(layout: Layout, from: TileKey, to: TileKey, rates: Si
   }
   lines[e] = true;
   return accept({ ...layout, lines }, { type: 'StretchLaid', edge: e });
+}
+
+/**
+ * Open another circle on the board, with its middle for a ring, three rings of homes and a band (ADR-0016 Decision 3).
+ * A circle is ground, not a piece: no crew, no years, no price; it is open the moment this answers.
+ * @returns CircleOpened, or OffBoard when the middle is off the board or the circle's band would leave it, or
+ * CircleOverlaps when a tile of it is already another circle's
+ */
+export function openCircle(layout: Layout, middle: TileKey, rates: SiteRates): Outcome {
+  if (offBoard(middle, rates) || !circleFits(middle, rates.outline)) return refuse({ reason: 'OffBoard', tile: middle });
+  const circles = layout.circles ?? [];
+  const shared = circleTiles(middle).find((k) => circleOf(circles, k) !== null);
+  if (shared !== undefined) return refuse({ reason: 'CircleOverlaps', tile: middle, shared });
+  return accept({ ...layout, circles: [...circles, middle] }, { type: 'CircleOpened', middle });
 }
 
 /**

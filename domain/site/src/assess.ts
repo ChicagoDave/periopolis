@@ -9,7 +9,7 @@ import type { CappedNeed, CountedNeed } from '@city/ledger';
 import { kmBetween } from './board.ts';
 import { circleOf, upstreamOf } from './circle.ts';
 import type { EdgeKey, TileKey } from './board.ts';
-import type { CheckId, CheckStatus, Core, Facts, LineCheck, Score, Stress, TileIssue, TileLevel, TileReport } from './checks.ts';
+import type { CheckId, CheckStatus, CircleShort, Core, Facts, LineCheck, Score, Stress, TileIssue, TileLevel, TileReport } from './checks.ts';
 import type { Layout, Neighborhood } from './layout.ts';
 import { lineNetwork } from './network.ts';
 import { PLANTS, SCHOOLS } from './rates.ts';
@@ -157,11 +157,20 @@ export function assessCore(
     else check('size', [3, 14], 'ok', { check: 'size', case: 'enough', urgent, fine, pop });
   }
 
-  // Lines 10, 19: the ring, and line 16: the walk to work in it.
+  // A circle's homes are served by its own ring and its own band (ADR-0016 Decisions 1 and 3), so the ring, the
+  // reactors and the plants are judged circle by circle. A layout with no circles (the sketch's fixtures) is one group.
+  const circles = layout.circles ?? [];
+  const groupOf = (k: TileKey): TileKey | null => (circles.length ? circleOf(circles, k) : null);
+  const groups: readonly (TileKey | null)[] = circles.length ? circles : [null];
+  const inGroup = (ks: readonly TileKey[], m: TileKey | null): TileKey[] => ks.filter((k) => groupOf(k) === m);
+  const popIn = (m: TileKey | null): number => inGroup(hoods, m).reduce((t, h) => t + occ(h), 0);
+  const plantsIn = (kind: PlantKind, shorts: readonly CircleShort[]): TileKey[] => of(kind).filter((k) => shorts.some((s) => s.circle === groupOf(k)));
+
+  // Lines 10, 19: the ring, and line 16: the walk to work in it. A neighborhood's ring is its own circle's.
   const ringOf: Record<TileKey, TileKey | null> = {};
   for (const h of hoods) {
     let best: { key: TileKey; d: number } | null = null;
-    for (const g of rings) {
+    for (const g of inGroup(rings, groupOf(h))) {
       const d = km(h, g);
       if (!best || d < best.d - 1e-9) best = { key: g, d };
     }
@@ -169,25 +178,30 @@ export function assessCore(
     draft(h).ring = best ? { key: best.key, walkMin: best.d * rates.foot, segments: segs(h, best.key) } : null;
   }
   {
-    if (!rings.length) {
-      check('ring', [10, 19], some ? 'bad' : 'idle', some ? { check: 'ring', case: 'none' } : { check: 'ring', case: 'idle' });
-    } else {
-      const over: TileKey[] = [];
-      let buildings = 0;
-      for (const g of rings) {
-        const n = unitsAt(g);
-        const load = hoods.filter((h) => ringOf[h] === g).reduce((t, h) => t + occ(h), 0);
-        const cap = n * rates.ringServes;
-        buildings += n;
-        const p = draft(g);
-        p.load = load;
-        p.cap = cap;
-        p.needs = Math.ceil(load / rates.ringServes - 1e-9);
-        if (load > cap + TINY) {
-          over.push(g);
-          flag(g, 'bad', { kind: 'ringFull', needs: p.needs, has: n, load });
-        }
+    const over: TileKey[] = [];
+    let buildings = 0;
+    for (const g of rings) {
+      const n = unitsAt(g);
+      const load = hoods.filter((h) => ringOf[h] === g).reduce((t, h) => t + occ(h), 0);
+      const cap = n * rates.ringServes;
+      buildings += n;
+      const p = draft(g);
+      p.load = load;
+      p.cap = cap;
+      p.needs = Math.ceil(load / rates.ringServes - 1e-9);
+      if (load > cap + TINY) {
+        over.push(g);
+        flag(g, 'bad', { kind: 'ringFull', needs: p.needs, has: n, load });
       }
+    }
+    // A circle whose neighborhoods have no ring of their own comes before a full ring: there is nothing to walk to.
+    const ringless = hoods.filter((h) => ringOf[h] === null);
+    if (!rings.length || ringless.length) {
+      const short: CircleShort[] = groups
+        .filter((m) => inGroup(ringless, m).length)
+        .map((m) => ({ circle: m, has: 0, needed: Math.max(1, Math.ceil(popIn(m) / rates.ringServes - 1e-9)) }));
+      check('ring', [10, 19], some ? 'bad' : 'idle', some ? { check: 'ring', case: 'none', rings: rings.length, short } : { check: 'ring', case: 'idle' }, ringless);
+    } else {
       if (over.length) {
         check(
           'ring',
@@ -430,19 +444,24 @@ export function assessCore(
     }
   }
 
-  // Lines 20 to 22: power, water and waste, each with a plant on the sub level.
-  const units = (kind: PlantKind): number => of(kind).reduce((t, k) => t + unitsAt(k), 0);
+  // Lines 20 to 22: power, water and waste, each with a plant on the sub level, each circle served by its own band.
+  const units = (kind: PlantKind, m?: TileKey | null): number => (m === undefined ? of(kind) : inGroup(of(kind), m)).reduce((t, k) => t + unitsAt(k), 0);
   const modules = units('power');
   const peak = (pop * rates.peakKw) / 1000;
-  // The modules that carry the peak with all running, and with one down for fuel (lines 20 and 21's standard).
-  const carryModules = pop > 0 ? Math.ceil(peak / rates.moduleMw - 1e-9) : 0;
-  const needModules = pop > 0 ? carryModules + 1 : 0;
+  // The modules that carry a peak with all running, and with one down for fuel (lines 20 and 21's standard).
+  const carryFor = (people: number): number => (people > 0 ? Math.ceil((people * rates.peakKw) / 1000 / rates.moduleMw - 1e-9) : 0);
+  const needFor = (people: number): number => (people > 0 ? carryFor(people) + 1 : 0);
+  const needModules = groups.reduce((t, m) => t + needFor(popIn(m)), 0);
   {
+    const shortOf = (standard: (people: number) => number): CircleShort[] =>
+      groups.filter((m) => units('power', m) < standard(popIn(m))).map((m) => ({ circle: m, has: units('power', m), needed: needFor(popIn(m)) }));
+    const short = shortOf(carryFor);
+    const noSpare = shortOf(needFor);
     if (!some && !modules) check('power', [20, 21], 'idle', { check: 'power', case: 'idle', moduleMw: rates.moduleMw });
-    else if (modules < carryModules) {
-      check('power', [20, 21], 'bad', { check: 'power', case: 'short', modules, peakMw: peak, needed: needModules }, of('power'));
-    } else if (modules < needModules) {
-      check('power', [20, 21], 'bad', { check: 'power', case: 'noSpare', modules, peakMw: peak, needed: needModules }, of('power'));
+    else if (short.length) {
+      check('power', [20, 21], 'bad', { check: 'power', case: 'short', modules, peakMw: peak, needed: needModules, short }, plantsIn('power', short));
+    } else if (noSpare.length) {
+      check('power', [20, 21], 'bad', { check: 'power', case: 'noSpare', modules, peakMw: peak, needed: needModules, short: noSpare }, plantsIn('power', noSpare));
     } else {
       check('power', [20, 21], 'ok', {
         check: 'power',
@@ -456,15 +475,14 @@ export function assessCore(
   for (const kind of ['water', 'sewage', 'waste'] as const) {
     const n = units(kind);
     const cap = n * rates.plantServes;
+    const takes = (people: number): number => Math.ceil(people / rates.plantServes - 1e-9);
+    const short: CircleShort[] = groups
+      .filter((m) => units(kind, m) * rates.plantServes + TINY < popIn(m))
+      .map((m) => ({ circle: m, has: units(kind, m), needed: takes(popIn(m)) }));
+    const needed = groups.reduce((t, m) => t + takes(popIn(m)), 0);
     if (!some && !n) check(kind, [22], 'idle', { check: kind, case: 'idle', serves: rates.plantServes });
-    else if (cap + TINY < pop) {
-      check(
-        kind,
-        [22],
-        'bad',
-        { check: kind, case: 'short', units: n, cap, pop, needed: Math.ceil(pop / rates.plantServes - 1e-9) },
-        of(kind),
-      );
+    else if (short.length) {
+      check(kind, [22], 'bad', { check: kind, case: 'short', units: n, cap, pop, needed, short }, plantsIn(kind, short));
     } else if (kind === 'sewage') {
       check(kind, [22], 'ok', {
         check: 'sewage',
@@ -487,7 +505,6 @@ export function assessCore(
   // Line 32: in every circle the water plant's intake is upstream of the sewage plant's outfall along the shore
   // (ADR-0016 Decision 5). The intake is the upstream-most water plant, the outfall the downstream-most sewage plant.
   {
-    const circles = layout.circles ?? [];
     const waters = of('water');
     const sewages = of('sewage');
     const judged = circles.filter((m) => waters.some((k) => circleOf(circles, k) === m) && sewages.some((k) => circleOf(circles, k) === m));

@@ -337,7 +337,11 @@ export function checkDetail(facts: Facts, rates: SiteRates, building = 0): strin
     }
     case 'ring':
       if (facts.case === 'idle') return 'The ring is the middle: a circle of 25-story buildings.';
-      if (facts.case === 'none') return 'There is no ring yet. Offices, government, the auditorium and fine dining have nowhere to go.';
+      if (facts.case === 'none') {
+        return facts.rings
+          ? `${count(facts.short.length, 'circle has', 'circles have')} no ring yet. Offices, government, the auditorium and fine dining have nowhere to go in ${facts.short.length === 1 ? 'it' : 'them'}.`
+          : 'There is no ring yet. Offices, government, the auditorium and fine dining have nowhere to go.';
+      }
       if (facts.case === 'full') {
         return `${facts.rings > 1 ? count(facts.over, 'ring is', 'rings are') : 'The ring is'} full. One building holds the offices and halls of ${num(facts.serves)} people, so ${num(facts.pop)} people take ${facts.needed}.`;
       }
@@ -564,6 +568,8 @@ export function moveSaid(tool: ToolId, outcome: Outcome, rates: SiteRates): stri
         return 'A plant stands on the outer band of a circle, by the shore.';
       case 'InsideBand':
         return tool === 'ring' ? 'The ring stands in the middle of a circle, inside the band.' : 'Homes stand inside the band; the band is for the plants.';
+      case 'CircleOverlaps':
+        return `A circle there would share ${r.shared} with one that stands. Circles stand side by side along the shore.`;
     }
   }
   const e = outcome.event;
@@ -592,6 +598,8 @@ export function moveSaid(tool: ToolId, outcome: Outcome, rates: SiteRates): stri
       return `One removed. ${e.left} left.`;
     case 'TileCleared':
       return `${SITE_NAME[e.kind]} removed.`;
+    case 'CircleOpened':
+      return `A circle opens at ${e.middle}: its ring in the middle, three rings of homes, and a band by the shore for its plants.`;
   }
 }
 

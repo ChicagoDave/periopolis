@@ -1,8 +1,8 @@
 /**
  * @file What an assessment reports: the sixteen line checks as typed facts, the issues marked on each tile, the score,
  * and the stress a layout is checked under. No sentences; the Board words these.
- * Public interface: CheckStatus, CheckId, Facts, LineCheck, TileIssue, TileLevel, Reach, TileReport, Stress, NO_STRESS,
- * CarComparison, Score, Core.
+ * Public interface: CheckStatus, CheckId, CircleShort, Facts, LineCheck, TileIssue, TileLevel, Reach, TileReport, Stress,
+ * NO_STRESS, CarComparison, Score, Core.
  * Owner context: Site (domain).
  */
 import type { CostFigures } from '@city/ledger';
@@ -27,6 +27,17 @@ export type CheckId =
   | 'haul'
   | 'flow';
 
+/**
+ * One circle short of a thing its own people need (ADR-0016 Decisions 1 and 3: a circle's homes are served by its own
+ * ring and its own band): the circle's middle, or null on a layout with no circles, which is judged as one; what it
+ * has, and what its people take.
+ */
+export interface CircleShort {
+  readonly circle: TileKey | null;
+  readonly has: number;
+  readonly needed: number;
+}
+
 /** The facts behind a check's status. Each check has one shape per case. */
 export type Facts =
   | { readonly check: 'daily'; readonly case: 'idle'; readonly hood: number }
@@ -40,7 +51,8 @@ export type Facts =
   | { readonly check: 'size'; readonly case: 'underFine'; readonly fine: number; readonly pop: number }
   | { readonly check: 'size'; readonly case: 'enough'; readonly urgent: number; readonly fine: number; readonly pop: number }
   | { readonly check: 'ring'; readonly case: 'idle' }
-  | { readonly check: 'ring'; readonly case: 'none' }
+  /** Neighborhoods with no ring in their circle: the rings standing elsewhere, and each circle without one and the buildings its people take. */
+  | { readonly check: 'ring'; readonly case: 'none'; readonly rings: number; readonly short: readonly CircleShort[] }
   | {
       readonly check: 'ring';
       readonly case: 'full';
@@ -94,18 +106,21 @@ export type Facts =
       readonly nowhere: number;
     }
   | { readonly check: 'power'; readonly case: 'idle'; readonly moduleMw: number }
-  | { readonly check: 'power'; readonly case: 'short'; readonly modules: number; readonly peakMw: number; readonly needed: number }
+  /** Modules, peak and the modules taken are the city's; `short` names each circle whose own modules fall short. */
+  | { readonly check: 'power'; readonly case: 'short'; readonly modules: number; readonly peakMw: number; readonly needed: number; readonly short: readonly CircleShort[] }
   /** The modules carry the peak only while every one runs: people may live here, lines 20 and 21 are broken (ADR-0012 Decision 3, amended 2026-10-18). */
-  | { readonly check: 'power'; readonly case: 'noSpare'; readonly modules: number; readonly peakMw: number; readonly needed: number }
+  | { readonly check: 'power'; readonly case: 'noSpare'; readonly modules: number; readonly peakMw: number; readonly needed: number; readonly short: readonly CircleShort[] }
   | { readonly check: 'power'; readonly case: 'carries'; readonly modules: number; readonly firmMw: number; readonly peakMw: number }
   | { readonly check: 'water' | 'sewage' | 'waste'; readonly case: 'idle'; readonly serves: number }
   | {
       readonly check: 'water' | 'sewage' | 'waste';
       readonly case: 'short';
+      /** The city's units, what they serve, its people and the units they take; `short` names each circle whose own plants fall short. */
       readonly units: number;
       readonly cap: number;
       readonly pop: number;
       readonly needed: number;
+      readonly short: readonly CircleShort[];
     }
   | { readonly check: 'water' | 'waste'; readonly case: 'serves'; readonly units: number; readonly cap: number }
   | {

@@ -194,7 +194,7 @@ describe('where a new plant goes', () => {
     expect(assess(built.layout, RATES).checks.filter((c) => c.status === 'bad')).toEqual([]);
   });
 
-  it('when the shore is full the band takes the plant; when a circle\'s band is full the next circle does; sewage with no tile downstream takes the farthest down', () => {
+  it('when the shore is full the band takes the plant; when a circle\'s band is full its plant has no room, never the next circle (its people are served by its own band); sewage with no tile downstream takes the farthest down', () => {
     let s: Layout = { ...lone, circles: ['0,0', '9,0'] };
     for (const k of shoreTiles('0,0', RATES.outline)) s = ok(addPlantUnit(s, k, 'waste', RATES));
     let at = plantsOf(proposeFor(s, RATES));
@@ -203,8 +203,12 @@ describe('where a new plant goes', () => {
     expect(shoreTiles('0,0', RATES.outline)).not.toContain(at['water']);
     let full: Layout = { ...lone, circles: ['0,0', '9,0'] };
     for (const k of bandOf('0,0')) full = ok(addPlantUnit(full, k, 'waste', RATES));
-    at = plantsOf(proposeFor(full, RATES));
-    expect(circleOf(full.circles, at['water'] ?? '')).toBe('9,0');
+    const ps = proposeFor(full, RATES);
+    at = plantsOf(ps);
+    expect(at['water']).toBeUndefined();
+    const last = ps[ps.length - 1];
+    expect(last && !last.room ? last.need : null).toEqual({ need: 'modules', circle: '0,0', add: 2, answers: ['power'] });
+    for (const p of ps) if (p.room) for (const st of p.steps) if (st.command !== 'layStretch') expect(circleOf(full.circles, st.tile)).toBe('0,0');
     let down: Layout = ok(addPlantUnit(lone, '0,4', 'water', RATES));
     at = plantsOf(proposeFor(down, RATES));
     expect(at['sewage']).toBe('-2,4'); // -1,4 went to the reactor, proposed first beside nothing

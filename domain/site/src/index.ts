@@ -20,7 +20,7 @@ export { HOME_RINGS, BAND_RING, hexRing, circleTiles, bandOf, circleOf, inBand, 
 export type { BandVerdict } from './circle.ts';
 export { FIRST_CIRCLE, emptyLayout, starterLayout, restoreLayout, isPlantKind } from './layout.ts';
 export type { Layout, Tile, Neighborhood, Ring, Plant } from './layout.ts';
-export { placeNeighborhood, addRingBuilding, toggleExtra, addPlantUnit, layStretch, erase } from './commands.ts';
+export { placeNeighborhood, addRingBuilding, toggleExtra, addPlantUnit, layStretch, erase, openCircle } from './commands.ts';
 export type { SiteEvent, SiteRejection, Outcome } from './commands.ts';
 export { lineNetwork, closable, bridges } from './network.ts';
 export type { LineNetwork, Bridge } from './network.ts';
@@ -44,6 +44,7 @@ export { NO_STRESS } from './checks.ts';
 export type {
   CheckStatus,
   CheckId,
+  CircleShort,
   Facts,
   LineCheck,
   TileIssue,

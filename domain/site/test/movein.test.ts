@@ -188,14 +188,14 @@ describe('the move-in gate', () => {
 describe('power with every module running (ADR-0012 Decision 3, amended 2026-10-18)', () => {
   it('no module: the check is short, and the gate lacks power', () => {
     expect(checkOf(ALONE, 'power')?.status).toBe('bad');
-    expect(checkOf(ALONE, 'power')?.facts).toEqual({ check: 'power', case: 'short', modules: 0, peakMw: 7.5, needed: 2 });
+    expect(checkOf(ALONE, 'power')?.facts).toEqual({ check: 'power', case: 'short', modules: 0, peakMw: 7.5, needed: 2, short: [{ circle: '0,0', has: 0, needed: 2 }] });
     expect(moveInGate(ALONE, RATES, '0,0', {}).short).toEqual(['power', 'water', 'sewage', 'waste']);
   });
 
   it('one module carries the peak only while it runs: lines 20 and 21 are broken, people move in all the same', () => {
     const check = checkOf(ONE_MODULE, 'power');
     expect(check?.status).toBe('bad');
-    expect(check?.facts).toEqual({ check: 'power', case: 'noSpare', modules: 1, peakMw: 7.5, needed: 2 });
+    expect(check?.facts).toEqual({ check: 'power', case: 'noSpare', modules: 1, peakMw: 7.5, needed: 2, short: [{ circle: '0,0', has: 1, needed: 2 }] });
     expect(check?.tiles).toEqual(['4,0']);
     expect(moveInGate(ONE_MODULE, RATES, '0,0', {}).short).toEqual(['water', 'sewage', 'waste']);
   });

@@ -64,10 +64,11 @@ describe('what a layout needs', () => {
     expect(needsOf(s, RATES)).toEqual([{ need: 'line', reach: ['2,0'], answers: ['stops', 'ways'] }]);
   });
 
-  it('a neighborhood past the walk to the ring needs the line for work as well', () => {
+  it('a neighborhood in the second circle needs a ring of its own there, and the line; the first ring is not its ring (ADR-0016)', () => {
     const s = hoods({ ...starterLayout(), circles: ['0,0', '9,0'] }, ['6,0']);
     const needs = needsOf(s, RATES);
-    expect(needs.find((n) => n.need === 'line')).toEqual({ need: 'line', reach: ['6,0'], answers: ['stops', 'work', 'ways'] });
+    expect(needs[0]).toEqual({ need: 'ring', circle: '9,0', buildings: 1, answers: ['ring'] });
+    expect(needs.find((n) => n.need === 'line')).toEqual({ need: 'line', reach: ['6,0'], answers: ['stops', 'ways'] });
     expect(needs.filter((n) => n.need === 'schools').map((n) => n.need === 'schools' && n.school)).toEqual(['elementary', 'middle', 'high']);
   });
 
@@ -76,9 +77,9 @@ describe('what a layout needs', () => {
     const needs = needsOf(s, RATES);
     expect(needs).toEqual([
       { need: 'ringBuildings', tile: '0,0', add: 1, answers: ['ring'] },
-      { need: 'plantUnits', plant: 'water', add: 1, answers: ['water'] },
-      { need: 'plantUnits', plant: 'sewage', add: 1, answers: ['sewage'] },
-      { need: 'plantUnits', plant: 'waste', add: 1, answers: ['waste'] },
+      { need: 'plantUnits', circle: '0,0', plant: 'water', add: 1, answers: ['water'] },
+      { need: 'plantUnits', circle: '0,0', plant: 'sewage', add: 1, answers: ['sewage'] },
+      { need: 'plantUnits', circle: '0,0', plant: 'waste', add: 1, answers: ['waste'] },
       { need: 'schools', school: 'elementary', add: 1, pupils: 180, near: ['2,0'], answers: ['elementary'] },
       { need: 'schools', school: 'high', add: 1, pupils: 120, near: ['0,2'], answers: ['high'] },
       { need: 'fields', near: ['0,2'], answers: ['fields'] },
@@ -100,8 +101,8 @@ describe('what a layout needs', () => {
       'fields',
       'line',
     ]);
-    expect(needsOf(s, RATES)[0]).toEqual({ need: 'ring', buildings: 1, answers: ['ring'] });
-    expect(needsOf(s, RATES)[1]).toEqual({ need: 'modules', add: 2, answers: ['power'] });
+    expect(needsOf(s, RATES)[0]).toEqual({ need: 'ring', circle: '0,0', buildings: 1, answers: ['ring'] });
+    expect(needsOf(s, RATES)[1]).toEqual({ need: 'modules', circle: '0,0', add: 2, answers: ['power'] });
   });
 
   it('a module that carries the peak only while it runs still asks for the spare (ADR-0012 Decision 3, amended)', () => {
@@ -109,7 +110,7 @@ describe('what a layout needs', () => {
     const power = assess(s, RATES).checks.find((c) => c.id === 'power');
     expect(power?.status).toBe('bad');
     expect(power?.facts.check === 'power' ? power.facts.case : null).toBe('noSpare');
-    expect(needsOf(s, RATES).find((n) => n.need === 'modules')).toEqual({ need: 'modules', add: 1, answers: ['power'] });
+    expect(needsOf(s, RATES).find((n) => n.need === 'modules')).toEqual({ need: 'modules', circle: '0,0', add: 1, answers: ['power'] });
   });
 
   it('answers exactly the broken checks a built thing can mend, and no more', () => {

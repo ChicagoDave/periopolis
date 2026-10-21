@@ -251,13 +251,13 @@ describe('built in order, worded (ADR-0012)', () => {
   });
 
   it('words a reactor site that carries the peak only while every module runs (ADR-0012 Decision 3, amended)', () => {
-    expect(checkDetail({ check: 'power', case: 'noSpare', modules: 1, peakMw: 45, needed: 2 }, RATES)).toBe(
+    expect(checkDetail({ check: 'power', case: 'noSpare', modules: 1, peakMw: 45, needed: 2, short: [] }, RATES)).toBe(
       '1 module carries a peak of 45 MW only while it runs. With it down for fuel the city has no power. It takes 2.',
     );
-    expect(checkDetail({ check: 'power', case: 'noSpare', modules: 2, peakMw: 90, needed: 3 }, RATES)).toBe(
+    expect(checkDetail({ check: 'power', case: 'noSpare', modules: 2, peakMw: 90, needed: 3, short: [] }, RATES)).toBe(
       '2 modules carry a peak of 90 MW only while all run. With one down for fuel the rest fall short. It takes 3.',
     );
-    expect(checkDetail({ check: 'power', case: 'short', modules: 1, peakMw: 90, needed: 3 }, RATES)).toBe('1 module cannot carry a peak of 90 MW with one down for fuel. It takes 3.');
+    expect(checkDetail({ check: 'power', case: 'short', modules: 1, peakMw: 90, needed: 3, short: [] }, RATES)).toBe('1 module cannot carry a peak of 90 MW with one down for fuel. It takes 3.');
     expect(checkDetail(without, RATES, 3)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to them is under construction.');
     expect(checkDetail(without, RATES, 2)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to 2 of them is under construction. Draw it through the other one.');
     expect(checkDetail(without, RATES, 1)).toBe('3 neighborhoods have no stop on a line to the ring. The mover line to 1 of them is under construction. Draw it through the other 2.');
@@ -381,6 +381,11 @@ describe('the band and the flow, worded (ADR-0016)', () => {
     expect(moveSaid('ring', { ok: false, rejection: { reason: 'InsideBand', tile: '4,0' } }, RATES)).toBe('The ring stands in the middle of a circle, inside the band.');
     expect(moveSaid('water', { ok: false, rejection: { reason: 'OutsideBand', tile: '1,0' } }, RATES)).toBe('A plant stands on the outer band of a circle, by the shore.');
     expect(moveSaid('hood', { ok: false, rejection: { reason: 'OutsideCircle', tile: '15,-4' } }, RATES)).toBe("That ground is outside the city's circles. Nothing stands there until a circle is opened.");
+    expect(moveSaid('hood', { ok: false, rejection: { reason: 'CircleOverlaps', tile: '4,0', shared: '0,0' } }, RATES)).toBe('A circle there would share 0,0 with one that stands. Circles stand side by side along the shore.');
+    expect(moveSaid('hood', { ok: true, layout: emptyLayout(), event: { type: 'CircleOpened', middle: '9,0' } }, RATES)).toBe('A circle opens at 9,0: its ring in the middle, three rings of homes, and a band by the shore for its plants.');
+    expect(checkDetail({ check: 'ring', case: 'none', rings: 1, short: [{ circle: '9,0', has: 0, needed: 1 }] }, RATES)).toBe('1 circle has no ring yet. Offices, government, the auditorium and fine dining have nowhere to go in it.');
+    expect(checkDetail({ check: 'ring', case: 'none', rings: 0, short: [{ circle: '0,0', has: 0, needed: 1 }] }, RATES)).toBe('There is no ring yet. Offices, government, the auditorium and fine dining have nowhere to go.');
+    expect(checkDetail({ check: 'ring', case: 'none', rings: 1, short: [{ circle: '9,0', has: 0, needed: 1 }, { circle: '18,0', has: 0, needed: 1 }] }, RATES)).toBe('2 circles have no ring yet. Offices, government, the auditorium and fine dining have nowhere to go in them.');
     expect(checkTitle('flow')).toBe('The intake is upstream of the outfall');
     expect(linesLabel([32])).toBe('Line 32');
     expect(checkDetail({ check: 'flow', case: 'idle' }, RATES)).toBe('With a water plant and a sewage plant in a circle, the lake decides their order along the shore.');

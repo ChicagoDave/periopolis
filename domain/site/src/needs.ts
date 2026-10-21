@@ -18,15 +18,16 @@ import type { PlantKind, SchoolKind, SiteRates } from './rates.ts';
 
 /** Something the layout lacks, with the checks it answers. */
 export type Need =
-  /** No ring stands: a new ring with this many buildings. */
-  | { readonly need: 'ring'; readonly buildings: number; readonly answers: readonly CheckId[] }
+  /** A circle's neighborhoods have no ring: a new ring with this many buildings, in that circle (null: a layout with no circles). */
+  | { readonly need: 'ring'; readonly circle: TileKey | null; readonly buildings: number; readonly answers: readonly CheckId[] }
   /** A ring is full: this many more buildings on it. */
   | { readonly need: 'ringBuildings'; readonly tile: TileKey; readonly add: number; readonly answers: readonly CheckId[] }
-  /** The modules cannot carry the peak with one down (`short`, or `noSpare` with all running): this many more. */
-  | { readonly need: 'modules'; readonly add: number; readonly answers: readonly CheckId[] }
-  /** A plant serves fewer people than the city has: this many more units. */
+  /** A circle's modules cannot carry its peak with one down (`short`, or `noSpare` with all running): this many more, in that circle. */
+  | { readonly need: 'modules'; readonly circle: TileKey | null; readonly add: number; readonly answers: readonly CheckId[] }
+  /** A circle's plants of a kind serve fewer people than it has: this many more units, in that circle. */
   | {
       readonly need: 'plantUnits';
+      readonly circle: TileKey | null;
       readonly plant: Exclude<PlantKind, 'power'>;
       readonly add: number;
       readonly answers: readonly CheckId[];
@@ -86,7 +87,7 @@ function needsFrom(core: Core, layout: Layout, rates: SiteRates): readonly Need[
   if (ring && ring.facts.check === 'ring') {
     const f = ring.facts;
     if (f.case === 'none') {
-      out.push({ need: 'ring', buildings: Math.max(1, Math.ceil(core.score.pop / rates.ringServes - 1e-9)), answers: ['ring'] });
+      for (const s of f.short) out.push({ need: 'ring', circle: s.circle, buildings: s.needed, answers: ['ring'] });
     } else if (f.case === 'full') {
       for (const tile of ring.tiles) {
         const report = core.per[tile];
@@ -100,13 +101,13 @@ function needsFrom(core: Core, layout: Layout, rates: SiteRates): readonly Need[
 
   const power = broken('power');
   if (power && power.facts.check === 'power' && (power.facts.case === 'short' || power.facts.case === 'noSpare')) {
-    out.push({ need: 'modules', add: power.facts.needed - power.facts.modules, answers: ['power'] });
+    for (const s of power.facts.short) out.push({ need: 'modules', circle: s.circle, add: s.needed - s.has, answers: ['power'] });
   }
 
   for (const plant of ['water', 'sewage', 'waste'] as const) {
     const c = broken(plant);
     if (c && (c.facts.check === 'water' || c.facts.check === 'sewage' || c.facts.check === 'waste') && c.facts.case === 'short') {
-      out.push({ need: 'plantUnits', plant, add: c.facts.needed - c.facts.units, answers: [plant] });
+      for (const s of c.facts.short) out.push({ need: 'plantUnits', circle: s.circle, plant, add: s.needed - s.has, answers: [plant] });
     }
   }
 
