@@ -912,13 +912,14 @@ export function inferredLine(facts: readonly Inferred[]): string {
     else groups.push({ why, pieces: somePieces(f.events) });
   }
   if (groups.length) parts.push(`The city ordered ${list(groups.map((g) => `${list(g.pieces)} for ${g.why}`))}.`);
+  for (const f of facts) if (f.type === 'CircleOpened') parts.push(`The city is full to its walk, so a new circle opens at ${f.middle} for the people arriving.`);
   if (noRoom.length) parts.push(`The site has no room for ${list(noRoom.map((f) => INFERRED_WHY[f.why]))}.`);
   return parts.join(' ');
 }
 
 /** The run's orders in a month as a table cell: "neighborhood, water unit, 3 stretches of line", or "no room". */
 export function inferredCell(facts: readonly Inferred[]): string {
-  const pieces = facts.flatMap((f) => (f.type === 'InferredOrder' ? somePieces(f.events) : []));
+  const pieces = facts.flatMap((f) => (f.type === 'InferredOrder' ? somePieces(f.events) : f.type === 'CircleOpened' ? [`a circle at ${f.middle}`] : []));
   const noRoom = facts.some((f) => f.type === 'NoRoom');
   const said = pieces.map((p) => (p.startsWith('a ') ? p.slice(2) : p.startsWith('an ') ? p.slice(3) : p)).join(', ');
   return noRoom ? (said ? `${said}; no room` : 'no room') : said;

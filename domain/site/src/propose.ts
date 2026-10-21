@@ -1,7 +1,7 @@
 /**
  * @file Where each need goes: a Proposal gives a need the tiles and the ordinary commands that would build it, and its
  * price; nothing here changes the layout it is given (ADR-0008 Decision 4).
- * Public interface: Step, Proposal, Avoided, proposeFor, applyProposal, proposeNeighborhood.
+ * Public interface: Step, Proposal, Avoided, proposeFor, applyProposal, proposeNeighborhood, proposeCircle.
  * Owner context: Site (domain).
  *
  * Proposals are made one need at a time: the first need is proposed, its steps applied to a scratch layout, and the
@@ -10,9 +10,9 @@
  * the list with a "no room" proposal rather than a tile a command would refuse.
  */
 import { assessCore } from './assess.ts';
-import { allTiles, edgeKey, kmBetween, neighbors } from './board.ts';
+import { allTiles, eastWest, edgeKey, kmBetween, neighbors, tileAt, tileKey } from './board.ts';
 import type { TileKey } from './board.ts';
-import { bandRule, circleOf, shoreTiles, upstreamOf } from './circle.ts';
+import { bandRule, circleFits, circleOf, circleTiles, shoreTiles, upstreamOf } from './circle.ts';
 import { NO_STRESS } from './checks.ts';
 import { addPlantUnit, addRingBuilding, layStretch, toggleExtra } from './commands.ts';
 import type { SiteEvent, SiteRejection } from './commands.ts';
@@ -147,6 +147,30 @@ export function proposeNeighborhood(layout: Layout, rates: SiteRates, avoid: rea
     return nearestTo(open, rings.length ? rings : hoods.length ? hoods : [m]);
   }
   return null;
+}
+
+/** How far apart two circles' middles stand along the shore, so that their bands touch and no tile is in both (ADR-0016 Decision 3). */
+export const CIRCLE_STEP = 9;
+
+/**
+ * Where the next circle goes (ADR-0016 Decision 3): along the shore, its middle 9 steps east of the easternmost
+ * standing circle's, on the same row, so the bands touch at a seam; never between a circle's intake and its outfall.
+ * Nothing here changes the layout.
+ * @param layout - the board
+ * @param rates - the ledger's rates
+ * @param avoid - middles not to name (the run's vetoed circles)
+ * @returns the middle `openCircle` would accept, or null when the board has no room for another circle or the layout
+ * has no circles to stand beside
+ */
+export function proposeCircle(layout: Layout, rates: SiteRates, avoid: readonly TileKey[] = []): TileKey | null {
+  const circles = layout.circles ?? [];
+  const last = circles.reduce<TileKey | null>((b, m) => (b === null || eastWest(m) > eastWest(b) ? m : b), null);
+  if (last === null) return null;
+  const [q, r] = tileAt(last);
+  const middle = tileKey(q + CIRCLE_STEP, r);
+  if (avoid.includes(middle) || !circleFits(middle, rates.outline)) return null;
+  if (circleTiles(middle).some((k) => circleOf(circles, k) !== null)) return null;
+  return middle;
 }
 
 function priced(layout: Layout, rates: SiteRates): { build: number; run: number } {

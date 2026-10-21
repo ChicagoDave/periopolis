@@ -356,6 +356,8 @@ describe('the city growing itself, worded (ADR-0015)', () => {
     expect(inferredLine(facts)).toBe('The city ordered a neighborhood for the people arriving.');
     expect(inferredCell(facts)).toBe('neighborhood');
     const noRoom: Inferred[] = [{ type: 'NoRoom', why: 'ring' }, { type: 'NoRoom', why: 'homes' }];
+    expect(inferredLine([{ type: 'CircleOpened', middle: '9,0' }])).toBe('The city is full to its walk, so a new circle opens at 9,0 for the people arriving.');
+    expect(inferredCell([{ type: 'CircleOpened', middle: '9,0' }])).toBe('circle at 9,0');
     expect(inferredLine(noRoom)).toBe('The site has no room for a ring and the people arriving.');
     expect(inferredCell(noRoom)).toBe('no room');
     expect(inferredCell([...facts, { type: 'NoRoom', why: 'modules' }])).toBe('neighborhood; no room');

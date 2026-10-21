@@ -25,6 +25,7 @@ import {
   needsOf,
   openCircle,
   placeNeighborhood,
+  proposeCircle,
   proposeFor,
   proposeNeighborhood,
   starterLayout,
@@ -90,6 +91,15 @@ describe('openCircle', () => {
     expect(openCircle(two(), '9,0', RATES)).toMatchObject({ ok: false, rejection: { reason: 'CircleOverlaps', tile: '9,0', shared: '9,0' } });
     expect(openCircle(starterLayout(), '5,0', RATES)).toMatchObject({ ok: false, rejection: { reason: 'CircleOverlaps', tile: '5,0', shared: '4,0' } });
     expect(start).toEqual(starterLayout());
+  });
+
+  it('the next circle is proposed 9 steps east along the shore, never when it is closed, does not fit, or there is no circle to stand beside', () => {
+    expect(proposeCircle(starterLayout(), RATES)).toBe('9,0');
+    expect(proposeCircle(starterLayout(), RATES, ['9,0'])).toBeNull();
+    expect(proposeCircle(two(), RATES)).toBeNull();
+    expect(proposeCircle({ ...emptyLayout(), circles: [] }, RATES)).toBeNull();
+    const o = openCircle(starterLayout(), proposeCircle(starterLayout(), RATES) ?? '', RATES);
+    expect(o.ok).toBe(true);
   });
 
   it('on a layout with no circles opens the first', () => {

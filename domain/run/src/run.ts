@@ -4,7 +4,7 @@
  * Public interface: Game, RunOptions, startRun, stopRun, tick, tickMonth, seenIn, restoreClock.
  * Owner context: Run (domain).
  */
-import { LAYERS, PLANTS, SCHOOLS, adjacent, allTiles, assess, costOf, edgeEnds } from '@city/site';
+import { LAYERS, PLANTS, SCHOOLS, adjacent, allTiles, assess, costOf, edgeEnds, FIRST_CIRCLE } from '@city/site';
 import type { CheckId, CheckStatus, Layer, Layout, PlantKind, SchoolKind, SiteRates, Stress, TileKey } from '@city/site';
 
 import { growthOn, monthStep, occupiedOf } from './growth.ts';
@@ -388,17 +388,23 @@ export function restoreClock(raw: unknown, layout: Layout, rates: SiteRates, rul
 /** Whether "what@where" names a kind of piece on a tile of the board, or a stretch between two. */
 function pieceOk(id: string, tiles: readonly TileKey[], edgeOk: (e: unknown) => e is string): boolean {
   const [what, at] = splitPiece(id);
+  // A closed circle is vetoed by its middle (ADR-0016 Decision 3); it is ground, not a piece, and never the first circle.
+  if (what === 'circle') return tiles.includes(at) && at !== FIRST_CIRCLE;
   if (!(PIECES as readonly string[]).includes(what)) return false;
   return what === 'line' ? edgeOk(at) : tiles.includes(at);
 }
 
 const INFERRED_WHYS: readonly InferredWhy[] = ['ring', 'ringBuildings', 'modules', 'plantUnits', 'schools', 'fields', 'line', 'homes'];
 
-/** What the run did for itself in a month, read back from storage: known reasons and known kinds of piece only. */
-function inferredOf(raw: readonly unknown[]): Inferred[] {
+/** What the run did for itself in a month, read back from storage: known reasons, known kinds of piece, and circles on the board only. */
+function inferredOf(raw: readonly unknown[], tiles: readonly TileKey[]): Inferred[] {
   const out: Inferred[] = [];
   for (const f of raw) {
     if (!isRecord(f)) continue;
+    if (f['type'] === 'CircleOpened') {
+      if (typeof f['middle'] === 'string' && tiles.includes(f['middle'])) out.push({ type: 'CircleOpened', middle: f['middle'] });
+      continue;
+    }
     const why = f['why'];
     if (typeof why !== 'string' || !(INFERRED_WHYS as readonly string[]).includes(why)) continue;
     if (f['type'] === 'NoRoom') out.push({ type: 'NoRoom', why: why as InferredWhy });
@@ -451,7 +457,7 @@ function growthOf(raw: unknown, layout: Layout, rates: SiteRates, rules: RunRule
       homes,
       spend: moneyOf(m['spend']),
       ...(Array.isArray(m['heldBack']) ? { heldBack: heldBackOf(m['heldBack'], layout) } : {}),
-      ...(Array.isArray(m['inferred']) && inferredOf(m['inferred']).length ? { inferred: inferredOf(m['inferred']) } : {}),
+      ...(Array.isArray(m['inferred']) && inferredOf(m['inferred'], allTiles(rates.outline)).length ? { inferred: inferredOf(m['inferred'], allTiles(rates.outline)) } : {}),
     });
   }
   return { month: raw['month'] as number, occupied, months };

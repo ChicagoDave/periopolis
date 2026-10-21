@@ -227,12 +227,14 @@ describe('vetoes and the homes ahead', () => {
     expect(() => homesAhead({ layout: g.layout, clock: null }, RATES)).toThrow();
   });
 
-  it('says there is no room for homes when no tile is open', () => {
+  it('says there is no room for homes when no tile is open and the next circle is closed; with it open, it opens the circle instead (ADR-0016)', () => {
     const tiles: Record<TileKey, { kind: 'hood'; has: Record<string, never> }> = {};
     for (const k of allTiles(RATES.outline)) tiles[k] = { kind: 'hood', has: {} };
     const everyTile = allTiles(RATES.outline).map((k) => pieceId('hood', k));
     const g0 = startRun(emptyLayout(), 1, RATES, RULES, GROW);
-    const g = months({ layout: g0.layout, clock: { ...g0.clock!, vetoes: everyTile } }, 1);
+    const opens = months({ layout: g0.layout, clock: { ...g0.clock!, vetoes: everyTile } }, 1);
+    expect(lastMonth(opens).inferred).toEqual([{ type: 'CircleOpened', middle: '9,0' }]);
+    const g = months({ layout: g0.layout, clock: { ...g0.clock!, vetoes: [...everyTile, 'circle@9,0'] } }, 1);
     expect(lastMonth(g).inferred).toEqual([{ type: 'NoRoom', why: 'homes' }]);
     expect(jobs(g)).toEqual([]);
     expect(Object.keys(tiles)).toHaveLength(everyTile.length);

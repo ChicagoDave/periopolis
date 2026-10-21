@@ -1,18 +1,20 @@
 /**
  * @file The run orders for itself (ADR-0015): each month, after the people have moved, it reads the city's needs off
  * the planned board and orders what the Site proposes, and keeps homes ahead of arrivals by ordering the next
- * neighborhood where the Site puts it. Every order goes through `placeOrder`, so it is work in hand like the player's.
- * A piece the player vetoed is never ordered again.
- * Public interface: Inferred, inferStep, homesAhead, cancelOrder.
+ * neighborhood where the Site puts it; when no tile in any circle is open, it opens the next circle where the Site
+ * puts it (ADR-0016 Decision 3) and the next month's neighborhood goes there. Every order goes through `placeOrder`,
+ * so it is work in hand like the player's. A piece the player vetoed is never ordered again, nor a circle the player
+ * closed (`vetoCircle`).
+ * Public interface: Inferred, inferStep, homesAhead, cancelOrder, vetoCircle.
  * Owner context: Run (domain).
  *
  * Nothing here is random: the same game gives the same orders. A clock without `infer` is untouched by it.
  */
-import { POPULATION, applyProposal, edgeKey, placeNeighborhood, proposeFor, proposeNeighborhood } from '@city/site';
-import type { Layout, Need, Outcome, SiteRates, Step } from '@city/site';
+import { POPULATION, applyProposal, circleTiles, edgeKey, openCircle, placeNeighborhood, proposeCircle, proposeFor, proposeNeighborhood } from '@city/site';
+import type { Layout, Need, Outcome, SiteRates, Step, TileKey } from '@city/site';
 import { cancelJob } from './jobs.ts';
 import type { OrderEvent } from './order.ts';
-import { placeOrder } from './order.ts';
+import { circleId, placeOrder } from './order.ts';
 import { pieceId, planned, splitPiece } from './pieces.ts';
 import type { Game } from './run.ts';
 import type { RunRules } from './rules.ts';
@@ -24,7 +26,9 @@ export type InferredWhy = Need['need'] | 'homes';
 /** What the run did for itself in a month: an order placed, or a need the board has no room for. */
 export type Inferred =
   | { readonly type: 'InferredOrder'; readonly why: InferredWhy; readonly events: readonly OrderEvent[] }
-  | { readonly type: 'NoRoom'; readonly why: InferredWhy };
+  | { readonly type: 'NoRoom'; readonly why: InferredWhy }
+  /** The run opened the next circle, by its middle, the month no tile for homes was open (ADR-0016 Decision 3). */
+  | { readonly type: 'CircleOpened'; readonly middle: TileKey };
 
 const MONTHS = 12;
 
@@ -110,9 +114,51 @@ export function inferStep(game: Game, rates: SiteRates, rules: RunRules): { read
     if (out && out.ok) {
       g = out.game;
       facts.push({ type: 'InferredOrder', why: 'homes', events: out.events });
-    } else facts.push({ type: 'NoRoom', why: 'homes' });
+    } else {
+      // No open tile in any circle: the city is full to its walk, so the next circle is opened where the Site puts
+      // it, unless the player closed it; the next month's neighborhood goes there (ADR-0016 Decision 3).
+      const closed = vetoes.filter((v) => splitPiece(v)[0] === 'circle').map((v) => splitPiece(v)[1]);
+      const middle = proposeCircle(planned(g.layout, g.clock.jobs), rates, closed);
+      const opened = middle ? placeOrder(g, (plan) => openCircle(plan, middle, rates), rules, 'run') : null;
+      if (opened && opened.ok && middle) {
+        g = opened.game;
+        facts.push({ type: 'CircleOpened', middle });
+      } else facts.push({ type: 'NoRoom', why: 'homes' });
+    }
   }
   return { game: g, facts };
+}
+
+/**
+ * The player closes a circle the run opened: the run never opens it again (ADR-0016 Decision 3, the veto of ADR-0015
+ * Decision 5 applied to a circle). The player's own `openCircle` through `placeOrder` lifts the veto.
+ * @param game - the game, with its clock running
+ * @param middle - the circle's middle
+ * @returns the game without the circle and with its veto; the same game when the middle is the first circle, is no
+ *   circle of the layout, or a piece stands or is in hand on a tile of it
+ */
+export function vetoCircle(game: Game, middle: TileKey): Game {
+  const clock = game.clock;
+  if (!clock) throw new Error('the clock is not running');
+  const circles = game.layout.circles ?? [];
+  const i = circles.indexOf(middle);
+  if (i <= 0) return game;
+  const tiles = circleTiles(middle);
+  const plan = planned(game.layout, clock.jobs);
+  if (tiles.some((k) => plan.tiles[k])) return game;
+  if (Object.keys(plan.lines).some((e) => edgeEndsOf(e).some((end) => tiles.includes(end)))) return game;
+  const id = circleId(middle);
+  const vetoes = clock.vetoes ?? [];
+  return {
+    layout: { ...game.layout, circles: circles.filter((m) => m !== middle) },
+    clock: { ...clock, ...(clock.infer ? { vetoes: vetoes.includes(id) ? vetoes : [...vetoes, id] } : {}) },
+  };
+}
+
+/** The two ends of a stretch's edge key, by walking to the bar. */
+function edgeEndsOf(e: string): readonly [string, string] {
+  const i = e.indexOf('|');
+  return i < 0 ? [e, ''] : [e.slice(0, i), e.slice(i + 1)];
 }
 
 /**

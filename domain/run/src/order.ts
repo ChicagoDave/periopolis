@@ -3,7 +3,7 @@
  * Public interface: OrderEvent, OrderOutcome, placeOrder.
  * Owner context: Run (domain).
  */
-import type { Layout, Outcome, SiteEvent, SiteRejection } from '@city/site';
+import type { Layout, Outcome, SiteEvent, SiteRejection, TileKey } from '@city/site';
 import { crewed, emergencyOf } from './crews.ts';
 import type { Job } from './jobs.ts';
 import { draftOf, pieceId, pieces, planned, removePiece, splitPiece } from './pieces.ts';
@@ -31,6 +31,11 @@ export type OrderOutcome =
   | { readonly ok: true; readonly game: Game; readonly siteEvent: SiteEvent; readonly events: readonly OrderEvent[] }
   | { readonly ok: false; readonly rejection: SiteRejection };
 
+/** The veto id of a circle, by its middle: "circle@9,0". A circle is ground, not a piece, so it is not a PieceKind. */
+export function circleId(middle: TileKey): string {
+  return `circle@${middle}`;
+}
+
 function pieceKind(text: string): PieceKind | null {
   return (PIECES as readonly string[]).includes(text) ? (text as PieceKind) : null;
 }
@@ -44,7 +49,8 @@ function pieceKind(text: string): PieceKind | null {
  * @param rules - the clock's rules
  * @param by - who orders: the player (the default), whose order for a vetoed piece lifts the veto and whose order
  *   cancelling a job the run placed or taking down a piece the run built vetoes it, or the run itself (ADR-0015),
- *   whose jobs are marked inferred
+ *   whose jobs are marked inferred. A circle opened by the command is ground, open at once with no job (ADR-0016
+ *   Decision 3): the game's layout carries the command's circles, and the player's opening lifts its veto.
  * @throws Error when the clock is not running
  */
 export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules: RunRules, by: 'player' | 'run' = 'player'): OrderOutcome {
@@ -97,9 +103,10 @@ export function placeOrder(game: Game, command: (plan: Layout) => Outcome, rules
       events.push({ type: 'JobOrdered', what, at, total, startsNow, withSite });
     }
   }
+  if (by === 'player' && res.event.type === 'CircleOpened' && vetoes?.includes(circleId(res.event.middle))) vetoes = vetoes.filter((v) => v !== circleId(res.event.type === 'CircleOpened' ? res.event.middle : ''));
   return {
     ok: true,
-    game: { layout: { tiles: draft.tiles, lines: draft.lines, circles: draft.circles }, clock: { ...game.clock, jobs, ...(vetoes ? { vetoes } : {}), ...(built ? { built } : {}) } },
+    game: { layout: { tiles: draft.tiles, lines: draft.lines, circles: res.layout.circles }, clock: { ...game.clock, jobs, ...(vetoes ? { vetoes } : {}), ...(built ? { built } : {}) } },
     siteEvent: res.event,
     events,
   };
