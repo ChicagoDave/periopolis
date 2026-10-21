@@ -1,7 +1,7 @@
 # Session Plan: The site is concentric circles — an outer infrastructure band, and a second circle for growth past 100,000
 
 **Created**: 2026-10-20
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Replace the 115-tile rectangle (ADR-0006) with a circle of hexagonal tiles whose outermost band (hex ring 4 around the city's ring, 24 tiles) holds the infrastructure plants, whose inner rings 1 to 3 (36 tiles) hold neighborhoods within a 30-minute walk of the ring and so carry 100,000 residents with room to 180,000; a second circle, centered 9 steps away, is added for further growth. Needs its own decision (ADR-0016) with five open design questions interviewed before code.
 **Bounded contexts touched**: Site (primary: outline, band, placement rules, proposals, second circle); Run (orders the second circle under infer); Board (draws circles and band, wording, e2e); Ground unaffected
 **Key domain language**: Circle, Band (infrastructure band), Outline, Plant, Neighborhood, Ring, Proposal, Inferred order

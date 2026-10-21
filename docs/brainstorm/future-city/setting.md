@@ -2,7 +2,7 @@
 
 Where the city stands, worked out from first principles: the natural resources at hand decide how many people the ground can carry before anything is built. David, 2026-10-20: "what are the local natural resources? waterways, runoff, great lakes, rivers... these all enable certain levels of population." Decided the same day: **a lake shore, on one of the Great Lakes.**
 
-This brainstorm began on 2026-10-20 during Phase 1 of `docs/work/concentric-site/plan.md`, when the question of where the plants stand (ADR-0016) turned out to rest on where the water comes from. The same two marks apply: **Yours** is something David stated, **Mine** is a placeholder Claude filled in so the arithmetic could run.
+This brainstorm began on 2026-10-20 during Phase 1 of `docs/work/archive/concentric-site/plan.md`, when the question of where the plants stand (ADR-0016) turned out to rest on where the water comes from. The same two marks apply: **Yours** is something David stated, **Mine** is a placeholder Claude filled in so the arithmetic could run.
 
 ## Brainstorm Progress
 

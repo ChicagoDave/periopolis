@@ -53,4 +53,4 @@ The lines fix the geometry. A 30-minute walk to work or school (line 16) is 2 km
 
 ## Session
 
-Session 61ce07, 2026-10-20, Phase 1 of `docs/work/concentric-site/plan.md`.
+Session 61ce07, 2026-10-20, Phase 1 of `docs/work/archive/concentric-site/plan.md`.

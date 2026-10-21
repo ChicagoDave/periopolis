@@ -1,6 +1,6 @@
 /**
  * @file Past 100,000 and into the second circle, on the real path (ADR-0016; Phase 8 of
- * `docs/work/concentric-site/plan.md`): the real Run on the real Site and Ledger, the month clock built in order with
+ * `docs/work/archive/concentric-site/plan.md`): the real Run on the real Site and Ledger, the month clock built in order with
  * the city growing itself, no stub anywhere. One neighborhood and an empty site run seventy years: each passes 100,000
  * in its fifty-fifth year and levels off toward the population the premises hold, about 114,000, short of the 180,000
  * a circle holds, so neither ever opens the second circle. A first circle filled by the Site's own proposals runs
