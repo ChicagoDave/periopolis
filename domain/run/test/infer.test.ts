@@ -69,7 +69,11 @@ describe('the first month on one neighborhood', () => {
   it('records each order on the month with the need it answers, and the input game is unchanged', () => {
     const facts = lastMonth(g1).inferred ?? [];
     const whys = facts.filter((f) => f.type === 'InferredOrder').map((f) => f.why);
-    for (const why of ['ring', 'modules', 'plantUnits', 'schools', 'fields', 'line', 'homes']) expect(whys).toContain(why);
+    for (const why of ['ring', 'modules', 'plantUnits', 'schools', 'fields', 'homes']) expect(whys).toContain(why);
+    // The plants' orders carry the line that joins them (ADR-0019), and here it reaches the neighborhood's stop too,
+    // so no order is left for the line alone.
+    expect(whys).not.toContain('line');
+    expect(ids(jobs(g1)).some((id) => id.startsWith('line@'))).toBe(true);
     expect(orders(facts).sort()).toEqual(ids(jobs(g1)).sort());
     expect(facts.some((f) => f.type === 'NoRoom')).toBe(false);
     expect(g0.clock?.jobs).toEqual([]);

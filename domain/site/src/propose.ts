@@ -5,7 +5,8 @@
  * Owner context: Site (domain).
  *
  * Proposals are made one need at a time: the first need is proposed, its steps applied to a scratch layout, and the
- * needs read again, so what one addition calls for in turn (a new plant needs the line) is proposed after it. Every
+ * needs read again, so what one addition calls for in turn is proposed after it; a new plant's own line is not left
+ * for later but carried in the plant's proposal, so the plant and its line are one order (ADR-0019). Every
  * choice is deterministic; ties go to the tile first in the board's order. A need nothing on the board can meet ends
  * the list with a "no room" proposal rather than a tile a command would refuse.
  */
@@ -65,7 +66,7 @@ export function proposeFor(layout: Layout, rates: SiteRates, avoid: readonly Avo
   for (let round = 0; round < MOST_ROUNDS; round++) {
     const need = needsOf(scratch, rates)[0];
     if (!need) return out;
-    const steps = stepsFor(need, scratch, rates, avoid);
+    const steps = joinedToLine(stepsFor(need, scratch, rates, avoid), scratch, rates, avoid);
     const applied = steps ? applyProposal(scratch, steps, rates) : null;
     if (!steps || !applied || !applied.ok || sameNeeds(needsOf(applied.layout, rates), needsOf(scratch, rates))) {
       out.push({ need, room: false });
@@ -171,6 +172,26 @@ export function proposeCircle(layout: Layout, rates: SiteRates, avoid: readonly 
   if (avoid.includes(middle) || !circleFits(middle, rates.outline)) return null;
   if (circleTiles(middle).some((k) => circleOf(circles, k) !== null)) return null;
   return middle;
+}
+
+/**
+ * A proposal's steps with the line that joins any plant they put where the line does not reach (ADR-0019): the plant
+ * and its line are one proposal, so one order. A plant the line cannot reach is not proposed alone.
+ * @returns the steps, with the joining stretches after them; null when the steps are null or the line cannot be laid
+ */
+function joinedToLine(steps: Step[] | null, layout: Layout, rates: SiteRates, avoid: readonly Avoided[]): Step[] | null {
+  if (!steps || !steps.some((s) => s.command === 'addPlantUnit')) return steps;
+  const applied = applyProposal(layout, steps, rates);
+  if (!applied.ok) return steps;
+  const loose = (l: Layout): readonly TileKey[] => {
+    const haul = assessCore(l, NO_STRESS, rates).checks.find((c) => c.id === 'haul');
+    return haul && haul.status === 'bad' ? haul.tiles : [];
+  };
+  const before = loose(layout);
+  const added = loose(applied.layout).filter((k) => !before.includes(k));
+  if (!added.length) return steps;
+  const line = lineSteps(added, applied.layout, rates, (e) => avoid.some((a) => a.what === 'line' && a.at === e));
+  return line ? [...steps, ...line] : null;
 }
 
 function priced(layout: Layout, rates: SiteRates): { build: number; run: number } {

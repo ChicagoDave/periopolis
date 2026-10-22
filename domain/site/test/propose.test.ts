@@ -2,7 +2,8 @@
  * @file Where each need goes: proposals for a whole city are empty; an eleventh neighborhood is proposed one stretch of
  * line; every proposal is on the board, on open ground or a tile of its own kind; applying all of them through the
  * ordinary commands leaves no line broken; a board with no room says so rather than naming a tile a command refuses;
- * the next neighborhood goes nearest the ring, or the neighborhoods, or the middle (ADR-0015).
+ * the next neighborhood goes nearest the ring, or the neighborhoods, or the middle (ADR-0015); a new plant comes with
+ * the line that joins it, and one the line cannot reach is not proposed alone (ADR-0019).
  * Owner context: Site (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
@@ -10,12 +11,16 @@ import {
   bandRule,
   NEED_CHECKS,
   RATES,
+  addRingBuilding,
   allTiles,
   applyProposal,
   assess,
+  edgeKey,
   emptyLayout,
   kmBetween,
   needsOf,
+  neighbors,
+  openCircle,
   placeNeighborhood,
   proposeFor,
   proposeNeighborhood,
@@ -164,6 +169,45 @@ describe('where each need goes', () => {
   it('applying a step a command refuses stops there with the rejection', () => {
     const a = applyProposal(starterLayout(), [{ command: 'toggleExtra', tile: '0,0', extra: 'fields' }], RATES);
     expect(a).toEqual({ ok: false, rejection: { reason: 'NotANeighborhood', tile: '0,0', extra: 'fields' } });
+  });
+});
+
+describe('a plant is proposed with the line that joins it (ADR-0019)', () => {
+  // A second circle with a neighborhood and a ring but no plant and no line: its reactor goes on the band at 9,4.
+  const second = (): Layout => {
+    const opened = openCircle(starterLayout(), '9,0', RATES);
+    if (!opened.ok) throw new Error(opened.rejection.reason);
+    const ringed = addRingBuilding(hoods(opened.layout, ['8,0']), '9,0', RATES);
+    if (!ringed.ok) throw new Error(ringed.rejection.reason);
+    return ringed.layout;
+  };
+  const haulOf = (layout: Layout) => assess(layout, RATES).checks.find((c) => c.id === 'haul');
+
+  it('a new plant the line does not reach comes with the stretches that join it, and accepting that one proposal leaves it on the line', () => {
+    const s = second();
+    const p = proposeFor(s, RATES)[0];
+    if (!p || !p.room) throw new Error('no proposal');
+    expect(p.need.need).toBe('modules');
+    expect(p.steps.filter((st) => st.command === 'addPlantUnit').every((st) => st.command === 'addPlantUnit' && st.tile === '9,4')).toBe(true);
+    expect(p.steps.at(-1)?.command).toBe('layStretch');
+    const plantOnly = applyProposal(s, p.steps.filter((st) => st.command !== 'layStretch'), RATES);
+    if (!plantOnly.ok) throw new Error(plantOnly.rejection.reason);
+    expect(haulOf(plantOnly.layout)).toMatchObject({ status: 'bad', tiles: ['9,4'] });
+    const joined = applyProposal(s, p.steps, RATES);
+    if (!joined.ok) throw new Error(joined.rejection.reason);
+    expect(haulOf(joined.layout)?.status).toBe('ok');
+  });
+
+  it('a unit on a plant the line already reaches comes with no stretch', () => {
+    const ps = proposeFor(hoods(starterLayout(), ['2,0', '-3,0', '0,2']), RATES).filter((p) => p.need.need === 'plantUnits');
+    expect(ps).toHaveLength(3);
+    for (const p of ps) expect(p.room && p.steps.every((st) => st.command === 'addPlantUnit')).toBe(true);
+  });
+
+  it('a plant the line cannot reach is not proposed alone: its need has no room and nothing is proposed past it', () => {
+    const avoid = neighbors('9,4', RATES.outline).map((n) => ({ what: 'line', at: edgeKey('9,4', n) }));
+    const ps = proposeFor(second(), RATES, avoid);
+    expect(ps).toEqual([{ need: expect.objectContaining({ need: 'modules' }), room: false }]);
   });
 });
 

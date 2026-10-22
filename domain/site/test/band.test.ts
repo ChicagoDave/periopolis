@@ -162,7 +162,11 @@ describe('the flow check, line 32', () => {
     expect(need).toEqual({ need: 'intake', sewage: ['-1,4'], answers: ['flow'] });
     const p = proposeFor(s, RATES).find((x) => x.need.need === 'intake');
     if (!p || !p.room) throw new Error('no intake proposal');
-    expect(p.steps).toEqual([{ command: 'addPlantUnit', tile: '-4,4', plant: 'water' }]);
+    // The new intake comes with the stretch that joins it to the line (ADR-0019).
+    expect(p.steps).toEqual([
+      { command: 'addPlantUnit', tile: '-4,4', plant: 'water' },
+      { command: 'layStretch', from: '-4,4', to: '-3,4' },
+    ]);
     const after = applyProposal(s, p.steps, RATES);
     expect(after.ok && flowOf(after.layout).status).toBe('ok');
     expect(after.ok && needsOf(after.layout, RATES).some((n) => n.need === 'intake')).toBe(false);

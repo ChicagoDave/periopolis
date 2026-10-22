@@ -114,12 +114,12 @@ describe('one neighborhood on an empty site, and nothing at all, twenty years gr
   const fromOne = twentyYears(startRun(one.layout, 42, RATES, RULES, { growth: true, inOrder: true, infer: true }));
   const fromNothing = twentyYears(startRun(emptyLayout(), 42, RATES, RULES, { growth: true, inOrder: true, infer: true }));
 
-  it('from one neighborhood: 100,000 people in 20 neighborhoods, every line held at year 20, 11 line-years', () => {
+  it('from one neighborhood: 100,000 people in 20 neighborhoods, every line held at year 20, 10 line-years (11 before a plant came with its line, ADR-0019)', () => {
     expect(Math.round(last(fromOne).pop)).toBe(100000);
     expect(hoodsOf(fromOne)).toBe(20);
     expect(last(fromOne).homes).toBe(100000);
     expect(last(fromOne).broken).toEqual([]);
-    expect(fromOne.clock?.lineYears).toBe(11);
+    expect(fromOne.clock?.lineYears).toBe(10);
     expect(firstPeople(fromOne)).toBe(3);
     const bag = inferredBag(fromOne);
     expect(bag.hood).toBe(33);
@@ -127,9 +127,9 @@ describe('one neighborhood on an empty site, and nothing at all, twenty years gr
     expect(bag.water).toBe(3);
   });
 
-  it('the 11 line-years: the ring in year 1, the haul in year 2, the fields six years while the crews build homes first, a stop in year 16, a high school in year 18', () => {
+  it('the 10 line-years: the ring in year 1, no haul since each plant comes with its line (ADR-0019), the fields six years while the crews build homes first, a stop in year 16, a high school in year 18', () => {
     const broken = (fromOne.clock?.record ?? []).filter((r) => r.year > 0 && r.bad > 0).map((r) => `${r.year}: ${r.broken.join(', ')}`);
-    expect(broken).toEqual(['1: ring', '2: haul', '3: fields', '4: fields', '5: fields', '6: fields', '7: fields', '8: fields', '16: stops, ways', '18: high']);
+    expect(broken).toEqual(['1: ring', '3: fields', '4: fields', '5: fields', '6: fields', '7: fields', '8: fields', '16: stops, ways', '18: high']);
   });
 
   it('from nothing: 115,000 people in 23 neighborhoods at year 20, every line held, 3 line-years, the first in year 10, and the second circle opened', () => {

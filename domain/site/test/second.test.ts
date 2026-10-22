@@ -207,12 +207,16 @@ describe('the line across the seam', () => {
     expect(needsOf(s, RATES)).toEqual([]);
   });
 
-  it('a second ring with no line: the line runs from the neighborhood to its ring and on to the first ring\'s network; already joined to its ring, only the seam run is added', () => {
+  it('a second ring with no line: the reactor\'s proposal carries the line from it to its ring and on through the neighborhood to the first ring\'s network (ADR-0019); already joined to its ring, only the seam run is added', () => {
     const s = ok(addRingBuilding(ok(placeNeighborhood(two(), '8,0', RATES)), '9,0', RATES));
-    const line = proposeFor(s, RATES).find((p) => p.need.need === 'line');
+    const carries = (p: Proposal): boolean => p.room && p.steps.some((st) => st.command === 'layStretch');
+    const line = proposeFor(s, RATES).find(carries);
     if (!line || !line.room) throw new Error('no line proposed');
+    expect(line.need.need).toBe('modules');
+    expect(proposeFor(s, RATES).some((p) => p.need.need === 'line')).toBe(false);
     const steps = line.steps.filter((st) => st.command === 'layStretch');
-    expect(steps[0]).toEqual({ command: 'layStretch', from: '8,0', to: '9,0' });
+    expect(steps[0]).toEqual({ command: 'layStretch', from: '9,4', to: '9,3' });
+    expect(steps).toContainEqual({ command: 'layStretch', from: '9,0', to: '8,0' });
     const joined = applyProposal(s, steps, RATES);
     if (!joined.ok) throw new Error(joined.rejection.reason);
     const net = lineNetwork(joined.layout.lines);
@@ -223,7 +227,7 @@ describe('the line across the seam', () => {
     for (const e of Object.keys(joined.layout.lines)) for (const end of edgeEnds(e)) expect(circleOf(s.circles, end)).not.toBeNull();
     // Joined to its own ring already: the proposal adds the seam run only, and never re-lays a standing stretch.
     const own = ok(layStretch(s, '8,0', '9,0', RATES));
-    const seamOnly = proposeFor(own, RATES).find((p) => p.need.need === 'line');
+    const seamOnly = proposeFor(own, RATES).find(carries);
     if (!seamOnly || !seamOnly.room) throw new Error('no line proposed');
     const laid = seamOnly.steps.filter((st) => st.command === 'layStretch');
     expect(laid.length).toBe(steps.length - 1);

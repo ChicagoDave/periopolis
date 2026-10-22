@@ -345,9 +345,9 @@ describe('the city growing itself, worded (ADR-0015)', () => {
     const facts = g.clock?.growth?.months[0]?.inferred;
     if (!facts) throw new Error('nothing ordered');
     expect(inferredLine(facts)).toBe(
-      'The city ordered a ring building for a ring, 2 reactor modules for power, a water plant unit for water, a sewage plant unit for sewage, a waste works unit for waste, an elementary school, a middle school and a high school for school seats, playing fields for the walk to the fields, 9 stretches of mover line for the mover line and a neighborhood for the people arriving.',
+      'The city ordered a ring building for a ring, 2 reactor modules and 5 stretches of mover line for power, a water plant unit and 4 stretches of mover line for water, a sewage plant unit for sewage, a waste works unit for waste, an elementary school, a middle school and a high school for school seats, playing fields for the walk to the fields and a neighborhood for the people arriving.',
     );
-    expect(inferredCell(facts)).toContain('ring building, 2 reactor modules, water plant unit');
+    expect(inferredCell(facts)).toContain('ring building, 2 reactor modules, 5 stretches of mover line, water plant unit, 4 stretches of mover line');
     expect(inferredCell(facts)).toContain('neighborhood');
   });
 

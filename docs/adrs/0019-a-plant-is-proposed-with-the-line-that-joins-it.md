@@ -31,12 +31,19 @@ A stretch of line takes one crew-year and a plant unit two or more, so the delay
 
 ## Consequences
 
-- **What moves.** The plant's proposal costs more by its line, and the line need's proposal by less, so the city's spend for the same pieces is unchanged in sum (ADR-0012, ADR-0015 Decision 4). On the clock the plant's line is crewed beside it, so the haul breaks the probe found should clear. Records will be re-pinned in Phase 2 from running them, and carried here with ADR-0018's.
+- **The haul never breaks.** Measured on the real path, seed 42 (`domain/run/test/past.test.ts`, `founding.test.ts`), after the change:
+  - A first circle full to 180,000, twenty years on: the haul in years 2 and 3 is gone. What breaks is stops and ways in the closure years 7 and 16, and, new, one neighborhood of the second circle short of 20 middle seats in year 11 of the wave of families, for 5 line-years (6 before). The full circle's ring, schools and plants still hold (ADR-0018). The city grows into the second circle a little faster: 280,000 people in 56 neighborhoods at year 20 (275,000 in 55), 20 of them in the second circle (19), lived in from year 10, month 12 as before; 27.04 billion to build (26.18), more pieces standing by year 20.
+  - Seventy years from one neighborhood and from nothing: 10 and 3 line-years (13 and 5). From one neighborhood the haul in year 2 and years 25 and 26 is gone; from nothing, years 25 and 26, and one neighborhood of the first circle, still growing, is short of 64 elementary seats in year 12 of the wave. 100,000 and 115,000 at year 20, the second circle in year 22 and year 20, 150,000 and 155,000 at year 30, all as before; 235,000 and 230,000 at year 40 (235,000 both), 305,000 at year 50 (295,000); both circles full at 360,000 in year 53, as before.
+  - One neighborhood, twenty years: 10 line-years (11), the haul in year 2 gone; everything else unmoved. From nothing and David's founding are unmoved.
+- **The two new school breaks** are the wave of families (years 9 to 14) meeting a neighborhood in a growing circle a little earlier than before; neither is in a full circle. They are left as measured: a growing circle's headroom is ADR-0018's "new decision".
+- **Spend.** The plant's proposal costs more by its line, and the line need's proposal by less, so the price of the same pieces is unchanged (ADR-0012, ADR-0015 Decision 4); the runs above build more by year 20 because the city grows faster, not because the line costs more.
+- **The Board** words the month's orders as before, the line now beside its plant: "2 reactor modules and 5 stretches of mover line for power, a water plant unit and 4 stretches of mover line for water", where it said "9 stretches of mover line for the mover line" (`apps/board/test/wording.test.ts`). The 18 browser flows are unmoved.
 - **The static Board** lists the plant's proposal with its line in its steps and its price. Its wording (`needText`) words the need, which is unchanged.
+- **Tests.** `domain/site/test/propose.test.ts` holds the rule: a new plant the line does not reach comes with the stretches that join it, and accepting that one proposal leaves it on the line; a unit on a plant the line already reaches comes with none; a plant the line cannot reach has no room. `second.test.ts` and `band.test.ts` are re-pinned for it.
 - **Parity.** A layout with no proposals in play, and the sketch's clock, which never proposes, are unchanged (ADR-0003).
 - **Notes elsewhere.** ADR-0008's Phase 2 Consequence ("knock-on needs follow the addition that causes them") and ADR-0018's 2026-10-22 note carry dated notes pointing here.
 - **Future changes.** The closures' stops and ways breaks are a separate decision (a line that holds through a closure).
 
 ## Session
 
-Session ff8a39, 2026-10-22, Phase 1 of `docs/work/plant-ordered-with-its-line/plan.md`.
+Session ff8a39, 2026-10-22, Phases 1 (the cause and the decision) and 2 (the change and the record) of `docs/work/plant-ordered-with-its-line/plan.md`.
