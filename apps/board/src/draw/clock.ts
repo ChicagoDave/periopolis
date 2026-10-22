@@ -49,7 +49,7 @@ function drawMonths(page: Page, layout: Layout, clock: Clock | null): void {
   if (!clock || !growth) return;
   const occupied = occupiedOf(layout, growth, RATES);
   const people = Object.values(occupied).reduce((t, x) => t + x, 0);
-  byId('peoplenow').textContent = peopleNow(over ? clock.year : clock.year + 1, growth.month, people, homesOf(layout, RATES));
+  byId('peoplenow').textContent = peopleNow(over ? clock.year : clock.year + 1, growth.month, people, homesOf(layout, RATES), growth.waiting);
   for (const m of growth.months) {
     const tr = el('tr');
     tr.append(
@@ -61,6 +61,7 @@ function drawMonths(page: Page, layout: Layout, clock: Clock | null): void {
       el('td', 'num', fmt(m.births, 1)),
       el('td', 'num', fmt(m.deaths, 1)),
       el('td', 'num', fmt(m.left, 1)),
+      el('td', 'num', fmt(m.waiting)),
     );
     if (clock.infer) tr.append(el('td', '', m.inferred ? inferredCell(m.inferred) : ''));
     body.append(tr);

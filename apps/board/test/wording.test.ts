@@ -156,19 +156,20 @@ describe('the month clock, worded (ADR-0009)', () => {
     const g = tickMonth(startRun(starterLayout(), 7, RATES, RULES, { growth: true }), RATES, RULES);
     const row = g.clock?.growth?.months[0];
     if (!row) throw new Error('no month');
-    expect(monthLine(row)).toBe('Year 1, month 1: 50,000 people in homes for 50,000. 175 moved in, 44.6 born, 38.3 died and 181.3 moved away.');
+    expect(monthLine(row)).toBe('Year 1, month 1: 50,000 people in homes for 50,000. 175 moved in, 44.6 born, 38.3 died and 181.3 moved away. 2,325 people wait for a home.');
   });
 
-  it('a month with no homes standing says nobody lives here', () => {
+  it('a month with no homes standing says nobody lives here, and how many wait for one', () => {
     const g = tickMonth(startRun(emptyLayout(), 7, RATES, RULES, { growth: true }), RATES, RULES);
     const row = g.clock?.growth?.months[0];
     if (!row) throw new Error('no month');
-    expect(monthLine(row)).toBe('Year 1, month 1: no homes stand yet, so nobody lives here.');
+    expect(monthLine(row)).toBe('Year 1, month 1: no homes stand yet, so nobody lives here. 2,500 people wait for a home.');
   });
 
-  it('where the clock stands', () => {
-    expect(peopleNow(3, 4, 5092.4, 10000)).toBe('Year 3, month 4 of 12. 5,092 people living in homes for 10,000.');
-    expect(peopleNow(1, 0, 0, 0)).toBe('The start of year 1. 0 people living in homes for 0.');
+  it('where the clock stands, and how many wait for a home once anyone does', () => {
+    expect(peopleNow(3, 4, 5092.4, 10000, 7500)).toBe('Year 3, month 4 of 12. 5,092 people living in homes for 10,000. 7,500 people wait for a home.');
+    expect(peopleNow(3, 4, 5092.4, 10000, 1)).toBe('Year 3, month 4 of 12. 5,092 people living in homes for 10,000. 1 person waits for a home.');
+    expect(peopleNow(1, 0, 0, 0, 0)).toBe('The start of year 1. 0 people living in homes for 0.');
   });
 
   it('every population premise is named and its value worded', () => {
@@ -283,7 +284,7 @@ describe('built in order, worded (ADR-0012)', () => {
     );
   });
 
-  it('a neighborhood short of a service is worded empty whatever seats it also lacks; a month with no homes names none', () => {
+  it('a neighborhood short of a service is worded empty whatever seats it also lacks; a month with no homes names none, and an empty list is left unsaid', () => {
     expect(heldBackLine([empty])).toBe('1 neighborhood stands empty, waiting for power.');
     const bare: MonthRow = { year: 1, month: 1, people: 0, homes: 0, joined: 0, arrived: 0, waiting: 0, births: 0, deaths: 0, left: 0, spend: {} as MonthRow['spend'], heldBack: [empty] };
     expect(monthLine(bare)).toBe('Year 1, month 1: no homes stand yet, so nobody lives here.');
@@ -307,7 +308,7 @@ describe('built in order, worded (ADR-0012)', () => {
     const month = tickMonth(startRun(alone.layout, 7, RATES, RULES, { growth: true, inOrder: true }), RATES, RULES).clock?.growth?.months[0];
     if (!month) throw new Error('no month');
     expect(monthLine(month)).toBe(
-      'Year 1, month 1: 0 people in homes for 5,000. Nobody came or went. 1 neighborhood stands empty, waiting for power, drinking water, sewage treatment and waste handling.',
+      'Year 1, month 1: 0 people in homes for 5,000. Nobody came or went. 2,500 people wait for a home. 1 neighborhood stands empty, waiting for power, drinking water, sewage treatment and waste handling.',
     );
   });
 });

@@ -789,7 +789,13 @@ export function heldHere(h: HeldBack): string {
     : `Only households with no school-age children live here. It waits for ${w.what}.`;
 }
 
-/** One month of the city's people, in a sentence. */
+/** The waiting list in a sentence, led by a space ("2,500 people wait for a home."), or nothing when nobody waits. */
+function waitSaid(waiting: number): string {
+  if (!(waiting >= 0.5)) return '';
+  return Math.round(waiting) === 1 ? ' 1 person waits for a home.' : ` ${fmt(waiting)} people wait for a home.`;
+}
+
+/** One month of the city's people, in a sentence: who moved, how many wait for a home, and who is held back. */
 export function monthLine(row: MonthRow): string {
   const moves: string[] = [];
   if (row.arrived > 0.5) moves.push(`${fmt(row.arrived)} moved in`);
@@ -797,21 +803,23 @@ export function monthLine(row: MonthRow): string {
   if (row.deaths > 0.05) moves.push(`${fmt(row.deaths, 1)} died`);
   if (row.left > 0.05) moves.push(`${fmt(row.left, 1)} moved away`);
   const lead = `Year ${row.year}, month ${row.month}: ${fmt(row.people)} people in homes for ${fmt(row.homes)}.`;
-  if (!row.homes) return `${lead.slice(0, lead.indexOf(':'))}: no homes stand yet, so nobody lives here.`;
+  if (!row.homes) return `${lead.slice(0, lead.indexOf(':'))}: no homes stand yet, so nobody lives here.${waitSaid(row.waiting)}`;
   const held = row.heldBack?.length ? ` ${heldBackLine(row.heldBack)}` : '';
-  return (moves.length ? `${lead} ${cap(list(moves))}.` : `${lead} Nobody came or went.`) + held;
+  return (moves.length ? `${lead} ${cap(list(moves))}.` : `${lead} Nobody came or went.`) + waitSaid(row.waiting) + held;
 }
 
 /**
- * Where the month clock stands: "Year 3, month 4 of 12. 5,092 people living in homes for 10,000."
+ * Where the month clock stands: "Year 3, month 4 of 12. 5,092 people living in homes for 10,000. 7,500 people wait
+ * for a home." The waiting list is left unsaid while nobody is on it.
  * @param year - the year under way (the clock's completed years plus one), or the last year at the horizon
  * @param month - months completed in that year, 0 to 11
  * @param people - people living in the city
  * @param homes - homes as built, in people
+ * @param waiting - people on the waiting list
  */
-export function peopleNow(year: number, month: number, people: number, homes: number): string {
+export function peopleNow(year: number, month: number, people: number, homes: number, waiting: number): string {
   const when = month ? `Year ${year}, month ${month} of 12.` : `The start of year ${year}.`;
-  return `${when} ${fmt(people)} ${people === 1 ? 'person' : 'people'} living in homes for ${fmt(homes)}.`;
+  return `${when} ${fmt(people)} ${people === 1 ? 'person' : 'people'} living in homes for ${fmt(homes)}.${waitSaid(waiting)}`;
 }
 
 /** A sentence's full stop, unless it already ends on one ("6 p.m."). */

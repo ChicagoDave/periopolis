@@ -50,8 +50,8 @@
 - **Deliverable**: Board: the list's size shown in the population view (the month line and people-now sentence say how many wait), with wording tests and a flow; the premise line for `demandPerYear` already landed in Phase 1.
 - **Exit state**: Full workspace tests green including Board unit and e2e flows; the record states the measured outcome without claiming a brake that is not there.
 - **Demonstration**: Run the full suite (past.test.ts included) and the Board e2e flow; `#poppremises` shows the demand line and the population view shows the list.
-- **Demonstrated**: 
-- **Status**: CURRENT (since 2026-10-21)
+- **Demonstrated**: [verified: `pnpm -r typecheck` clean; `pnpm -r test` 93+27+212+241+197 passed (past.test.ts and parity included); Board `pnpm test:e2e` (fresh build) 18 passed — the founding flow asserts `#poppremises` "People joining the waiting list: 30,000 a year", the month line and `#peoplenow` saying "2,500 / 60,000 / 84,000 / 86,479 people wait for a home", and the month table's Waiting column 86,479; past.test.ts names the crews as the brake, as measured in Phase 1, 2026-10-21]
+- **Status**: DONE
 
 ### Phase 3: Decision record, docs, close issue 8
 - **Tier**: Small

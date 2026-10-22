@@ -212,7 +212,7 @@ describe('the city growing itself on the Board (ADR-0015)', () => {
     const auto = newAutoRun(s, (t) => said.push(t), clock);
     expect(auto.play()).toBe(true);
     clock.fire();
-    expect(said[0]).toBe('Year 1, month 1: no homes stand yet, so nobody lives here. The city ordered a neighborhood for the people arriving.');
+    expect(said[0]).toBe('Year 1, month 1: no homes stand yet, so nobody lives here. 2,500 people wait for a home. The city ordered a neighborhood for the people arriving.');
     expect(s.game.clock?.jobs.map((j) => [j.what, j.inferred])).toEqual([['hood', true]]);
     expect(auto.playing).toBe(true);
     clock.fire();
@@ -230,7 +230,7 @@ describe('the city growing itself on the Board (ADR-0015)', () => {
 
   it('a run without the control says nothing of orders and places none', () => {
     const s = newSession(startRun(emptyLayout(), 7, RATES, RULES, { growth: true, inOrder: true }), memoryStore());
-    expect(monthStep(s)).toBe('Year 1, month 1: no homes stand yet, so nobody lives here.');
+    expect(monthStep(s)).toBe('Year 1, month 1: no homes stand yet, so nobody lives here. 2,500 people wait for a home.');
     expect(s.game.clock?.jobs).toEqual([]);
   });
 });

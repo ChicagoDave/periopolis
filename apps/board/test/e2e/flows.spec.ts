@@ -337,7 +337,7 @@ test('the ledger\'s city sized to its people: one ring building and one reactor 
   await expect(page.locator('#moneynow')).toContainText('$13.4 B to build');
 });
 
-test('a city founded month by month: homes fill off the waiting list as they open, a month step moves the people, and the day lists 24 hours for them (ADR-0009)', async ({ page }) => {
+test('a city founded month by month: homes fill off the waiting list as they open, the list grows by 2,500 a month and is said, a month step moves the people, and the day lists 24 hours for them (ADR-0009)', async ({ page }) => {
   // The opening city's day, every neighborhood full.
   await expect(page.locator('#daynow')).toContainText('A summer weekday for 50,000 people: 147,727 trips');
   await page.click('#daybox summary');
@@ -369,27 +369,28 @@ test('a city founded month by month: homes fill off the waiting list as they ope
   await place(page, 'waste', ['-4,2']);
   await place(page, 'hood', ['1,0', '2,-1']);
   await page.click('#month');
-  await expect(page.locator('#said')).toHaveText('Year 1, month 1: no homes stand yet, so nobody lives here.');
-  await expect(page.locator('#peoplenow')).toHaveText('Year 1, month 1 of 12. 0 people living in homes for 0.');
+  // Nobody waits before the first month; 2,500 join the list each month (30,000 a year) whether or not a home stands.
+  await expect(page.locator('#said')).toHaveText('Year 1, month 1: no homes stand yet, so nobody lives here. 2,500 people wait for a home.');
+  await expect(page.locator('#peoplenow')).toHaveText('Year 1, month 1 of 12. 0 people living in homes for 0. 2,500 people wait for a home.');
   // The rest of year 1, then year 2, when the two neighborhoods open and stand empty: the reactor site takes 3 years,
   // and the second module, finished, waits for it.
   await page.click('#tick');
   await page.click('#tick');
   await expect(page.locator('#clocknow')).toContainText('Year 2 of 20.');
   await expect(page.locator('#said')).toContainText('2 neighborhoods stand empty, waiting for power.');
-  await expect(page.locator('#peoplenow')).toHaveText('The start of year 3. 0 people living in homes for 10,000.');
+  await expect(page.locator('#peoplenow')).toHaveText('The start of year 3. 0 people living in homes for 10,000. 60,000 people wait for a home.');
   // Year 3, when both modules open and the childless share of both neighborhoods, 6,000, move in off the list at once.
   await page.click('#tick');
   await expect(page.locator('#clocknow')).toContainText('Year 3 of 20.');
-  await expect(page.locator('#peoplenow')).toHaveText('The start of year 4. 6,000 people living in homes for 10,000.');
+  await expect(page.locator('#peoplenow')).toHaveText('The start of year 4. 6,000 people living in homes for 10,000. 84,000 people wait for a home.');
   await expect(page.locator('#daynow')).toContainText('A summer weekday for 6,000 people:');
   await page.click('#month');
   await expect(page.locator('#said')).toHaveText(
-    'Year 4, month 1: 6,000 people in homes for 10,000. 21 moved in, 5.3 born, 4.6 died and 21.8 moved away. ' +
+    'Year 4, month 1: 6,000 people in homes for 10,000. 21 moved in, 5.3 born, 4.6 died and 21.8 moved away. 86,479 people wait for a home. ' +
       '2 neighborhoods hold only households with no school-age children, waiting for elementary, middle-school and high-school seats.',
   );
   // The month's leavers' homes go to people off the list, so the city stays at the share it may hold.
-  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000.');
+  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000. 86,479 people wait for a home.');
   await expect(page.locator('#daynow')).toContainText('A summer weekday for 6,000 people:');
   await page.click('#tool-inspect');
   await tile(page, '1,0').click();
@@ -397,9 +398,10 @@ test('a city founded month by month: homes fill off the waiting list as they ope
   await expect(page.locator('#hourrows tr')).toHaveCount(24);
   await page.click('#monthbox summary');
   await expect(page.locator('#monthrows tr')).toHaveCount(37);
+  await expect(page.locator('#monthrows tr').last().locator('td').nth(8)).toHaveText('86,479');
   // The month clock survives a reload.
   await page.reload();
-  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000.');
+  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000. 86,479 people wait for a home.');
 });
 
 test('a neighborhood stands empty until the city carries it, and line 6 says when its line is under construction (ADR-0012)', async ({ page }) => {
@@ -546,7 +548,7 @@ test('the site from the air follows the clock: scaffolds for what is ordered, bl
   await expect(page.locator('#viewtext')).toHaveText('The site from the air: 6 blocks, 14 stories in all. 60% of the homes are lit.');
   // A month later the leavers' homes are taken again off the list, and the view, still from the air, shows as many lit.
   await page.click('#month');
-  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000.');
+  await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000. 86,479 people wait for a home.');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lit', '0.60');
   await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'true');
 });
