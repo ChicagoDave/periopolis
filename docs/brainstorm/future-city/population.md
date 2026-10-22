@@ -53,8 +53,6 @@ New towns grew by a few thousand people a year at their fastest, whatever they h
 | The Woodlands, TX | about 8,440 (1980), about 29,200 (1990), 55,649 (2000) | about 2,100, then 2,600 | Census CDP figures via [HAR](https://www.har.com/web/ceceliasmith/blogs/32304) and [the Township](https://www.thewoodlandstownship-tx.gov/Community/Business-Resources/Area-Demographics); boundaries differ | Sourced 2000 |
 | Columbia, MD | 75,883 (1990); about 3.75% a year 1980–1990 | about 2,500 | [Maryland Manual, 1990 census](https://1999mdmanual.msa.maryland.gov/msa/mdmanual/01glance/html/pop.html); growth rate from [population.city](https://population.city/united-states/columbia3/) | Sourced 1990 (1980 count not verified) |
 | Frisco, TX | 116,989 (2010), about 200,490 (2020) | about 8,350, mostly migration | [Frisco 2040 Comp Plan Appendices](https://www.friscotexas.gov/DocumentCenter/View/36063/2040-Comp-Plan-Appendices-PDF) | Sourced 2020 |
-| The Villages, FL (metro) | 2010 to 2020 | about 3,700 | David's check of 2026-10-21; source not recorded | Unverified |
-| Milton Keynes, UK | 1967 to 1992 | about 5,000 | David's check of 2026-10-21; source not recorded | Unverified |
 
 *Added 2026-10-21 (ADR-0017, David): the city is enormously popular, so these rows are comparisons, not the premise. People join a waiting list at 30,000 a year (`demandPerYear`, Mine) and move in as homes stand empty; ten crews build homes for about 25,000 a year, so the crews are the brake. Frisco, a popular city past 100,000, is the sourced comparison; Irvine's 4,800, the premise from 2026-10-14 to 2026-10-21, stays here as a comparison only.*
 
