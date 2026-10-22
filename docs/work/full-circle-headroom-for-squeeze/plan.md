@@ -48,5 +48,5 @@
 - **Deliverable**: Board flows (`flows.spec.ts`) and unit tests re-pinned for any figure that moved (the saved full first circle, the second circle opening); `pnpm test:e2e` run; `docs/domain/run.md`, `ledger.md`/site notation and `docs/context/project-profile.md` updated where they state sizing to an ordinary year; GitHub issue 9 closed with the ADR and commit cited.
 - **Exit state**: `pnpm -r test`, `pnpm -r typecheck` and `pnpm test:e2e` green; docs describe headroom once full; issue 9 closed; plan DONE and archived.
 - **Demonstration**: run `pnpm test:e2e` (builds first) and read the full-first-circle flow passing; grep `docs/domain` for the sentence on sizing to an ordinary year and read the headroom clause beside it; `gh issue view 9` shows CLOSED.
-- **Demonstrated**: 
-- **Status**: PENDING
+- **Demonstrated**: [verified: `pnpm -r test` 93+27+220+241+198 passed; Board `pnpm test:e2e` (fresh build) 18 passed, the full-first-circle flow among them, no flow re-pinned since none moved; `docs/domain/site.md` Need row reads the ordinary year with the full circle's squeeze clause beside it, a Full circle row and scenario and the `headroom.test.ts` sentence added; `run.md` and `board.md` carry the moved record and the needs card's squeeze wording; profile updated; `gh issue view 9` CLOSED with ADR-0018 cited, 2026-10-22]
+- **Status**: DONE
