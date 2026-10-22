@@ -7,7 +7,7 @@
  * Moved 2026-10-20 (ADR-0016, Phase 2): the board now runs along the shore and the founding's reactor at 5,-4 and
  * west plants at -6,3, -5,1 and -4,-1 fall outside it and the circle, so they stand on the band at 4,-4, -4,0 (water,
  * upstream), -4,3 (sewage) and -3,-1 (waste), reached by the same number of stretches; every figure is unchanged.
- * Re-pinned 2026-10-21 for the waiting list (`docs/work/arrivals-scale-past-100000/plan.md`, Phase 1): 30,000 a year
+ * Re-pinned 2026-10-21 for the waiting list (`docs/work/archive/arrivals-scale-past-100000/plan.md`, Phase 1): 30,000 a year
  * join the list (Mine) and the lead is 30 months of them, 75,000 homes, so every home is taken the year it opens and
  * the run keeps fifteen neighborhoods in hand. The crews are the brake: the needs of the neighborhoods in hand take
  * them first, so the first residents come later and the city is far larger by year 20.

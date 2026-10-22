@@ -10,7 +10,7 @@
 
 Issue 8: ADR-0016's real-path record (Phase 8) showed that under ADR-0009's premises a growing city levels off near 114,000 people. Each year 4.35% of people leave the city against 0.15% natural growth, while arrivals were capped at 4,800 a year (Irvine 1980–1990, `arrivalsPerYear`), so the city settles where leavers match arrivals, 4,800 / 0.042. No run that grows fills a circle, and none reaches the second. ADR-0016 left open which premise was wrong.
 
-David first chose to scale arrivals past 100,000, at 4.8% of the people a year. He then checked 4,800 against public data: Irvine, The Villages, Milton Keynes, and Frisco TX, which grew from 116,989 to about 200,490 between 2010 and 2020, about 8,350 a year and mostly by migration (Frisco 2040 Comp Plan Appendices, https://www.friscotexas.gov/DocumentCenter/View/36063/2040-Comp-Plan-Appendices-PDF). He replaced the scaling with a different model (David, 2026-10-21): the city is enormously popular, so demand is not the limit; homes are. A pace is a premise, but a waiting list changes the model, so it needs its own decision. The plan is `docs/work/arrivals-scale-past-100000/plan.md`.
+David first chose to scale arrivals past 100,000, at 4.8% of the people a year. He then checked 4,800 against public data: Irvine, The Villages, Milton Keynes, and Frisco TX, which grew from 116,989 to about 200,490 between 2010 and 2020, about 8,350 a year and mostly by migration (Frisco 2040 Comp Plan Appendices, https://www.friscotexas.gov/DocumentCenter/View/36063/2040-Comp-Plan-Appendices-PDF). He replaced the scaling with a different model (David, 2026-10-21): the city is enormously popular, so demand is not the limit; homes are. A pace is a premise, but a waiting list changes the model, so it needs its own decision. The plan is `docs/work/archive/arrivals-scale-past-100000/plan.md`.
 
 ## Decision
 
@@ -46,4 +46,4 @@ David first chose to scale arrivals past 100,000, at 4.8% of the people a year. 
 
 ## Session
 
-Session e62d2d, 2026-10-21, Phase 1 of `docs/work/arrivals-scale-past-100000/plan.md`. Session 34f6b4, 2026-10-21, Phases 2 and 3.
+Session e62d2d, 2026-10-21, Phase 1 of `docs/work/archive/arrivals-scale-past-100000/plan.md`. Session 34f6b4, 2026-10-21, Phases 2 and 3.

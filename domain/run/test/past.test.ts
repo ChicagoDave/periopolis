@@ -1,7 +1,7 @@
 /**
  * @file Past 100,000 and into the second circle, on the real path (ADR-0016; Phase 8 of
  * `docs/work/archive/concentric-site/plan.md`, re-pinned for the waiting list in Phase 1 of
- * `docs/work/arrivals-scale-past-100000/plan.md`): the real Run on the real Site and Ledger, the month clock built in
+ * `docs/work/archive/arrivals-scale-past-100000/plan.md`): the real Run on the real Site and Ledger, the month clock built in
  * order with the city growing itself, no stub anywhere. 30,000 people a year join the waiting list (Mine, David
  * 2026-10-21), more than ten crews can build homes for, so the crews are the brake and every home is taken the year it
  * opens. One neighborhood and an empty site run seventy years: each passes 100,000 in its twentieth year, opens the
