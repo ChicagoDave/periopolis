@@ -9,7 +9,7 @@
  * third and the list passes a million. A first circle filled by the Site's own proposals runs twenty years: the run
  * opens the second circle in its first month, and the second circle's first neighborhood is lived in only once its own
  * ring and plants stand. A full circle is built with headroom for the squeeze (ADR-0018, Phase 1 of
- * `docs/work/full-circle-headroom-for-squeeze/plan.md`): the full circle's ring, schools and plants hold through the
+ * `docs/work/archive/full-circle-headroom-for-squeeze/plan.md`): the full circle's ring, schools and plants hold through the
  * squeeze, and the crews' time on that headroom puts the circles' filling back three years. The figures are the
  * record ADR-0018 carries, pinned as a check on the premises, not as truth (ADR-0007): a premise that moves moves them.
  * Owner context: Run (domain), tests.

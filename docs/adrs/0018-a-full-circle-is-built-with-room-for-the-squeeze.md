@@ -7,7 +7,7 @@
 
 ## Context
 
-Issue 9. Proposals size what a layout needs for an ordinary year (ADR-0008 Decision 2). A circle that is still growing absorbs a squeeze, line 18's 20% more people in the same homes, because it always has neighborhoods and their needs on order ahead of the people. A full circle has nothing on order. Before this decision, ADR-0017's real-path record showed the cost: a first circle full to 180,000 and run for twenty years broke its ring, schools and plants in squeeze years 5 to 7, broke its schools again in years 9 to 13 and 18 to 20, and lost 42 line-years. The plan is `docs/work/full-circle-headroom-for-squeeze/plan.md`.
+Issue 9. Proposals size what a layout needs for an ordinary year (ADR-0008 Decision 2). A circle that is still growing absorbs a squeeze, line 18's 20% more people in the same homes, because it always has neighborhoods and their needs on order ahead of the people. A full circle has nothing on order. Before this decision, ADR-0017's real-path record showed the cost: a first circle full to 180,000 and run for twenty years broke its ring, schools and plants in squeeze years 5 to 7, broke its schools again in years 9 to 13 and 18 to 20, and lost 42 line-years. The plan is `docs/work/archive/full-circle-headroom-for-squeeze/plan.md`.
 
 ## Decision
 
@@ -32,4 +32,4 @@ Issue 9. Proposals size what a layout needs for an ordinary year (ADR-0008 Decis
 
 ## Session
 
-Session 34f6b4, 2026-10-21, Phase 1 of `docs/work/full-circle-headroom-for-squeeze/plan.md`.
+Session 34f6b4, 2026-10-21, Phase 1 of `docs/work/archive/full-circle-headroom-for-squeeze/plan.md`.

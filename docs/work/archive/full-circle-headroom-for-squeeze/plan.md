@@ -1,7 +1,7 @@
 # Session Plan: A full circle is built with headroom for the squeeze (resolves GitHub issue 9)
 
 **Created**: 2026-10-21
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: David's decision (2026-10-21), "headroom once full": when a circle has no open tile for homes (full: 36 neighborhoods, ADR-0016 Decision 3), the Site's proposals size that circle's ring, schools and plants to its people plus the squeeze, line 18's +20% people in the same homes, instead of an ordinary year. A circle still growing gets no extra headroom; its capacity ordered ahead absorbs the squeeze. The squeeze figure is the existing `SiteRates.band` (ledger, 20%, Mine, the stress `bandTests` already applies); no new number. Needs a new ADR narrowing ADR-0008 Decisions 2 and 3 for full circles.
 **Bounded contexts touched**: Site (needs, proposals), Run (the needs signal reads `proposeFor`; real-path records), Board (wording and flows only if a record they pin moves)
 **Key domain language**: full circle, headroom, squeeze (band), ordinary year, Proposal, line-years
