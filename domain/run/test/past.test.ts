@@ -11,7 +11,7 @@
  * ring and plants stand. A full circle is built with headroom for the squeeze (ADR-0018, Phase 1 of
  * `docs/work/archive/full-circle-headroom-for-squeeze/plan.md`): the full circle's ring, schools and plants hold through the
  * squeeze, and the crews' time on that headroom puts the circles' filling back three years. Each plant comes with the line
- * that joins it (ADR-0019, Phase 2 of `docs/work/plant-ordered-with-its-line/plan.md`), so the haul no longer breaks. The figures are the
+ * that joins it (ADR-0019, Phase 2 of `docs/work/archive/plant-ordered-with-its-line/plan.md`), so the haul no longer breaks. The figures are the
  * record ADR-0018 carries, pinned as a check on the premises, not as truth (ADR-0007): a premise that moves moves them.
  * Owner context: Run (domain), tests.
  */

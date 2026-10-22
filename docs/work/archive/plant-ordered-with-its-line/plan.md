@@ -1,7 +1,7 @@
 # Session Plan: A plant is ordered together with the line that joins it (follows ADR-0018's Residual)
 
 **Created**: 2026-10-22
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: David's decision (2026-10-22): a plant comes into use already joined to the line, so it is ordered together with its line and the haul breaks disappear from the real-path records. Closure breaks (stops/ways in years 7 and 16, the closure events) are out of scope. Needs a new ADR-0019 and a dated note on ADR-0018's Residual.
 **Bounded contexts touched**: Site (needs, proposals), Run (crews, inference, real-path records), Board (wording and flows only if a pinned record moves)
 **Key domain language**: plant, line, haul (a plant is loose when no line path reaches it from a hood or ring), crew, line-years, Proposal

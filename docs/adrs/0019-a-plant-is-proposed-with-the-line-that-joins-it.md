@@ -7,7 +7,7 @@
 
 ## Context
 
-ADR-0018's Residual named the line breaks it left; its 2026-10-22 note found two causes, the closures (stops and ways in years 7 and 16) and plants that finish before the line reaches them (the haul). This decision is about the second. The plan is `docs/work/plant-ordered-with-its-line/plan.md`.
+ADR-0018's Residual named the line breaks it left; its 2026-10-22 note found two causes, the closures (stops and ways in years 7 and 16) and plants that finish before the line reaches them (the haul). This decision is about the second. The plan is `docs/work/archive/plant-ordered-with-its-line/plan.md`.
 
 A plant and the line that joins it are ordered in the same month but as two proposals. `proposeFor` proposes one need at a time and reads the needs again after each (ADR-0008 Consequences, Phase 2), and the needs come in a fixed order: ring, modules, plants, schools, fields, intake, line. So the plant's proposal is placed first and the line's last, with the schools and the rest of the month's needs between them. All of those are class 0 (ADR-0012 Decision 2), crewed in the order they stand, ten at a time. The plant gets a crew at once; its line waits behind every class-0 job placed between them.
 
@@ -46,4 +46,4 @@ A stretch of line takes one crew-year and a plant unit two or more, so the delay
 
 ## Session
 
-Session ff8a39, 2026-10-22, Phases 1 (the cause and the decision) and 2 (the change and the record) of `docs/work/plant-ordered-with-its-line/plan.md`.
+Session ff8a39, 2026-10-22, Phases 1 (the cause and the decision) and 2 (the change and the record) of `docs/work/archive/plant-ordered-with-its-line/plan.md`.
