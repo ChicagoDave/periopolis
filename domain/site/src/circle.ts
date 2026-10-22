@@ -2,8 +2,8 @@
  * @file A circle: a central ring tile, three hex rings of homes within the walk, and a fourth, the band, where the
  * plants stand (ADR-0016). Circles are values laid out on the rectangular board along the shore; a tile outside every
  * circle is open to nothing.
- * Public interface: HOME_RINGS, BAND_RING, circleTiles, hexRing, bandOf, circleOf, inBand, circleFits, shoreTiles,
- * bandRule, upstreamOf.
+ * Public interface: HOME_RINGS, BAND_RING, circleTiles, hexRing, bandOf, homeTilesOf, isFull, circleOf, inBand, circleFits,
+ * shoreTiles, bandRule, upstreamOf.
  *
  * The band rule (ADR-0016 Decision 2) is read off a layout's circles: a plant stands on a band, a neighborhood or ring
  * inside one, and nothing outside every circle. A layout with no circles at all, which only the sketch's recorded
@@ -12,6 +12,7 @@
  */
 import { allTiles, eastWest, extent, onBoard, ringDistance, tileAt, tileKey } from './board.ts';
 import type { Outline, TileKey } from './board.ts';
+import type { Layout } from './layout.ts';
 
 /** Hex rings of homes round a circle's ring: 1 to 3, every tile within the 30-minute walk of the ring. */
 export const HOME_RINGS = 3;
@@ -48,6 +49,29 @@ export function circleTiles(middle: TileKey): TileKey[] {
 /** The band tiles of a circle. */
 export function bandOf(middle: TileKey): TileKey[] {
   return hexRing(middle, BAND_RING);
+}
+
+/**
+ * The tiles of a circle where homes may stand: its home rings, 1 to 3, on the board. The middle is the ring's.
+ * @param middle - the circle's middle
+ * @param outline - the site's shape
+ */
+export function homeTilesOf(middle: TileKey, outline: Outline): TileKey[] {
+  const on = new Set(allTiles(outline));
+  const out: TileKey[] = [];
+  for (let k = 1; k <= HOME_RINGS; k++) out.push(...hexRing(middle, k).filter((t) => on.has(t)));
+  return out;
+}
+
+/**
+ * Whether a circle is full (ADR-0016 Decision 3): no tile for homes is open in it, so `proposeNeighborhood` finds no
+ * room there. Read off whatever board it is given; the Run gives it the planned board, so work in hand counts.
+ * @param layout - the board, or the planned board
+ * @param middle - the circle's middle
+ * @param outline - the site's shape
+ */
+export function isFull(layout: Pick<Layout, 'tiles'>, middle: TileKey, outline: Outline): boolean {
+  return homeTilesOf(middle, outline).every((t) => Boolean(layout.tiles[t]));
 }
 
 /**

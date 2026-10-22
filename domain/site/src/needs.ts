@@ -2,28 +2,36 @@
  * @file What a layout lacks to keep its lines whole, as typed facts: the ring buildings, reactor modules, plant units,
  * schools, playing fields and mover line reach the broken checks call for. Quantities only; where each goes is a
  * Proposal's business, and nothing here changes the layout.
- * Public interface: Need, NEED_CHECKS, needsOf.
+ * Public interface: Need, NEED_CHECKS, HEADROOM_CHECKS, needsOf, headroomOf.
  * Owner context: Site (domain).
  *
  * The needs are read off the assessment, never worked out a second time: a need is the shortfall a broken check
  * already states, so the needs and the checks cannot disagree. A check broken for want of people (the daily list
  * under a stress) or only on watch (the city's size, the walk to work with a mover) asks for nothing to be built.
+ *
+ * A full circle is read a second time, at the squeeze (ADR-0018): its neighborhoods hold `rates.band` more people, the
+ * stretch test's figure, and its ring, plants and schools are needed to that. A circle still growing, and a layout with
+ * no circles, is read for an ordinary year only.
  */
 import { assessCore } from './assess.ts';
 import type { TileKey } from './board.ts';
 import type { CheckId, Core, LineCheck } from './checks.ts';
 import { NO_STRESS } from './checks.ts';
+import { circleOf, isFull } from './circle.ts';
 import type { Layout } from './layout.ts';
 import type { PlantKind, SchoolKind, SiteRates } from './rates.ts';
 
-/** Something the layout lacks, with the checks it answers. */
+/**
+ * Something the layout lacks, with the checks it answers. `squeeze` marks a ring, plant or school need that an
+ * ordinary year would not ask for: headroom for the squeeze in a full circle (ADR-0018).
+ */
 export type Need =
   /** A circle's neighborhoods have no ring: a new ring with this many buildings, in that circle (null: a layout with no circles). */
-  | { readonly need: 'ring'; readonly circle: TileKey | null; readonly buildings: number; readonly answers: readonly CheckId[] }
+  | { readonly need: 'ring'; readonly circle: TileKey | null; readonly buildings: number; readonly answers: readonly CheckId[]; readonly squeeze?: true }
   /** A ring is full: this many more buildings on it. */
-  | { readonly need: 'ringBuildings'; readonly tile: TileKey; readonly add: number; readonly answers: readonly CheckId[] }
+  | { readonly need: 'ringBuildings'; readonly tile: TileKey; readonly add: number; readonly answers: readonly CheckId[]; readonly squeeze?: true }
   /** A circle's modules cannot carry its peak with one down (`short`, or `noSpare` with all running): this many more, in that circle. */
-  | { readonly need: 'modules'; readonly circle: TileKey | null; readonly add: number; readonly answers: readonly CheckId[] }
+  | { readonly need: 'modules'; readonly circle: TileKey | null; readonly add: number; readonly answers: readonly CheckId[]; readonly squeeze?: true }
   /** A circle's plants of a kind serve fewer people than it has: this many more units, in that circle. */
   | {
       readonly need: 'plantUnits';
@@ -31,6 +39,7 @@ export type Need =
       readonly plant: Exclude<PlantKind, 'power'>;
       readonly add: number;
       readonly answers: readonly CheckId[];
+      readonly squeeze?: true;
     }
   /** Pupils with no seat within the walk: at least this many more schools, near these neighborhoods. */
   | {
@@ -40,6 +49,7 @@ export type Need =
       readonly pupils: number;
       readonly near: readonly TileKey[];
       readonly answers: readonly CheckId[];
+      readonly squeeze?: true;
     }
   /** Neighborhoods with no fields within the walk or a ride: fields near them. */
   | { readonly need: 'fields'; readonly near: readonly TileKey[]; readonly answers: readonly CheckId[] }
@@ -68,15 +78,50 @@ export const NEED_CHECKS: readonly CheckId[] = [
 
 const LINE_CHECKS: readonly CheckId[] = ['stops', 'work', 'ways', 'haul'];
 
+/** The checks a full circle is held to at the squeeze (ADR-0018): its ring, its plants and its schools. */
+export const HEADROOM_CHECKS: readonly CheckId[] = ['ring', 'power', 'water', 'sewage', 'waste', 'elementary', 'middle', 'high'];
+
+/** The needs that answer the headroom checks, which lead the fixed order. */
+const HEADROOM_NEEDS: readonly Need['need'][] = ['ring', 'ringBuildings', 'modules', 'plantUnits', 'schools'];
+
 /**
- * What the layout lacks in an ordinary year, one need per thing to build, in a fixed order: ring, modules, plants,
- * schools, fields, intake, line.
+ * Who lives where when the needs are read at the squeeze (ADR-0018): each neighborhood of a full circle holds
+ * `rates.hood` more `rates.band`; every other neighborhood is left out, so it holds its capacity, an ordinary year.
  * @param layout - the board
  * @param rates - the ledger's rates
- * @returns the needs; empty when no check a built thing can mend is broken
+ * @returns the occupancy for `assessCore`, or null when no circle is full
+ */
+export function headroomOf(layout: Layout, rates: SiteRates): Readonly<Record<TileKey, number>> | null {
+  const circles = layout.circles ?? [];
+  const full = circles.filter((m) => isFull(layout, m, rates.outline));
+  if (!full.length) return null;
+  if (!(rates.band >= 0)) throw new RangeError(`the squeeze must be zero or more, not ${rates.band}`);
+  const occupied: Record<TileKey, number> = {};
+  for (const h of hoodsOf(layout)) {
+    const m = circleOf(circles, h);
+    if (m !== null && full.includes(m)) occupied[h] = rates.hood * (1 + rates.band);
+  }
+  return occupied;
+}
+
+/**
+ * What the layout lacks, one need per thing to build, in a fixed order: ring, modules, plants, schools, fields,
+ * intake, line. Read for an ordinary year; a full circle's ring, plants and schools are read at the squeeze, and a
+ * need the squeeze adds is marked `squeeze` (ADR-0018).
+ * @param layout - the board
+ * @param rates - the ledger's rates
+ * @returns the needs; empty when no check a built thing can mend is broken in an ordinary year and no headroom check
+ *   is broken in a full circle at the squeeze
+ * @throws RangeError when the squeeze (`rates.band`) is negative
  */
 export function needsOf(layout: Layout, rates: SiteRates): readonly Need[] {
-  return needsFrom(assessCore(layout, NO_STRESS, rates), layout, rates);
+  const ordinary = needsFrom(assessCore(layout, NO_STRESS, rates), layout, rates);
+  const occupied = headroomOf(layout, rates);
+  if (!occupied) return ordinary;
+  const squeezed = needsFrom(assessCore(layout, NO_STRESS, rates, occupied), layout, rates).filter((n) => HEADROOM_NEEDS.includes(n.need));
+  const same = (a: Need, b: Need): boolean => JSON.stringify(a) === JSON.stringify(b);
+  const headroom = squeezed.map((n) => (ordinary.some((o) => same(o, n)) ? n : { ...n, squeeze: true as const }));
+  return [...headroom, ...ordinary.filter((n) => !HEADROOM_NEEDS.includes(n.need))];
 }
 
 function needsFrom(core: Core, layout: Layout, rates: SiteRates): readonly Need[] {

@@ -455,23 +455,25 @@ export function issueText(issue: TileIssue): string {
 }
 
 /**
- * What the city needs to keep its lines whole, as the needs list words it: one line per thing to build.
+ * What the city needs to keep its lines whole, as the needs list words it: one line per thing to build, and for a
+ * need the squeeze adds in a full circle, that it is built with room for the squeeze (ADR-0018).
  * @param need - one need from the Site's `needsOf`
  * @returns the sentence
  */
 export function needText(need: Need): string {
   switch (need.need) {
     case 'ring':
-      return `A ring of ${count(need.buildings, 'building', 'buildings')} for the offices and halls.`;
+      return `A ring of ${count(need.buildings, 'building', 'buildings')} for the offices and halls.${squeezeSaid(need)}`;
     case 'ringBuildings':
-      return `${cap(count(need.add, 'more building', 'more buildings'))} on the ring at ${need.tile}.`;
+      return `${cap(count(need.add, 'more building', 'more buildings'))} on the ring at ${need.tile}.${squeezeSaid(need)}`;
     case 'modules':
-      return `${cap(count(need.add, 'more reactor module', 'more reactor modules'))}, to carry the peak with one down for fuel.`;
+      return `${cap(count(need.add, 'more reactor module', 'more reactor modules'))}, to carry the peak with one down for fuel.${squeezeSaid(need)}`;
     case 'plantUnits':
-      return `${cap(count(need.add, `more ${PLANT_NOUN[need.plant]} unit`, `more ${PLANT_NOUN[need.plant]} units`))}.`;
+      return `${cap(count(need.add, `more ${PLANT_NOUN[need.plant]} unit`, `more ${PLANT_NOUN[need.plant]} units`))}.${squeezeSaid(need)}`;
     case 'schools': {
       const noun = SITE_NAME[need.school].toLowerCase();
-      return `${cap(count(need.add, `more ${noun}`, `more ${noun}s`))} near ${list(need.near)}, for ${num(need.pupils)} pupils with no seat.`;
+      const seat = need.squeeze ? 'with no seat in a squeeze' : 'with no seat';
+      return `${cap(count(need.add, `more ${noun}`, `more ${noun}s`))} near ${list(need.near)}, for ${num(need.pupils)} pupils ${seat}.${squeezeSaid(need)}`;
     }
     case 'fields':
       return `Playing fields near ${list(need.near)}.`;
@@ -481,6 +483,9 @@ export function needText(need: Need): string {
       return `A water intake upstream of the outfall at ${list(need.sewage)}.`;
   }
 }
+
+/** A need the squeeze adds, said after it: a full circle is built with room for the squeeze (ADR-0018). */
+const squeezeSaid = (need: { readonly squeeze?: true }): string => (need.squeeze ? ' The circle is full, so it is built with room for the squeeze.' : '');
 
 /**
  * What a proposal adds to the bill, or that the site has no room for it.

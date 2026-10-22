@@ -400,6 +400,20 @@ describe('the band and the flow, worded (ADR-0016)', () => {
   });
 });
 
+describe('a full circle built with room for the squeeze (ADR-0018)', () => {
+  it('says a need the squeeze adds is headroom for a full circle, and leaves an ordinary need as it was', () => {
+    const SAID = ' The circle is full, so it is built with room for the squeeze.';
+    expect(needText({ need: 'plantUnits', circle: '0,0', plant: 'water', add: 1, answers: ['water'], squeeze: true })).toBe(`1 more water plant unit.${SAID}`);
+    expect(needText({ need: 'plantUnits', circle: '0,0', plant: 'water', add: 1, answers: ['water'] })).toBe('1 more water plant unit.');
+    expect(needText({ need: 'modules', circle: '0,0', add: 2, answers: ['power'], squeeze: true })).toBe(`2 more reactor modules, to carry the peak with one down for fuel.${SAID}`);
+    expect(needText({ need: 'ringBuildings', tile: '0,0', add: 3, answers: ['ring'], squeeze: true })).toBe(`3 more buildings on the ring at 0,0.${SAID}`);
+    expect(needText({ need: 'ring', circle: '0,0', buildings: 8, answers: ['ring'], squeeze: true })).toBe(`A ring of 8 buildings for the offices and halls.${SAID}`);
+    expect(needText({ need: 'schools', school: 'high', add: 1, pupils: 240, near: ['1,0'], answers: ['high'], squeeze: true })).toBe(
+      `1 more high school near 1,0, for 240 pupils with no seat in a squeeze.${SAID}`,
+    );
+  });
+});
+
 describe('the circles, the band and the lake on the map (ADR-0016)', () => {
   it('words open ground by where it lies, names the circles, and words closing and opening a circle and the lake', () => {
     expect(GROUND_TEXT).toEqual({

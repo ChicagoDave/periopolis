@@ -37,6 +37,7 @@ David first chose to scale arrivals past 100,000, at 4.8% of the people a year. 
   - David's founding by hand has 48 line-years (previously 46).
 
   A shorter lead or more crews would change these figures. Either is a change to a premise, not to this decision.
+- *Note 2026-10-21 (ADR-0018): a full circle is now built with room for the squeeze, so the figures above moved again. The full first circle loses 6 line-years, not 42, and its ring, schools and plants hold through the squeeze. The seventy-year runs hold 150,000 and 155,000 at year 30, 235,000 at year 40 and 295,000 at year 50, and fill both circles in year 53, not 50. Their line-years stay at 13 and 5.*
 - ADR-0009 Decision 3 keeps its rates (births, deaths, movers, leavers) and loses its arrivals clause to Decision 1 here. A note on ADR-0009 points here, and ADR-0009 stays ACCEPTED.
 - ADR-0012 Decision 4's "at no more than 4,800 a year" now reads "as far as the waiting list holds people". Arrivals still go in tile order and only into homes the gate admits. A note on ADR-0012 says so.
 - ADR-0015 Decision 2's lead is now 75,000. A note on ADR-0015 says so.
