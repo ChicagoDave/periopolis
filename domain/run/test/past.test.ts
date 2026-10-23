@@ -13,7 +13,7 @@
  * squeeze, and the crews' time on that headroom puts the circles' filling back three years. Each plant comes with the line
  * that joins it (ADR-0019, Phase 2 of `docs/work/archive/plant-ordered-with-its-line/plan.md`), so the haul no longer breaks. Every circle's
  * schools are built with room for the wave of families (ADR-0020, Phase 2 of
- * `docs/work/school-seats-for-a-growing-circle/plan.md`), so no school breaks, and the crews' time on them puts the
+ * `docs/work/archive/school-seats-for-a-growing-circle/plan.md`), so no school breaks, and the crews' time on them puts the
  * growing city back a little while both circles still fill in year 53. The figures are the
  * record ADR-0018 carries, pinned as a check on the premises, not as truth (ADR-0007): a premise that moves moves them.
  * Owner context: Run (domain), tests.

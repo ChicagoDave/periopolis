@@ -11,7 +11,7 @@
  * join the list (Mine) and the lead is 30 months of them, 75,000 homes, so every home is taken the year it opens and
  * the run keeps fifteen neighborhoods in hand. The crews are the brake: the needs of the neighborhoods in hand take
  * them first, so the first residents come later and the city is far larger by year 20.
- * Re-pinned 2026-10-22 (ADR-0020, Phase 2 of `docs/work/school-seats-for-a-growing-circle/plan.md`): every circle's
+ * Re-pinned 2026-10-22 (ADR-0020, Phase 2 of `docs/work/archive/school-seats-for-a-growing-circle/plan.md`): every circle's
  * schools are built with room for the wave, so the crews build more schools before homes; the high-school break in
  * year 18 is gone, and the city is smaller at year 20 from nothing.
  * Owner context: Run (domain), tests.

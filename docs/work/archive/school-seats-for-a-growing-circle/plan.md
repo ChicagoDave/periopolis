@@ -1,7 +1,7 @@
 # Session Plan: School seats for a growing circle (the wave of families meeting a circle still being built)
 
 **Created**: 2026-10-22
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Confirm why schools break in a circle that is still growing (full-circle run year 11, 20 middle seats at 8,1 in the second circle; from-nothing run year 12, 64 elementary seats at -1,-1 in the first), have David choose the mechanism in a new ADR, then implement it and re-pin the records.
 **Bounded contexts touched**: Site (propose, assess, needs), Run (founding and past records), Board (wording only if the Needs card changes)
 **Key domain language**: growing circle, headroom (ADR-0018), squeeze (`rates.band`), neighborhood, school seats (elementary, middle, high), proposal (`proposeFor`), crews as the brake (ADR-0017)

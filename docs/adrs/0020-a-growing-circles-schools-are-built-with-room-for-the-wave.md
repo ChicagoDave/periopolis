@@ -7,7 +7,7 @@
 
 ## Context
 
-ADR-0019's record left two school breaks in a circle still growing, and named them the wave of families (seed 42: years 9 to 21, up to `rates.band`, 20%, more children, a grade a year) meeting a growing circle. A third is in the same record: one neighborhood, twenty years, breaks its high schools in year 18. ADR-0018 builds a *full* circle's ring, plants and schools with room for the squeeze and reads a growing circle for an ordinary year only; headroom for a growing circle is its "new decision". The plan is `docs/work/school-seats-for-a-growing-circle/plan.md`.
+ADR-0019's record left two school breaks in a circle still growing, and named them the wave of families (seed 42: years 9 to 21, up to `rates.band`, 20%, more children, a grade a year) meeting a growing circle. A third is in the same record: one neighborhood, twenty years, breaks its high schools in year 18. ADR-0018 builds a *full* circle's ring, plants and schools with room for the squeeze and reads a growing circle for an ordinary year only; headroom for a growing circle is its "new decision". The plan is `docs/work/archive/school-seats-for-a-growing-circle/plan.md`.
 
 A throwaway probe (deleted) read each break at its year's end on the real path, seed 42:
 
@@ -51,4 +51,4 @@ Both (a) and (b) end every school break. The price is time, as in ADR-0018: the 
 
 ## Session
 
-Session 9548f4, 2026-10-22, Phases 1 (the cause and the decision) and 2 (the change and the record) of `docs/work/school-seats-for-a-growing-circle/plan.md`.
+Session 9548f4, 2026-10-22, Phases 1 (the cause and the decision) and 2 (the change and the record) of `docs/work/archive/school-seats-for-a-growing-circle/plan.md`.
