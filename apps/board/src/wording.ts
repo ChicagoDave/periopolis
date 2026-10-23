@@ -12,7 +12,8 @@
  * Owner context: Board (adapter).
  */
 import type { GroundPlan, Layer, Level, Placeholder } from '@city/ground';
-import type { CostId, CostPremiseId, ExtraKind, Facts, LineCheck, Mark, Need, Outcome, Proposal, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue, TileKey } from '@city/site';
+import { circleOf, isFull } from '@city/site';
+import type { CostId, CostPremiseId, ExtraKind, Facts, Layout, LineCheck, Mark, Need, Outcome, Proposal, PlantKind, SchoolKind, SiteRates, TestId, Tile, TileIssue, TileKey } from '@city/site';
 import type { Day, DayPremises, DayType, PopulationPremises } from '@city/site';
 import type { Layer as MoneyLayer } from '@city/site';
 import type { HeldBack, Inferred, InferredWhy, MonthRow, Notice, OrderEvent, PieceKind, RecordRow, RunRules } from '@city/run';
@@ -456,11 +457,15 @@ export function issueText(issue: TileIssue): string {
 
 /**
  * What the city needs to keep its lines whole, as the needs list words it: one line per thing to build, and for a
- * need the squeeze adds in a full circle, that it is built with room for the squeeze (ADR-0018).
+ * need the squeeze adds, that it is built with room for the squeeze: in a full circle because it is full (ADR-0018),
+ * a school in a growing circle for the wave of families too (ADR-0020).
  * @param need - one need from the Site's `needsOf`
+ * @param layout - the board the need was read on, to say whether its circle is full
+ * @param rates - the ledger's rates, for the board's outline
  * @returns the sentence
  */
-export function needText(need: Need): string {
+export function needText(need: Need, layout: Layout, rates: SiteRates): string {
+  const squeezeSaid = (n: { readonly squeeze?: true }): string => (n.squeeze ? squeezeWhy(need, layout, rates) : '');
   switch (need.need) {
     case 'ring':
       return `A ring of ${count(need.buildings, 'building', 'buildings')} for the offices and halls.${squeezeSaid(need)}`;
@@ -484,8 +489,28 @@ export function needText(need: Need): string {
   }
 }
 
-/** A need the squeeze adds, said after it: a full circle is built with room for the squeeze (ADR-0018). */
-const squeezeSaid = (need: { readonly squeeze?: true }): string => (need.squeeze ? ' The circle is full, so it is built with room for the squeeze.' : '');
+/** Why a need the squeeze adds is built: its circle is full (ADR-0018), or, growing, its schools seat the wave (ADR-0020). */
+function squeezeWhy(need: Need, layout: Layout, rates: SiteRates): string {
+  const circle = needCircle(need, layout);
+  if (circle !== null && isFull(layout, circle, rates.outline)) return ' The circle is full, so it is built with room for the squeeze.';
+  return ' It is built with room for the squeeze and the wave of families.';
+}
+
+/** The circle a need is in, or null when none. */
+function needCircle(need: Need, layout: Layout): TileKey | null {
+  switch (need.need) {
+    case 'ring':
+    case 'modules':
+    case 'plantUnits':
+      return need.circle;
+    case 'ringBuildings':
+      return circleOf(layout.circles, need.tile);
+    case 'schools':
+      return need.near[0] === undefined ? null : circleOf(layout.circles, need.near[0]);
+    default:
+      return null;
+  }
+}
 
 /**
  * What a proposal adds to the bill, or that the site has no room for it.
@@ -516,10 +541,12 @@ export function needsNow(count: number, running: boolean, noRoom: boolean): stri
 /**
  * What the status line says when proposals are built.
  * @param built - the proposals built, in order
+ * @param layout - the board they were proposed on
+ * @param rates - the ledger's rates
  */
-export function addedSaid(built: readonly Proposal[]): string {
+export function addedSaid(built: readonly Proposal[], layout: Layout, rates: SiteRates): string {
   const first = built[0];
-  if (built.length === 1 && first) return `Built: ${low(needText(first.need))}`;
+  if (built.length === 1 && first) return `Built: ${low(needText(first.need, layout, rates))}`;
   return `Built ${count(built.length, 'addition', 'additions')}. Undo takes them back one click at a time.`;
 }
 

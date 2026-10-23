@@ -82,7 +82,7 @@ export function accept(game: Game, proposals: readonly Proposal[]): Move {
     built.push(p);
   }
   if (!built.length) return no('There is no room on the site for what the city needs.');
-  return { game: { layout, clock: null }, said: addedSaid(built), changed: true, from: null };
+  return { game: { layout, clock: null }, said: addedSaid(built, game.layout, RATES), changed: true, from: null };
 }
 
 void EXTRAS;

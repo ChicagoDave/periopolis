@@ -36,7 +36,7 @@ export function drawNeeds(page: Page): void {
   list.textContent = '';
   proposals.forEach((p, i) => {
     const li = el('li', p.room ? 'need' : 'need noroom');
-    li.append(el('span', 'what', needText(p.need)), el('span', 'price', proposalPrice(p)));
+    li.append(el('span', 'what', needText(p.need, s.game.layout, RATES)), el('span', 'price', proposalPrice(p)));
     if (p.room) {
       const tiles = tilesOf(p.steps);
       const acts = el('span', 'acts');

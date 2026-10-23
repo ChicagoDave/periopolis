@@ -26,14 +26,15 @@ describe('the needs card, worded', () => {
     expect(needsNow(proposeFor(starterLayout(), RATES).length, false, false)).toBe('The city needs nothing more to keep its lines whole.');
   });
 
-  it('counts the additions for thirteen neighborhoods and prices each', () => {
+  it('counts the additions for thirteen neighborhoods, their schools with room for the wave (ADR-0020), and prices each', () => {
     const ps = proposeFor(THIRTEEN, RATES);
-    expect(needsNow(ps.length, false, false)).toBe('8 additions keep the lines whole that building can mend. Show marks where one goes; Add builds it.');
+    expect(needsNow(ps.length, false, false)).toBe('10 additions keep the lines whole that building can mend. Show marks where one goes; Add builds it.');
     expect(proposalPrice(ps[0]!)).toBe('$160 M to build, $3.2 M a year to run.');
-    expect(proposalPrice(ps[4]!)).toBe('Inside floor already built; it costs nothing more.');
+    expect(proposalPrice(ps[5]!)).toBe('Inside floor already built; it costs nothing more.');
     // A high school nearer home means fewer rides and a smaller fleet: it saves money.
-    expect(ps[5]!.room && ps[5]!.build).toBeLessThan(0);
-    expect(proposalPrice(ps[5]!)).toMatch(/^\$[\d,]+ less to build, \$[\d,]+ less a year to run\.$/);
+    expect(ps[7]!.need.need === 'schools' && ps[7]!.need.school).toBe('high');
+    expect(ps[7]!.room && ps[7]!.build).toBeLessThan(0);
+    expect(proposalPrice(ps[7]!)).toMatch(/^\$[\d,]+ less to build, \$[\d,]+ less a year to run\.$/);
   });
 
   it('says the clock must stop first while it runs', () => {
@@ -52,18 +53,19 @@ describe('building what the city needs', () => {
   it('Add all builds every proposal: no line broken, the tally back to 15 of 16 with one to watch', () => {
     const m = accept({ layout: THIRTEEN, clock: null }, proposeFor(THIRTEEN, RATES));
     expect(m.changed).toBe(true);
-    expect(m.said).toBe('Built 8 additions. Undo takes them back one click at a time.');
+    expect(m.said).toBe('Built 10 additions. Undo takes them back one click at a time.');
     const checks = assess(m.game.layout, RATES).checks;
     expect(checks.filter((c) => c.status === 'bad')).toEqual([]);
     expect(checks.filter((c) => c.status === 'ok')).toHaveLength(15);
     expect(m.game.layout.tiles['0,0']).toEqual({ kind: 'ring', n: 9 });
-    expect(m.game.layout.tiles['0,2']).toEqual({ kind: 'hood', has: { high: true, fields: true } });
+    expect(m.game.layout.tiles['0,2']).toEqual({ kind: 'hood', has: { elementary: true, fields: true } });
+    expect(m.game.layout.tiles['0,1']).toEqual({ kind: 'hood', has: { elementary: true, high: true } });
     expect(proposeFor(m.game.layout, RATES)).toEqual([]);
   });
 
   it('Add builds one proposal and says what it built', () => {
     const one = placed(starterLayout(), ['2,0']);
-    const m = accept({ layout: one, clock: null }, proposeFor(one, RATES));
+    const m = accept({ layout: one, clock: null }, proposeFor(one, RATES).filter((p) => p.need.need === 'line'));
     expect(m.said).toBe('Built: the mover line run to 2,0, on a line to the ring.');
     expect(m.game.layout.lines['2,-1|2,0']).toBe(true);
     expect(assess(m.game.layout, RATES).checks.filter((c) => c.status === 'bad')).toEqual([]);
@@ -87,6 +89,6 @@ describe('building what the city needs', () => {
 
   it('words a single addition in the status line', () => {
     const ps = proposeFor(THIRTEEN, RATES);
-    expect(addedSaid(ps.slice(0, 1))).toBe('Built: 1 more building on the ring at 0,0.');
+    expect(addedSaid(ps.slice(0, 1), THIRTEEN, RATES)).toBe('Built: 1 more building on the ring at 0,0.');
   });
 });

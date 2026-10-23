@@ -11,7 +11,10 @@
  * ring and plants stand. A full circle is built with headroom for the squeeze (ADR-0018, Phase 1 of
  * `docs/work/archive/full-circle-headroom-for-squeeze/plan.md`): the full circle's ring, schools and plants hold through the
  * squeeze, and the crews' time on that headroom puts the circles' filling back three years. Each plant comes with the line
- * that joins it (ADR-0019, Phase 2 of `docs/work/archive/plant-ordered-with-its-line/plan.md`), so the haul no longer breaks. The figures are the
+ * that joins it (ADR-0019, Phase 2 of `docs/work/archive/plant-ordered-with-its-line/plan.md`), so the haul no longer breaks. Every circle's
+ * schools are built with room for the wave of families (ADR-0020, Phase 2 of
+ * `docs/work/school-seats-for-a-growing-circle/plan.md`), so no school breaks, and the crews' time on them puts the
+ * growing city back a little while both circles still fill in year 53. The figures are the
  * record ADR-0018 carries, pinned as a check on the premises, not as truth (ADR-0007): a premise that moves moves them.
  * Owner context: Run (domain), tests.
  */
@@ -95,26 +98,27 @@ describe('seventy years growing itself, from one neighborhood and from nothing (
   const fromOne = run(one.layout, long);
   const fromNothing = run(emptyLayout(), long);
 
-  it("at year 20 each is ADR-0015's record: 100,000 and 115,000 people, each just past 100,000 in its twentieth year", () => {
+  it("at year 20, 100,000 and 90,000 people (115,000 from nothing before the schools had room for the wave, ADR-0020): from one neighborhood past 100,000 in its twentieth year, from nothing in its twenty-second", () => {
     expect(peopleAt(fromOne, 20)).toBe(100000);
-    expect(peopleAt(fromNothing, 20)).toBe(115000);
-    expect(fromOne.past100k).toBe('20:12');
-    expect(fromNothing.past100k).toBe('19:12');
+    expect(peopleAt(fromNothing, 20)).toBe(90000);
+    expect(fromOne.past100k).toBe('19:12');
+    expect(fromNothing.past100k).toBe('21:12');
   });
 
-  it('each opens the second circle when the first is full: from one neighborhood in year 22, month 1; from nothing in year 20, month 6; the full first circle\'s headroom slows the second (ADR-0018)', () => {
-    expect(fromOne.opened).toBe('22:1');
-    expect(fromNothing.opened).toBe('20:6');
-    expect(peopleAt(fromOne, 30)).toBe(150000);
+  it('each opens the second circle when the first is full: from one neighborhood in year 23, month 1; from nothing in year 24, month 12 (22:1 and 20:6 before ADR-0020); the full first circle\'s headroom slows the second (ADR-0018)', () => {
+    expect(fromOne.opened).toBe('23:1');
+    expect(fromNothing.opened).toBe('24:12');
+    expect(peopleAt(fromOne, 30)).toBe(140000);
     expect(peopleAt(fromNothing, 30)).toBe(155000);
-    expect(peopleAt(fromOne, 40)).toBe(235000);
-    expect(peopleAt(fromNothing, 40)).toBe(230000);
+    expect(peopleAt(fromOne, 40)).toBe(225000);
+    expect(peopleAt(fromNothing, 40)).toBe(220000);
   });
 
-  it('by year 53 both circles are full, 72 neighborhoods and 360,000 people (305,000 at year 50, with each plant coming with its line, ADR-0019; still three years later than without headroom); no third circle fits the board, so the city holds there while the list passes a million', () => {
+  it('by year 53 both circles are full, 72 neighborhoods and 360,000 people (295,000 and 300,000 at year 50, with the schools built for the wave, ADR-0020; still three years later than without headroom); no third circle fits the board, so the city holds there while the list passes a million', () => {
     expect(Math.round(HELD)).toBe(714286);
+    expect(peopleAt(fromOne, 50)).toBe(295000);
+    expect(peopleAt(fromNothing, 50)).toBe(300000);
     for (const r of [fromOne, fromNothing]) {
-      expect(peopleAt(r, 50)).toBe(305000);
       expect(r.months.find((m) => m.people >= 360000 - 1e-6)?.year).toBe(53);
       expect(peopleAt(r, 60)).toBe(360000);
       expect(peopleAt(r, 70)).toBe(360000);
@@ -126,8 +130,8 @@ describe('seventy years growing itself, from one neighborhood and from nothing (
       expect(r.game.clock?.jobs).toEqual([]);
       expect(r.game.clock?.record.at(-1)?.broken).toEqual([]);
     }
-    expect(fromOne.game.clock?.lineYears).toBe(10);
-    expect(fromNothing.game.clock?.lineYears).toBe(3);
+    expect(fromOne.game.clock?.lineYears).toBe(9);
+    expect(fromNothing.game.clock?.lineYears).toBe(2);
   });
 
   it('every month the homes as built cover the people, and seventy years take under fifteen seconds', () => {
@@ -163,20 +167,20 @@ describe('a first circle full to its 180,000, twenty years on (seed 42)', () => 
     for (const kind of ['ring', 'water', 'sewage', 'waste', 'power']) expect(kinds).toContain(kind);
     expect(g.layout.tiles['9,0']?.kind).toBe('ring');
     for (const h of hoods(g.layout, '9,0')) expect(moveInGate(g.layout, RATES, h, { [h]: RATES.hood }).short).toEqual([]);
-    expect(hoods(r.game.layout, '9,0')).toHaveLength(20);
+    expect(hoods(r.game.layout, '9,0')).toHaveLength(19);
   });
 
-  it('the city grows into the second circle as fast as the crews build, 280,000 at year 20 in 56 neighborhoods, every home taken', () => {
-    expect(Math.round(record.at(-1)?.pop ?? 0)).toBe(280000);
-    expect(record.at(-1)?.homes).toBe(280000);
-    expect(hoods(r.game.layout)).toHaveLength(56);
+  it('the city grows into the second circle as fast as the crews build, 275,000 at year 20 in 55 neighborhoods, every home taken (280,000 in 56 before its schools had room for the wave, ADR-0020)', () => {
+    expect(Math.round(record.at(-1)?.pop ?? 0)).toBe(275000);
+    expect(record.at(-1)?.homes).toBe(275000);
+    expect(hoods(r.game.layout)).toHaveLength(55);
     for (const m of r.months) expect(m.people).toBeLessThanOrEqual(m.homes + 1e-6);
   });
 
-  it("built with headroom (ADR-0018), the squeeze in years 5 to 7 breaks none of the full circle's ring, schools or plants; with each plant coming with its line (ADR-0019) the haul no longer breaks; what breaks is stops and ways in the closure years 7 and 16, and the second circle's middle school in year 11 of the wave, 5 line-years (6 with the plants apart from their line, 42 without headroom)", () => {
+  it("built with headroom (ADR-0018), the squeeze in years 5 to 7 breaks none of the full circle's ring, schools or plants; with each plant coming with its line (ADR-0019) the haul no longer breaks; what breaks is stops and ways in the closure years 7 and 16, 4 line-years; the second circle's middle school no longer breaks in year 11 of the wave, its schools built with room for it (ADR-0020; 5 before, 6 with the plants apart from their line, 42 without headroom)", () => {
     const broken = record.filter((row) => row.year > 0 && row.bad > 0).map((row) => `${row.year}: ${row.broken.join(', ')}`);
-    expect(broken).toEqual(['7: stops, ways', '11: middle', '16: stops, ways']);
-    expect(r.game.clock?.lineYears).toBe(5);
+    expect(broken).toEqual(['7: stops, ways', '16: stops, ways']);
+    expect(r.game.clock?.lineYears).toBe(4);
   });
 
   it('spends what it built: summed over layers equals summed over years, and the capital is what was built since year 0', () => {
@@ -188,6 +192,6 @@ describe('a first circle full to its 180,000, twenty years on (seed 42)', () => 
     const last = record.at(-1);
     if (!first || !last) throw new Error('no record');
     for (const layer of LAYERS) if (kindOf(layer) === 'capital') expect(sums.byLayer[layer]).toBeCloseTo(last.standing[layer] - first.standing[layer], 3);
-    expect(Math.round((sums.capital / 1e9) * 100) / 100).toBe(27.04);
+    expect(Math.round((sums.capital / 1e9) * 100) / 100).toBe(25.82);
   });
 });

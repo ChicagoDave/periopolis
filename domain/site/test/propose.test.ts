@@ -1,6 +1,6 @@
 /**
- * @file Where each need goes: proposals for a whole city are empty; an eleventh neighborhood is proposed one stretch of
- * line; every proposal is on the board, on open ground or a tile of its own kind; applying all of them through the
+ * @file Where each need goes: proposals for a whole city are empty; an eleventh neighborhood is proposed its schools'
+ * room for the wave (ADR-0020) and one stretch of line; every proposal is on the board, on open ground or a tile of its own kind; applying all of them through the
  * ordinary commands leaves no line broken; a board with no room says so rather than naming a tile a command refuses;
  * the next neighborhood goes nearest the ring, or the neighborhoods, or the middle (ADR-0015); a new plant comes with
  * the line that joins it, and one the line cannot reach is not proposed alone (ADR-0019).
@@ -64,10 +64,10 @@ describe('where each need goes', () => {
     expect(proposeFor(starterLayout(), RATES)).toEqual([]);
   });
 
-  it('an eleventh neighborhood is proposed one stretch to the line, at its price', () => {
+  it('an eleventh neighborhood is proposed an elementary and a high school with room for the wave (ADR-0020), and one stretch to the line, at its price', () => {
     const ps = proposeFor(hoods(starterLayout(), ['2,0']), RATES);
-    expect(ps).toHaveLength(1);
-    const p = ps[0];
+    expect(ps.map((p) => p.need.need)).toEqual(['schools', 'schools', 'line']);
+    const p = ps[2];
     if (!p?.room) throw new Error('no room');
     expect(p.need).toEqual({ need: 'line', reach: ['2,0'], answers: ['stops', 'ways'] });
     expect(p.steps).toEqual([{ command: 'layStretch', from: '2,0', to: '2,-1' }]);
@@ -76,15 +76,17 @@ describe('where each need goes', () => {
     expect(p.run).toBeGreaterThan(0);
   });
 
-  it('thirteen neighborhoods are proposed a ring building, a unit at each plant, two schools, fields and the line', () => {
+  it('thirteen neighborhoods are proposed a ring building, a unit at each plant, four schools with room for the wave (ADR-0020), fields and the line', () => {
     const ps = proposeFor(hoods(starterLayout(), ['2,0', '-3,0', '0,2']), RATES);
     expect(ps.map((p) => (p.room ? p.steps : []))).toEqual([
       [{ command: 'addRingBuilding', tile: '0,0' }],
       [{ command: 'addPlantUnit', tile: '-3,4', plant: 'water' }],
       [{ command: 'addPlantUnit', tile: '-1,4', plant: 'sewage' }],
       [{ command: 'addPlantUnit', tile: '-2,4', plant: 'waste' }],
-      [{ command: 'toggleExtra', tile: '2,0', extra: 'elementary' }],
-      [{ command: 'toggleExtra', tile: '0,2', extra: 'high' }],
+      [{ command: 'toggleExtra', tile: '1,-1', extra: 'elementary' }],
+      [{ command: 'toggleExtra', tile: '0,2', extra: 'elementary' }],
+      [{ command: 'toggleExtra', tile: '-3,0', extra: 'elementary' }],
+      [{ command: 'toggleExtra', tile: '0,1', extra: 'high' }],
       [{ command: 'toggleExtra', tile: '0,2', extra: 'fields' }],
       [
         { command: 'layStretch', from: '2,0', to: '2,-1' },

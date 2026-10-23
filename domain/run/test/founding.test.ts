@@ -11,6 +11,9 @@
  * join the list (Mine) and the lead is 30 months of them, 75,000 homes, so every home is taken the year it opens and
  * the run keeps fifteen neighborhoods in hand. The crews are the brake: the needs of the neighborhoods in hand take
  * them first, so the first residents come later and the city is far larger by year 20.
+ * Re-pinned 2026-10-22 (ADR-0020, Phase 2 of `docs/work/school-seats-for-a-growing-circle/plan.md`): every circle's
+ * schools are built with room for the wave, so the crews build more schools before homes; the high-school break in
+ * year 18 is gone, and the city is smaller at year 20 from nothing.
  * Owner context: Run (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
@@ -80,7 +83,7 @@ describe("David's founding of 2026-10-15, twenty years on the real path", () => 
     expect(last(byHand).heldBack?.every((h) => h.seats.includes('middle') && h.seats.includes('high'))).toBe(true);
   });
 
-  it('growing itself: 90,000 people in 18 neighborhoods, every home taken, every line held, no line-years, nobody held back', () => {
+  it('growing itself: 90,000 people in 18 neighborhoods, every home taken, every line held, no line-years, nobody held back; its schools built with room for the wave (ADR-0020)', () => {
     expect(Math.round(last(grown).pop)).toBe(90000);
     expect(hoodsOf(grown)).toBe(18);
     expect(last(grown).homes).toBe(90000);
@@ -91,8 +94,8 @@ describe("David's founding of 2026-10-15, twenty years on the real path", () => 
     const bag = inferredBag(grown);
     expect(bag.power).toBe(4);
     expect(bag.hood).toBe(27);
-    expect(bag.middle).toBe(6);
-    expect(bag.high).toBe(6);
+    expect(bag.middle).toBe(8);
+    expect(bag.high).toBe(7);
     expect(bag.ring).toBe(21);
     expect(bag.water).toBe(2);
     // Fifteen neighborhoods are in hand at year 20, the lead's 75,000 homes, and the list is longer than the city.
@@ -100,10 +103,11 @@ describe("David's founding of 2026-10-15, twenty years on the real path", () => 
     expect(grown.clock?.growth?.waiting).toBeGreaterThan(last(grown).pop);
   });
 
-  it('the price of building in order: the first residents come in year 10, not 5, while the crews build what the run ordered first', () => {
-    // Year 7 at a lead of 12,000 homes: the needs of fifteen neighborhoods in hand now take the crews ahead of the homes.
-    expect(firstPeople(grown)).toBe(10);
-    expect(Math.round(totalSpend(grown.clock?.record ?? []).capital / 1e9 * 100) / 100).toBe(25.16);
+  it('the price of building in order: the first residents come in year 11, not 5, while the crews build what the run ordered first', () => {
+    // Year 7 at a lead of 12,000 homes: the needs of fifteen neighborhoods in hand now take the crews ahead of the homes;
+    // year 10 before the schools were built with room for the wave (ADR-0020).
+    expect(firstPeople(grown)).toBe(11);
+    expect(Math.round(totalSpend(grown.clock?.record ?? []).capital / 1e9 * 100) / 100).toBe(24.84);
     expect(Math.round(totalSpend(byHand.clock?.record ?? []).capital / 1e9 * 100) / 100).toBe(6.82);
   });
 });
@@ -114,32 +118,32 @@ describe('one neighborhood on an empty site, and nothing at all, twenty years gr
   const fromOne = twentyYears(startRun(one.layout, 42, RATES, RULES, { growth: true, inOrder: true, infer: true }));
   const fromNothing = twentyYears(startRun(emptyLayout(), 42, RATES, RULES, { growth: true, inOrder: true, infer: true }));
 
-  it('from one neighborhood: 100,000 people in 20 neighborhoods, every line held at year 20, 10 line-years (11 before a plant came with its line, ADR-0019)', () => {
+  it('from one neighborhood: 100,000 people in 20 neighborhoods, every line held at year 20, 9 line-years (10 before the schools had room for the wave, ADR-0020; 11 before a plant came with its line, ADR-0019)', () => {
     expect(Math.round(last(fromOne).pop)).toBe(100000);
     expect(hoodsOf(fromOne)).toBe(20);
     expect(last(fromOne).homes).toBe(100000);
     expect(last(fromOne).broken).toEqual([]);
-    expect(fromOne.clock?.lineYears).toBe(10);
+    expect(fromOne.clock?.lineYears).toBe(9);
     expect(firstPeople(fromOne)).toBe(3);
     const bag = inferredBag(fromOne);
-    expect(bag.hood).toBe(33);
-    expect(bag.line).toBe(40);
+    expect(bag.hood).toBe(34);
+    expect(bag.line).toBe(41);
     expect(bag.water).toBe(3);
   });
 
-  it('the 10 line-years: the ring in year 1, no haul since each plant comes with its line (ADR-0019), the fields six years while the crews build homes first, a stop in year 16, a high school in year 18', () => {
+  it('the 9 line-years: the ring in year 1, no haul since each plant comes with its line (ADR-0019), the fields six years while the crews build homes first, a stop in year 16; no high school in year 18, its schools built with room for the wave (ADR-0020)', () => {
     const broken = (fromOne.clock?.record ?? []).filter((r) => r.year > 0 && r.bad > 0).map((r) => `${r.year}: ${r.broken.join(', ')}`);
-    expect(broken).toEqual(['1: ring', '3: fields', '4: fields', '5: fields', '6: fields', '7: fields', '8: fields', '16: stops, ways', '18: high']);
+    expect(broken).toEqual(['1: ring', '3: fields', '4: fields', '5: fields', '6: fields', '7: fields', '8: fields', '16: stops, ways']);
   });
 
-  it('from nothing: 115,000 people in 23 neighborhoods at year 20, every line held, 3 line-years, the first in year 10, and the second circle opened', () => {
-    expect(Math.round(last(fromNothing).pop)).toBe(115000);
-    expect(hoodsOf(fromNothing)).toBe(23);
+  it('from nothing: 90,000 people in 18 neighborhoods at year 20, every line held, 2 line-years, the first in year 10, the second circle not yet opened (115,000 in 23 and opened before the schools had room for the wave, ADR-0020)', () => {
+    expect(Math.round(last(fromNothing).pop)).toBe(90000);
+    expect(hoodsOf(fromNothing)).toBe(18);
     expect(last(fromNothing).broken).toEqual([]);
-    expect(fromNothing.clock?.lineYears).toBe(3);
+    expect(fromNothing.clock?.lineYears).toBe(2);
     expect(firstPeople(fromNothing)).toBe(10);
-    expect(inferredBag(fromNothing).hood).toBe(38);
-    expect(fromNothing.layout.circles).toEqual(['0,0', '9,0']);
+    expect(inferredBag(fromNothing).hood).toBe(33);
+    expect(fromNothing.layout.circles).toEqual(['0,0']);
   });
 
   it('every month the homes as built cover the people, and the run takes under two seconds', () => {

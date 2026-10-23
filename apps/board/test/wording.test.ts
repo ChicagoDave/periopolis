@@ -4,13 +4,14 @@
  * Owner context: Board (adapter), tests.
  */
 import { describe, expect, it } from 'vitest';
-import { DAYS, POPULATION, RATES, assess, dayOf, emptyLayout, needsOf, placeNeighborhood, sizedLayout, starterLayout } from '@city/site';
-import type { DayPremises, Facts, Layout, LineCheck, PopulationPremises, Stress, TestId, TileKey } from '@city/site';
+import { DAYS, POPULATION, RATES, assess, dayOf, emptyLayout, homeTilesOf, needsOf, placeNeighborhood, sizedLayout, starterLayout } from '@city/site';
+import type { DayPremises, Facts, Layout, LineCheck, Need, PopulationPremises, Stress, TestId, TileKey } from '@city/site';
 import { RULES, notices, startRun, tick, tickMonth } from '@city/run';
 import type { Game, HeldBack, MonthRow } from '@city/run';
 import { move } from '../src/moves.ts';
 import type { ToolId } from '../src/wording.ts';
 import { checkDetail, checkTitle, heldBackLine, heldHere, issueText, linesLabel, moveSaid, needText, noticeText, stopsInHand, testLabel } from '../src/wording.ts';
+import { needText as wordNeed } from '../src/wording.ts';
 import { DAY_NAME, DAY_PREMISE, POPULATION_PREMISE, dayCaption, hourLabel, monthLine, peopleNow } from '../src/wording.ts';
 import { PAUSED_FOR_ORDER, SPEED_NAME, clockStarted, yearLine, yearsUp } from '../src/wording.ts';
 import { CIRCLE_CLOSE, CIRCLE_REOPEN, GROUND_TEXT, INFERRED_WHY, LAKE_LABEL, ORDERED_BY_CITY, circleClosedSaid, circleName, currentLabel, inferredCell, inferredLine, vetoSaid } from '../src/wording.ts';
@@ -110,31 +111,34 @@ describe('notices, worded', () => {
   }
 });
 
-describe('what the city needs, worded', () => {
-  const placed = (layout: Layout, keys: readonly TileKey[]): Layout =>
-    keys.reduce((s, k) => {
-      const o = placeNeighborhood(s, k, RATES);
-      if (!o.ok) throw new Error(o.rejection.reason);
-      return o.layout;
-    }, layout);
+const placed = (layout: Layout, keys: readonly TileKey[]): Layout =>
+  keys.reduce((s, k) => {
+    const o = placeNeighborhood(s, k, RATES);
+    if (!o.ok) throw new Error(o.rejection.reason);
+    return o.layout;
+  }, layout);
 
-  it('words every need of thirteen neighborhoods, one line each', () => {
-    const needs = needsOf(placed(starterLayout(), ['2,0', '-3,0', '0,2']), RATES);
-    expect(needs.map(needText)).toEqual([
+describe('what the city needs, worded', () => {
+
+  it('words every need of thirteen neighborhoods, one line each; their circle is growing, so the schools are for the wave (ADR-0020)', () => {
+    const thirteen = placed(starterLayout(), ['2,0', '-3,0', '0,2']);
+    const needs = needsOf(thirteen, RATES);
+    expect(needs.map((n) => needText(n, thirteen, RATES))).toEqual([
       '1 more building on the ring at 0,0.',
       '1 more water plant unit.',
       '1 more sewage plant unit.',
       '1 more waste works unit.',
-      '1 more elementary school near 2,0, for 180 pupils with no seat.',
-      '1 more high school near 0,2, for 120 pupils with no seat.',
+      '3 more elementary schools near 1,-1, 2,0, -3,0 and 0,2, for 1,116 pupils with no seat in a squeeze. It is built with room for the squeeze and the wave of families.',
+      '1 more high school near 0,1, 0,-1 and 0,2, for 744 pupils with no seat in a squeeze. It is built with room for the squeeze and the wave of families.',
       'Playing fields near 0,2.',
       'The mover line run to 2,0, -3,0 and 0,2, on a line to the ring.',
     ]);
   });
 
   it('words a lone neighborhood\'s ring and reactor modules', () => {
-    const needs = needsOf(placed(emptyLayout(), ['0,0']), RATES);
-    expect(needs.slice(0, 2).map(needText)).toEqual(['A ring of 1 building for the offices and halls.', '2 more reactor modules, to carry the peak with one down for fuel.']);
+    const lone = placed(emptyLayout(), ['0,0']);
+    const needs = needsOf(lone, RATES);
+    expect(needs.slice(0, 2).map((n) => needText(n, lone, RATES))).toEqual(['A ring of 1 building for the offices and halls.', '2 more reactor modules, to carry the peak with one down for fuel.']);
   });
 });
 
@@ -396,13 +400,15 @@ describe('the band and the flow, worded (ADR-0016)', () => {
     expect(checkDetail({ check: 'flow', case: 'ordered', circles: 2 }, RATES)).toBe('In all 2 circles the water intake is upstream of the sewage outfall along the shore.');
     expect(checkDetail({ check: 'flow', case: 'reversed', circles: 1, water: ['0,4'], sewage: ['-1,4'] }, RATES)).toBe('In 1 circle the sewage outfall at -1,4 is upstream of the water intake at 0,4, so the city would drink what it returns.');
     expect(issueText({ kind: 'flowReversed' })).toBe('This plant is on the wrong side: the sewage outfall is upstream of the water intake.');
-    expect(needText({ need: 'intake', sewage: ['-1,4'], answers: ['flow'] })).toBe('A water intake upstream of the outfall at -1,4.');
+    expect(needText({ need: 'intake', sewage: ['-1,4'], answers: ['flow'] }, starterLayout(), RATES)).toBe('A water intake upstream of the outfall at -1,4.');
   });
 });
 
 describe('a full circle built with room for the squeeze (ADR-0018)', () => {
   it('says a need the squeeze adds is headroom for a full circle, and leaves an ordinary need as it was', () => {
     const SAID = ' The circle is full, so it is built with room for the squeeze.';
+    const full = placed(emptyLayout(), homeTilesOf('0,0', RATES.outline));
+    const needText = (n: Need): string => wordNeed(n, full, RATES);
     expect(needText({ need: 'plantUnits', circle: '0,0', plant: 'water', add: 1, answers: ['water'], squeeze: true })).toBe(`1 more water plant unit.${SAID}`);
     expect(needText({ need: 'plantUnits', circle: '0,0', plant: 'water', add: 1, answers: ['water'] })).toBe('1 more water plant unit.');
     expect(needText({ need: 'modules', circle: '0,0', add: 2, answers: ['power'], squeeze: true })).toBe(`2 more reactor modules, to carry the peak with one down for fuel.${SAID}`);
@@ -411,6 +417,17 @@ describe('a full circle built with room for the squeeze (ADR-0018)', () => {
     expect(needText({ need: 'schools', school: 'high', add: 1, pupils: 240, near: ['1,0'], answers: ['high'], squeeze: true })).toBe(
       `1 more high school near 1,0, for 240 pupils with no seat in a squeeze.${SAID}`,
     );
+  });
+});
+
+describe("a growing circle's schools built with room for the wave (ADR-0020)", () => {
+  it('says a school the squeeze adds in a growing circle is for the wave, never that the circle is full', () => {
+    const school: Need = { need: 'schools', school: 'middle', add: 1, pupils: 20, near: ['1,0'], answers: ['middle'], squeeze: true };
+    const said = needText(school, starterLayout(), RATES);
+    expect(said).toBe('1 more middle school near 1,0, for 20 pupils with no seat in a squeeze. It is built with room for the squeeze and the wave of families.');
+    expect(said).not.toContain('full');
+    const { squeeze: _, ...ordinary } = school;
+    expect(needText(ordinary, starterLayout(), RATES)).toBe('1 more middle school near 1,0, for 20 pupils with no seat.');
   });
 });
 

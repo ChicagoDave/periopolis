@@ -302,27 +302,29 @@ test('a placed neighborhood shows what the city needs, and Add all builds it bac
   await expect(page.locator('#needlist li')).toHaveCount(0);
   await place(page, 'hood', ['2,0']);
   await expect(page.locator('#tally')).toContainText('broken');
-  await expect(page.locator('#needlist li')).toHaveCount(1);
-  await expect(page.locator('#needlist li .what')).toHaveText('The mover line run to 2,0, on a line to the ring.');
-  await expect(page.locator('#addall')).toBeHidden();
+  // Its circle is growing, so its schools are needed with room for the wave (ADR-0020), and the line.
+  await expect(page.locator('#needlist li')).toHaveCount(3);
+  await expect(page.locator('#needlist li .what').first()).toContainText('It is built with room for the squeeze and the wave of families.');
+  await expect(page.locator('#needlist li .what').last()).toHaveText('The mover line run to 2,0, on a line to the ring.');
+  await expect(page.locator('#addall')).toBeVisible();
   // Show marks the tiles a proposal touches, without building anything.
-  await page.locator('#needlist li').first().getByRole('button', { name: 'Show' }).click();
+  await page.locator('#needlist li').last().getByRole('button', { name: 'Show' }).click();
   await expect(page.locator('#tally')).toContainText('broken');
-  await page.locator('#needlist li').first().getByRole('button', { name: 'Add' }).click();
+  await page.locator('#needlist li').last().getByRole('button', { name: 'Add' }).click();
   await expect(page.locator('#said')).toHaveText('Built: the mover line run to 2,0, on a line to the ring.');
   await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
-  await expect(page.locator('#needlist li')).toHaveCount(0);
+  await expect(page.locator('#needlist li')).toHaveCount(2);
   // Two more neighborhoods: now the ring, the plants, the schools and the fields fall short as well.
   await place(page, 'hood', ['-3,0', '0,2']);
-  await expect(page.locator('#needlist li')).toHaveCount(8);
+  await expect(page.locator('#needlist li')).toHaveCount(10);
   await expect(page.locator('#addall')).toBeVisible();
   await page.click('#addall');
-  await expect(page.locator('#said')).toHaveText('Built 8 additions. Undo takes them back one click at a time.');
+  await expect(page.locator('#said')).toHaveText('Built 10 additions. Undo takes them back one click at a time.');
   await expect(page.locator('#tally')).toHaveText('15 of 16 hold, 1 to watch. Click one to mark its tiles.');
   await expect(page.locator('#needsnow')).toHaveText('The city needs nothing more to keep its lines whole.');
   // Undo takes the additions back together, as one move.
   await page.click('#undo');
-  await expect(page.locator('#needlist li')).toHaveCount(8);
+  await expect(page.locator('#needlist li')).toHaveCount(10);
 });
 
 test('the ledger\'s city sized to its people: one ring building and one reactor module fewer, every line still holding, and cheaper', async ({ page }) => {

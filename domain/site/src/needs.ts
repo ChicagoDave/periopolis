@@ -10,8 +10,9 @@
  * under a stress) or only on watch (the city's size, the walk to work with a mover) asks for nothing to be built.
  *
  * A full circle is read a second time, at the squeeze (ADR-0018): its neighborhoods hold `rates.band` more people, the
- * stretch test's figure, and its ring, plants and schools are needed to that. A circle still growing, and a layout with
- * no circles, is read for an ordinary year only.
+ * stretch test's figure, and its ring, plants and schools are needed to that. Every circle's schools, full or growing,
+ * are read at the squeeze too (ADR-0020), so they seat the wave of families; a growing circle's ring and plants, and a
+ * layout with no circles, are read for an ordinary year only.
  */
 import { assessCore } from './assess.ts';
 import type { TileKey } from './board.ts';
@@ -105,23 +106,41 @@ export function headroomOf(layout: Layout, rates: SiteRates): Readonly<Record<Ti
 }
 
 /**
+ * Who lives where when the schools are read at the squeeze (ADR-0020): each neighborhood of every circle, full or
+ * growing, holds `rates.hood` more `rates.band`; a neighborhood in no circle is left out, so it holds its capacity.
+ */
+function schoolsAtSqueeze(layout: Layout, rates: SiteRates): Readonly<Record<TileKey, number>> | null {
+  const circles = layout.circles ?? [];
+  const occupied: Record<TileKey, number> = {};
+  for (const h of hoodsOf(layout)) if (circleOf(circles, h) !== null) occupied[h] = rates.hood * (1 + rates.band);
+  if (!Object.keys(occupied).length) return null;
+  if (!(rates.band >= 0)) throw new RangeError(`the squeeze must be zero or more, not ${rates.band}`);
+  return occupied;
+}
+
+/**
  * What the layout lacks, one need per thing to build, in a fixed order: ring, modules, plants, schools, fields,
- * intake, line. Read for an ordinary year; a full circle's ring, plants and schools are read at the squeeze, and a
- * need the squeeze adds is marked `squeeze` (ADR-0018).
+ * intake, line. Read for an ordinary year; a full circle's ring and plants, and every circle's schools, are read at the
+ * squeeze, and a need the squeeze adds is marked `squeeze` (ADR-0018, ADR-0020).
  * @param layout - the board
  * @param rates - the ledger's rates
- * @returns the needs; empty when no check a built thing can mend is broken in an ordinary year and no headroom check
- *   is broken in a full circle at the squeeze
- * @throws RangeError when the squeeze (`rates.band`) is negative
+ * @returns the needs; empty when no check a built thing can mend is broken in an ordinary year, no headroom check is
+ *   broken in a full circle at the squeeze, and no school check is broken with every circle at the squeeze
+ * @throws RangeError when the squeeze (`rates.band`) is negative and a circle has a neighborhood
  */
 export function needsOf(layout: Layout, rates: SiteRates): readonly Need[] {
   const ordinary = needsFrom(assessCore(layout, NO_STRESS, rates), layout, rates);
-  const occupied = headroomOf(layout, rates);
-  if (!occupied) return ordinary;
-  const squeezed = needsFrom(assessCore(layout, NO_STRESS, rates, occupied), layout, rates).filter((n) => HEADROOM_NEEDS.includes(n.need));
+  const full = headroomOf(layout, rates);
+  const schooled = schoolsAtSqueeze(layout, rates);
+  if (!full && !schooled) return ordinary;
+  const isSchools = (n: Need): boolean => n.need === 'schools';
+  const ringAndPlants = (full ? needsFrom(assessCore(layout, NO_STRESS, rates, full), layout, rates) : ordinary).filter(
+    (n) => HEADROOM_NEEDS.includes(n.need) && !isSchools(n),
+  );
+  const schools = (schooled ? needsFrom(assessCore(layout, NO_STRESS, rates, schooled), layout, rates) : ordinary).filter(isSchools);
   const same = (a: Need, b: Need): boolean => JSON.stringify(a) === JSON.stringify(b);
-  const headroom = squeezed.map((n) => (ordinary.some((o) => same(o, n)) ? n : { ...n, squeeze: true as const }));
-  return [...headroom, ...ordinary.filter((n) => !HEADROOM_NEEDS.includes(n.need))];
+  const marked = (n: Need): Need => (ordinary.some((o) => same(o, n)) ? n : ({ ...n, squeeze: true } as Need));
+  return [...ringAndPlants.map(marked), ...schools.map(marked), ...ordinary.filter((n) => !HEADROOM_NEEDS.includes(n.need))];
 }
 
 function needsFrom(core: Core, layout: Layout, rates: SiteRates): readonly Need[] {

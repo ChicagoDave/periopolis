@@ -1,8 +1,9 @@
 /**
  * @file A full circle is built with headroom for the squeeze (ADR-0018; issue 9): `isFull` reads a circle with no open
  * tile for homes; `headroomOf` puts a full circle's neighborhoods at the squeeze; `needsOf` asks a full circle's ring,
- * plants and schools to carry it, marking what an ordinary year would not ask, and leaves a growing circle and a layout
- * with no circles at an ordinary year.
+ * plants and schools to carry it, marking what an ordinary year would not ask. Every circle's schools, full or growing,
+ * are read at the squeeze (ADR-0020), so they seat the wave of families; a growing circle's ring and plants, and a layout
+ * with no circles, stay at an ordinary year.
  * Owner context: Site (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
@@ -14,6 +15,7 @@ import {
   applyProposal,
   assess,
   assessCore,
+  circleOf,
   emptyLayout,
   erase,
   headroomOf,
@@ -65,6 +67,15 @@ function brokenAtSqueeze(l: Layout): string[] {
   return assessCore(l, NO_STRESS, RATES, occupied).checks.filter((c) => c.status === 'bad' && HEADROOM_CHECKS.includes(c.id)).map((c) => c.id);
 }
 
+const SCHOOL_IDS: readonly string[] = ['elementary', 'middle', 'high'];
+
+/** The school checks broken when every circle's neighborhoods stand at the squeeze (ADR-0020). */
+function schoolsBrokenAtSqueeze(l: Layout): string[] {
+  const occupied: Record<string, number> = {};
+  for (const h of Object.keys(l.tiles)) if (l.tiles[h]?.kind === 'hood' && circleOf(l.circles, h) !== null) occupied[h] = RATES.hood * (1 + RATES.band);
+  return assessCore(l, NO_STRESS, RATES, occupied).checks.filter((c) => c.status === 'bad' && SCHOOL_IDS.includes(c.id)).map((c) => c.id);
+}
+
 /** Checks a built thing can mend, broken in an ordinary year. */
 const mendable = (l: Layout): string[] => assess(l, RATES).checks.filter((c) => c.status === 'bad' && NEED_CHECKS.includes(c.id)).map((c) => c.id);
 const answered = (needs: readonly Need[]): string[] => [...new Set(needs.flatMap((n) => n.answers))].sort();
@@ -95,9 +106,10 @@ describe('a full circle', () => {
     expect(RATES.hood * (1 + RATES.band)).toBeCloseTo(6000, 9);
   });
 
-  it('a growing circle settled for an ordinary year needs nothing more, though the squeeze would break its ring, plants or schools', () => {
+  it('a growing circle settled to its needs needs nothing more, its schools hold at the squeeze, though the squeeze would break its ring or plants', () => {
     expect(needsOf(growing, RATES)).toEqual([]);
-    expect(squeezeGives(growing).length).toBeGreaterThan(0);
+    expect(schoolsBrokenAtSqueeze(growing)).toEqual([]);
+    expect(squeezeGives(growing).filter((id) => !SCHOOL_IDS.includes(id)).length).toBeGreaterThan(0);
   });
 
   it('once full, it asks for headroom: ring, plant or school needs marked as the squeeze, and nothing else marked', () => {
@@ -114,12 +126,45 @@ describe('a full circle', () => {
     expect(squeezeGives(built)).toEqual([]);
   });
 
-  it('its needs answer exactly the checks broken in an ordinary year, and the headroom checks broken at the squeeze', () => {
+  it('its needs answer exactly the checks broken in an ordinary year, the headroom checks broken at the squeeze, and the school checks broken with every circle at the squeeze', () => {
     for (const l of [growing, filled, built]) {
-      const want = [...new Set([...mendable(l), ...brokenAtSqueeze(l)])].sort();
+      const want = [...new Set([...mendable(l), ...brokenAtSqueeze(l), ...schoolsBrokenAtSqueeze(l)])].sort();
       expect(answered(needsOf(l, RATES))).toEqual(want);
       expect(needsOf(l, RATES).length === 0).toBe(want.length === 0);
     }
+  });
+});
+
+describe("a growing circle's schools (ADR-0020)", () => {
+  const eleven = ok(placeNeighborhood(starterLayout(), '2,0', RATES));
+
+  it('the starter, a growing circle, needs nothing, and its schools hold at the squeeze', () => {
+    expect(isFull(starterLayout(), '0,0', RATES.outline)).toBe(false);
+    expect(needsOf(starterLayout(), RATES)).toEqual([]);
+    expect(schoolsBrokenAtSqueeze(starterLayout())).toEqual([]);
+  });
+
+  it('a neighborhood more asks for schools to the squeeze, marked, where an ordinary year asks for none; nothing else is marked', () => {
+    expect(headroomOf(eleven, RATES)).toBeNull();
+    expect(mendable(eleven).filter((id) => SCHOOL_IDS.includes(id))).toEqual([]);
+    const needs = needsOf(eleven, RATES);
+    const schools = needs.filter((n) => n.need === 'schools');
+    expect(schools.map((n) => n.need === 'schools' && n.school)).toEqual(['elementary', 'high']);
+    for (const n of schools) expect('squeeze' in n && n.squeeze).toBe(true);
+    for (const n of needs.filter((x) => x.need !== 'schools')) expect('squeeze' in n).toBe(false);
+  });
+
+  it("built to its needs, the growing circle's schools seat the wave at its peak, 20% more children in every grade", () => {
+    const built = settle(eleven);
+    expect(needsOf(built, RATES)).toEqual([]);
+    const wave = { ...NO_STRESS, kids: { elementary: RATES.band, middle: RATES.band, high: RATES.band } };
+    const broken = assessCore(built, wave, RATES).checks.filter((c) => c.status === 'bad' && SCHOOL_IDS.includes(c.id));
+    expect(broken).toEqual([]);
+  });
+
+  it('refuses a negative squeeze on a growing circle with a neighborhood, naming it', () => {
+    expect(() => needsOf(eleven, { ...RATES, band: -0.2 })).toThrow(RangeError);
+    expect(() => needsOf(eleven, { ...RATES, band: -0.2 })).toThrow('-0.2');
   });
 });
 

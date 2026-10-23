@@ -1,16 +1,19 @@
 /**
  * @file What a layout needs to keep its lines whole: the ledger's city needs nothing, an eleventh neighborhood needs
- * the mover line, thirteen need the ring, plants, schools and fields as well, and meeting every need leaves no line
- * broken for want of a built thing.
+ * the mover line and room in its schools for the wave (ADR-0020), thirteen need the ring, plants, schools and fields as
+ * well, and meeting every need leaves no line broken for want of a built thing.
  * Owner context: Site (domain), tests.
  */
 import { describe, expect, it } from 'vitest';
 import {
   NEED_CHECKS,
+  NO_STRESS,
   RATES,
   addPlantUnit,
   addRingBuilding,
   assess,
+  assessCore,
+  circleOf,
   emptyLayout,
   layStretch,
   needsOf,
@@ -42,6 +45,15 @@ function mendable(layout: Layout): string[] {
     .map((c) => c.id);
 }
 
+/** School checks broken with every circle's neighborhoods at the squeeze (ADR-0020). */
+function schoolsAtSqueeze(layout: Layout): string[] {
+  const occupied: Record<TileKey, number> = {};
+  for (const h of Object.keys(layout.tiles)) if (layout.tiles[h]?.kind === 'hood' && circleOf(layout.circles, h) !== null) occupied[h] = RATES.hood * (1 + RATES.band);
+  return assessCore(layout, NO_STRESS, RATES, occupied)
+    .checks.filter((c) => c.status === 'bad' && ['elementary', 'middle', 'high'].includes(c.id))
+    .map((c) => c.id);
+}
+
 /** Every check a need answers, once each. */
 function answered(needs: readonly Need[]): string[] {
   return [...new Set(needs.flatMap((n) => n.answers))].sort();
@@ -58,10 +70,15 @@ describe('what a layout needs', () => {
     expect(needsOf(emptyLayout(), RATES)).toEqual([]);
   });
 
-  it('an eleventh neighborhood off the line needs the line to reach it, and nothing else', () => {
+  it('an eleventh neighborhood off the line needs the line to reach it, and room in the schools for the wave (ADR-0020)', () => {
     const s = hoods(starterLayout(), ['2,0']);
     expect(mendable(s).sort()).toEqual(['stops', 'ways']);
-    expect(needsOf(s, RATES)).toEqual([{ need: 'line', reach: ['2,0'], answers: ['stops', 'ways'] }]);
+    expect(schoolsAtSqueeze(s)).toEqual(['elementary', 'high']);
+    expect(needsOf(s, RATES)).toEqual([
+      { need: 'schools', school: 'elementary', add: 1, pupils: 252, near: ['2,0'], answers: ['elementary'], squeeze: true },
+      { need: 'schools', school: 'high', add: 1, pupils: 168, near: ['0,1'], answers: ['high'], squeeze: true },
+      { need: 'line', reach: ['2,0'], answers: ['stops', 'ways'] },
+    ]);
   });
 
   it('a neighborhood in the second circle needs a ring of its own there, and the line; the first ring is not its ring (ADR-0016)', () => {
@@ -72,7 +89,7 @@ describe('what a layout needs', () => {
     expect(needs.filter((n) => n.need === 'schools').map((n) => n.need === 'schools' && n.school)).toEqual(['elementary', 'middle', 'high']);
   });
 
-  it('thirteen neighborhoods outgrow the ring and the plants, and leave pupils and fields short', () => {
+  it('thirteen neighborhoods outgrow the ring and the plants, and leave pupils and fields short; the schools are needed to the squeeze (ADR-0020)', () => {
     const s = hoods(starterLayout(), THIRTEEN);
     const needs = needsOf(s, RATES);
     expect(needs).toEqual([
@@ -80,8 +97,8 @@ describe('what a layout needs', () => {
       { need: 'plantUnits', circle: '0,0', plant: 'water', add: 1, answers: ['water'] },
       { need: 'plantUnits', circle: '0,0', plant: 'sewage', add: 1, answers: ['sewage'] },
       { need: 'plantUnits', circle: '0,0', plant: 'waste', add: 1, answers: ['waste'] },
-      { need: 'schools', school: 'elementary', add: 1, pupils: 180, near: ['2,0'], answers: ['elementary'] },
-      { need: 'schools', school: 'high', add: 1, pupils: 120, near: ['0,2'], answers: ['high'] },
+      { need: 'schools', school: 'elementary', add: 3, pupils: 1116, near: ['1,-1', '2,0', '-3,0', '0,2'], answers: ['elementary'], squeeze: true },
+      { need: 'schools', school: 'high', add: 1, pupils: 744, near: ['0,1', '0,-1', '0,2'], answers: ['high'], squeeze: true },
       { need: 'fields', near: ['0,2'], answers: ['fields'] },
       { need: 'line', reach: ['2,0', '-3,0', '0,2'], answers: ['stops', 'ways'] },
     ]);
@@ -113,7 +130,7 @@ describe('what a layout needs', () => {
     expect(needsOf(s, RATES).find((n) => n.need === 'modules')).toEqual({ need: 'modules', circle: '0,0', add: 1, answers: ['power'] });
   });
 
-  it('answers exactly the broken checks a built thing can mend, and no more', () => {
+  it('answers exactly the broken checks a built thing can mend, and the school checks broken with every circle at the squeeze, and no more', () => {
     const layouts = [
       starterLayout(),
       hoods(starterLayout(), ['2,0']),
@@ -123,8 +140,9 @@ describe('what a layout needs', () => {
       hoods(emptyLayout(), ['0,0', '1,0', '2,1']),
     ];
     for (const s of layouts) {
-      expect(answered(needsOf(s, RATES))).toEqual(mendable(s).sort());
-      expect(needsOf(s, RATES).length === 0).toBe(mendable(s).length === 0);
+      const want = [...new Set([...mendable(s), ...schoolsAtSqueeze(s)])].sort();
+      expect(answered(needsOf(s, RATES))).toEqual(want);
+      expect(needsOf(s, RATES).length === 0).toBe(want.length === 0);
     }
   });
 
@@ -132,8 +150,8 @@ describe('what a layout needs', () => {
     let s = hoods(starterLayout(), THIRTEEN);
     s = must(addRingBuilding(s, '0,0', RATES));
     for (const kind of ['water', 'sewage', 'waste'] as const) s = must(addPlantUnit(s, plantTile(s, kind), kind, RATES));
-    s = must(toggleExtra(s, '2,0', 'elementary', RATES));
-    s = must(toggleExtra(s, '0,2', 'high', RATES));
+    for (const h of ['1,-1', '0,2', '-3,0']) s = must(toggleExtra(s, h, 'elementary', RATES));
+    s = must(toggleExtra(s, '0,1', 'high', RATES));
     s = must(toggleExtra(s, '0,2', 'fields', RATES));
     s = must(layStretch(s, '1,0', '2,0', RATES));
     s = must(layStretch(s, '-1,0', '-2,0', RATES));

@@ -31,6 +31,7 @@ Issue 9. Proposals size what a layout needs for an ordinary year (ADR-0008 Decis
 - **`sizedTo`** trims a layout only while it needs nothing, so in a full circle it keeps the headroom. The starter's circle is not full, so the sized city is unchanged.
 - **Notes elsewhere.** ADR-0008 Decisions 2 and 3 are narrowed for full circles, and a note there points here. ADR-0016's Consequences (issue 9) and ADR-0017's record carry dated notes pointing here.
 - **Future changes.** A different squeeze figure is a premise change (`rates.band`). Headroom for a growing circle, or for fields and the line, is a new decision.
+  - *Note (2026-10-22, session 9548f4):* ADR-0020 decides headroom for a growing circle's schools: every circle's schools, full or growing, are read at the squeeze, so they seat the wave of families; a growing circle's ring and plants stay at an ordinary year. Decision 5's invariant is restated there with the school checks of every circle. The full circle's run re-pins: 4 line-years (the stops and ways of the closure years 7 and 16), 275,000 in 55 neighborhoods at year 20 for 25.82 billion; both circles still full in year 53.
 
 ## Session
 
