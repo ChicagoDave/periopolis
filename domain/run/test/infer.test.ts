@@ -273,7 +273,8 @@ describe('what the run cannot do', () => {
     const facts = lastMonth(g).inferred ?? [];
     expect(facts.some((f) => f.type === 'NoRoom' && f.why === 'ring')).toBe(true);
     expect(jobs(g)).toEqual([]);
-  });
+    // A board full of neighborhoods takes the run a while to find no room: past vitest's five seconds on the runner.
+  }, 60000);
 
   it('refuses to start without growth and in order', () => {
     expect(() => startRun(oneHood(), 1, RATES, RULES, { infer: true })).toThrow();

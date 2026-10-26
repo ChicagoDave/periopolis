@@ -21,6 +21,7 @@ import { RATES, addPlantUnit, addRingBuilding, emptyLayout, layStretch, placeNei
 import type { Layout, Outcome, TileKey } from '@city/site';
 import { RULES, placeOrder, startRun, tick, totalSpend } from '../src/index.ts';
 import type { Game, OrderOutcome, PieceKind, RecordRow } from '../src/index.ts';
+import { slower } from './machine.ts';
 
 function must(out: OrderOutcome): Game {
   if (!out.ok) throw new Error(`refused: ${out.rejection.reason}`);
@@ -151,6 +152,6 @@ describe('one neighborhood on an empty site, and nothing at all, twenty years gr
     for (const g of [fromOne, fromNothing]) for (const m of g.clock?.growth?.months ?? []) expect(m.people).toBeLessThanOrEqual(m.homes + 1e-6);
     const t0 = Date.now();
     twentyYears(startRun(emptyLayout(), 42, RATES, RULES, { growth: true, inOrder: true, infer: true }));
-    expect(Date.now() - t0).toBeLessThan(2000);
+    expect(Date.now() - t0).toBeLessThan(2000 * slower());
   });
 });

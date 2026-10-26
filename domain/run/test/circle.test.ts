@@ -102,7 +102,8 @@ describe('the run opens the second circle', () => {
     expect(g.layout.tiles['9,0']?.kind).toBe('ring');
     expect(Object.keys(g.layout.lines).some((e) => e.split('|').every((end) => circleOf(g.layout.circles, end) === '9,0'))).toBe(true);
     expect(g.clock?.jobs.every((j) => j.inferred === true)).toBe(true);
-  });
+    // Up to 120 months inferring: well past vitest's five seconds on the publish workflow's runner.
+  }, 60000);
 
   it('a run without infer opens nothing and records nothing', () => {
     const quiet = fullRun({});

@@ -23,6 +23,7 @@ import { LAYERS, POPULATION, RATES, applyProposal, circleOf, emptyLayout, kindOf
 import type { Layout } from '@city/site';
 import { RULES, startRun, tickMonth, totalSpend } from '../src/index.ts';
 import type { Game, MonthRow, RunRules } from '../src/index.ts';
+import { slower } from './machine.ts';
 
 const GROW = { growth: true, inOrder: true, infer: true } as const;
 
@@ -138,7 +139,7 @@ describe('seventy years growing itself, from one neighborhood and from nothing (
   it('every month the homes as built cover the people, and seventy years take under fifteen seconds', () => {
     for (const r of [fromOne, fromNothing]) {
       for (const m of r.months) expect(m.people).toBeLessThanOrEqual(m.homes + 1e-6);
-      expect(r.ms).toBeLessThan(15000);
+      expect(r.ms).toBeLessThan(15000 * slower());
     }
   });
 });
