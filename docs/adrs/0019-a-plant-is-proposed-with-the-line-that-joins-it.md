@@ -43,7 +43,7 @@ A stretch of line takes one crew-year and a plant unit two or more, so the delay
 - **Tests.** `domain/site/test/propose.test.ts` holds the rule: a new plant the line does not reach comes with the stretches that join it, and accepting that one proposal leaves it on the line; a unit on a plant the line already reaches comes with none; a plant the line cannot reach has no room. `second.test.ts` and `band.test.ts` are re-pinned for it.
 - **Parity.** A layout with no proposals in play, and the sketch's clock, which never proposes, are unchanged (ADR-0003).
 - **Notes elsewhere.** ADR-0008's Phase 2 Consequence ("knock-on needs follow the addition that causes them") and ADR-0018's 2026-10-22 note carry dated notes pointing here.
-- **Future changes.** The closures' stops and ways breaks are a separate decision (a line that holds through a closure).
+- **Future changes.** The closures' stops and ways breaks are a separate decision (a line that holds through a closure). *Note 2026-10-25: ADR-0021. The full circle's record is re-pinned there: no line-years, 280,000 in 56 neighborhoods for 26.73 bn.*
 
 ## Session
 

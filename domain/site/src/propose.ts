@@ -12,7 +12,7 @@
  */
 import { assessCore } from './assess.ts';
 import { allTiles, eastWest, edgeKey, kmBetween, neighbors, tileAt, tileKey } from './board.ts';
-import type { TileKey } from './board.ts';
+import type { EdgeKey, TileKey } from './board.ts';
 import { bandRule, circleFits, circleOf, circleTiles, shoreTiles, upstreamOf } from './circle.ts';
 import { NO_STRESS } from './checks.ts';
 import { addPlantUnit, addRingBuilding, layStretch, toggleExtra } from './commands.ts';
@@ -58,17 +58,20 @@ export interface Avoided {
  * @param rates - the ledger's rates
  * @param avoid - pieces not to name (the run's vetoes, ADR-0015 Decision 5): a need is met elsewhere when it can be,
  * and has no room when every place for it is avoided
+ * @param closed - stretches named as closed this year (ADR-0021): the needs are read with them carrying nobody, and
+ * the line is laid as if they were not there, so a cut-off neighborhood's proposal is the way round, never the
+ * closed stretch itself; none by default
  * @returns the proposals; empty when the layout needs nothing; the last one has no room when the board cannot hold it
  */
-export function proposeFor(layout: Layout, rates: SiteRates, avoid: readonly Avoided[] = []): readonly Proposal[] {
+export function proposeFor(layout: Layout, rates: SiteRates, avoid: readonly Avoided[] = [], closed: readonly EdgeKey[] = []): readonly Proposal[] {
   const out: Proposal[] = [];
   let scratch = layout;
   for (let round = 0; round < MOST_ROUNDS; round++) {
-    const need = needsOf(scratch, rates)[0];
+    const need = needsOf(scratch, rates, closed)[0];
     if (!need) return out;
-    const steps = joinedToLine(stepsFor(need, scratch, rates, avoid), scratch, rates, avoid);
+    const steps = joinedToLine(stepsFor(need, scratch, rates, avoid, closed), scratch, rates, avoid);
     const applied = steps ? applyProposal(scratch, steps, rates) : null;
-    if (!steps || !applied || !applied.ok || sameNeeds(needsOf(applied.layout, rates), needsOf(scratch, rates))) {
+    if (!steps || !applied || !applied.ok || sameNeeds(needsOf(applied.layout, rates, closed), needsOf(scratch, rates, closed))) {
       out.push({ need, room: false });
       return out;
     }
@@ -204,7 +207,7 @@ function sameNeeds(a: readonly Need[], b: readonly Need[]): boolean {
 }
 
 /** The steps that would meet one need, or null when the board has no room for it. */
-function stepsFor(need: Need, layout: Layout, rates: SiteRates, avoid: readonly Avoided[]): Step[] | null {
+function stepsFor(need: Need, layout: Layout, rates: SiteRates, avoid: readonly Avoided[], closed: readonly EdgeKey[] = []): Step[] | null {
   const tiles = allTiles(rates.outline);
   const avoided = (what: string, at: string): boolean => avoid.some((a) => a.what === what && a.at === at);
   const open = tiles.filter((k) => !layout.tiles[k]);
@@ -266,7 +269,7 @@ function stepsFor(need: Need, layout: Layout, rates: SiteRates, avoid: readonly 
       return at ? [{ command: 'toggleExtra', tile: at, extra }] : null;
     }
     case 'line':
-      return lineSteps(need.reach, layout, rates, (e) => avoided('line', e));
+      return lineSteps(need.reach, layout, rates, (e) => avoided('line', e) || closed.includes(e), closed);
   }
 }
 
@@ -398,10 +401,17 @@ function served(layout: Layout, rates: SiteRates): TileKey[] {
  * tile is joined first to its own circle's ring (ADR-0016 Decision 3: a circle's homes walk to their own ring) and then,
  * when its network is not the first circle's ring's, that whole network is joined to it by the shortest run, so the
  * line is one line and crosses the seam from band to band. On a layout with no circles, the sketch's rule: the line
- * that joins any ring.
+ * that joins any ring. A stretch named as closed is read as not there (ADR-0021): a tile it alone joined is routed
+ * round it, and `avoidedEdge` keeps the route off it, so the way round is never the closed stretch laid again.
  * @returns the stretches, or null when no ring stands or a tile cannot be reached
  */
-function lineSteps(reach: readonly TileKey[], layout: Layout, rates: SiteRates, avoidedEdge: (e: string) => boolean = () => false): Step[] | null {
+function lineSteps(
+  reach: readonly TileKey[],
+  layout: Layout,
+  rates: SiteRates,
+  avoidedEdge: (e: string) => boolean = () => false,
+  closed: readonly EdgeKey[] = [],
+): Step[] | null {
   const tiles = allTiles(rates.outline);
   const circles = layout.circles ?? [];
   const rings = tiles.filter((k) => layout.tiles[k]?.kind === 'ring');
@@ -409,7 +419,8 @@ function lineSteps(reach: readonly TileKey[], layout: Layout, rates: SiteRates, 
   const main = (circles.length ? rings.find((g) => circleOf(circles, g) === circles[0]) : undefined) ?? rings[0];
   if (main === undefined) return null;
   const steps: Step[] = [];
-  let lines: Record<string, true> = { ...layout.lines };
+  let lines: Record<string, true> = {};
+  for (const e of Object.keys(layout.lines)) if (!closed.includes(e)) lines[e] = true;
   const joined = (net: LineNetwork, k: TileKey, goals: readonly TileKey[]): boolean => goals.some((g) => k === g || net.segments(k, g) !== null);
   const lay = (path: readonly TileKey[]): void => {
     for (let i = path.length - 1; i > 0; i--) {

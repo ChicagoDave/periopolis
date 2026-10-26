@@ -18,7 +18,9 @@ import { assessCore } from './assess.ts';
 import type { TileKey } from './board.ts';
 import type { CheckId, Core, LineCheck } from './checks.ts';
 import { NO_STRESS } from './checks.ts';
+import type { Stress } from './checks.ts';
 import { circleOf, isFull } from './circle.ts';
+import type { EdgeKey } from './board.ts';
 import type { Layout } from './layout.ts';
 import type { PlantKind, SchoolKind, SiteRates } from './rates.ts';
 
@@ -121,23 +123,28 @@ function schoolsAtSqueeze(layout: Layout, rates: SiteRates): Readonly<Record<Til
 /**
  * What the layout lacks, one need per thing to build, in a fixed order: ring, modules, plants, schools, fields,
  * intake, line. Read for an ordinary year; a full circle's ring and plants, and every circle's schools, are read at the
- * squeeze, and a need the squeeze adds is marked `squeeze` (ADR-0018, ADR-0020).
+ * squeeze, and a need the squeeze adds is marked `squeeze` (ADR-0018, ADR-0020). Stretches named as closed are read as
+ * carrying nobody (ADR-0021): the neighborhoods a closure cuts off break the stops and ways checks, and the line need
+ * asks for the way round.
  * @param layout - the board
  * @param rates - the ledger's rates
- * @returns the needs; empty when no check a built thing can mend is broken in an ordinary year, no headroom check is
- *   broken in a full circle at the squeeze, and no school check is broken with every circle at the squeeze
+ * @param closed - stretches of mover line named as closed this year, as `Stress.closed`; none by default
+ * @returns the needs; empty when no check a built thing can mend is broken in an ordinary year with the named stretches
+ *   closed, no headroom check is broken in a full circle at the squeeze, and no school check is broken with every
+ *   circle at the squeeze
  * @throws RangeError when the squeeze (`rates.band`) is negative and a circle has a neighborhood
  */
-export function needsOf(layout: Layout, rates: SiteRates): readonly Need[] {
-  const ordinary = needsFrom(assessCore(layout, NO_STRESS, rates), layout, rates);
+export function needsOf(layout: Layout, rates: SiteRates, closed: readonly EdgeKey[] = []): readonly Need[] {
+  const stress: Stress = closed.length ? { ...NO_STRESS, closed } : NO_STRESS;
+  const ordinary = needsFrom(assessCore(layout, stress, rates), layout, rates);
   const full = headroomOf(layout, rates);
   const schooled = schoolsAtSqueeze(layout, rates);
   if (!full && !schooled) return ordinary;
   const isSchools = (n: Need): boolean => n.need === 'schools';
-  const ringAndPlants = (full ? needsFrom(assessCore(layout, NO_STRESS, rates, full), layout, rates) : ordinary).filter(
+  const ringAndPlants = (full ? needsFrom(assessCore(layout, stress, rates, full), layout, rates) : ordinary).filter(
     (n) => HEADROOM_NEEDS.includes(n.need) && !isSchools(n),
   );
-  const schools = (schooled ? needsFrom(assessCore(layout, NO_STRESS, rates, schooled), layout, rates) : ordinary).filter(isSchools);
+  const schools = (schooled ? needsFrom(assessCore(layout, stress, rates, schooled), layout, rates) : ordinary).filter(isSchools);
   const same = (a: Need, b: Need): boolean => JSON.stringify(a) === JSON.stringify(b);
   const marked = (n: Need): Need => (ordinary.some((o) => same(o, n)) ? n : ({ ...n, squeeze: true } as Need));
   return [...ringAndPlants.map(marked), ...schools.map(marked), ...ordinary.filter((n) => !HEADROOM_NEEDS.includes(n.need))];

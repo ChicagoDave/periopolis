@@ -10,14 +10,15 @@
  *
  * Nothing here is random: the same game gives the same orders. A clock without `infer` is untouched by it.
  */
-import { POPULATION, applyProposal, circleTiles, edgeKey, openCircle, placeNeighborhood, proposeCircle, proposeFor, proposeNeighborhood } from '@city/site';
+import { POPULATION, applyProposal, circleTiles, edgeKey, needsOf, openCircle, placeNeighborhood, proposeCircle, proposeFor, proposeNeighborhood } from '@city/site';
 import type { Layout, Need, Outcome, SiteRates, Step, TileKey } from '@city/site';
-import { cancelJob } from './jobs.ts';
+import { cancelJob, putOrderFirst } from './jobs.ts';
 import type { OrderEvent } from './order.ts';
 import { circleId, placeOrder } from './order.ts';
 import { pieceId, planned, splitPiece } from './pieces.ts';
 import type { Game } from './run.ts';
 import type { RunRules } from './rules.ts';
+import { namedClosures } from './timeline.ts';
 import type { Clock } from './timeline.ts';
 
 /** Why the run ordered: the need it answers, or homes for the people arriving. */
@@ -25,7 +26,13 @@ export type InferredWhy = Need['need'] | 'homes';
 
 /** What the run did for itself in a month: an order placed, or a need the board has no room for. */
 export type Inferred =
-  | { readonly type: 'InferredOrder'; readonly why: InferredWhy; readonly events: readonly OrderEvent[] }
+  | {
+      readonly type: 'InferredOrder';
+      readonly why: InferredWhy;
+      readonly events: readonly OrderEvent[];
+      /** The order's jobs were put first in the work in hand: the way round a named closure (ADR-0021). */
+      readonly first?: true;
+    }
   | { readonly type: 'NoRoom'; readonly why: InferredWhy }
   /** The run opened the next circle, by its middle, the month no tile for homes was open (ADR-0016 Decision 3). */
   | { readonly type: 'CircleOpened'; readonly middle: TileKey };
@@ -93,7 +100,13 @@ export function inferStep(game: Game, rates: SiteRates, rules: RunRules): { read
     const [what, at] = splitPiece(v);
     return { what, at };
   });
-  for (const p of proposeFor(planned(g.layout, clock.jobs), rates, avoid)) {
+  // A closure named for the coming year is read with its stretch carrying nobody, so the way round it is proposed
+  // from the announcement on (ADR-0021 Decision 2); the months run for the year after the clock's.
+  const closed = namedClosures(clock, clock.year + 1);
+  const board = planned(g.layout, clock.jobs);
+  // The line an ordinary year asks for; what a closure adds beyond it is the way round, and is put first (Decision 3).
+  const ordinaryLine = closed.length ? needsOf(board, rates).flatMap((n) => (n.need === 'line' ? n.reach : [])) : [];
+  for (const p of proposeFor(board, rates, avoid, closed)) {
     if (!p.room) {
       facts.push({ type: 'NoRoom', why: p.need.need });
       continue;
@@ -103,8 +116,12 @@ export function inferStep(game: Game, rates: SiteRates, rules: RunRules): { read
     // A refusal means the planned board no longer holds what the proposal assumed (an earlier proposal was skipped):
     // the need is read again next month, so nothing is recorded for it now.
     if (!out.ok) continue;
-    g = out.game;
-    facts.push({ type: 'InferredOrder', why: p.need.need, events: out.events });
+    // The way round a named closure is built before the closure, not in its turn (ADR-0021 Decision 3): its jobs go
+    // first in the work in hand, and the fact says so, so the same orders placed by hand can be put first the same way.
+    const wayRound = closed.length > 0 && p.need.need === 'line' && p.need.reach.some((t) => !ordinaryLine.includes(t));
+    const added = (out.game.clock?.jobs.length ?? 0) - (g.clock?.jobs.length ?? 0);
+    g = wayRound && out.game.clock ? { layout: out.game.layout, clock: { ...out.game.clock, jobs: putOrderFirst(out.game.clock.jobs, added) } } : out.game;
+    facts.push({ type: 'InferredOrder', why: p.need.need, events: out.events, ...(wayRound ? { first: true as const } : {}) });
   }
   const lead = (rules.lead * POPULATION.demandPerYear.value) / MONTHS;
   if (homesAhead(g, rates) < lead && g.clock) {

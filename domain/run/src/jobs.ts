@@ -1,6 +1,6 @@
 /**
  * @file The work in hand: jobs in the order they stand, which have a crew, and how to put one first or drop one.
- * Public interface: Job, JobStatus, JobItem, SiteInHand, WorkInHand, inHand, cancelJob, putFirst.
+ * Public interface: Job, JobStatus, JobItem, SiteInHand, WorkInHand, inHand, cancelJob, putFirst, putOrderFirst.
  * Owner context: Run (domain).
  */
 import { EXTRAS } from '@city/site';
@@ -122,6 +122,18 @@ export function cancelJob(jobs: readonly Job[], index: number): readonly Job[] {
     if (x.what === j.what && x.at === j.at) last = i;
   });
   return jobs.filter((x, i) => i !== last && !(j.what === 'hood' && x.at === j.at && isExtra(x.what)));
+}
+
+/**
+ * An order just placed, its jobs the last `n` in hand, moved to the front in their own order, so the crews take them
+ * first within their class (ADR-0012 Decision 2): the way round a named closure (ADR-0021 Decision 3).
+ * @param jobs - the work in hand with the order's jobs last
+ * @param n - how many jobs the order added
+ * @returns the jobs with the order's first; unchanged when it added none
+ */
+export function putOrderFirst(jobs: readonly Job[], n: number): readonly Job[] {
+  if (n <= 0 || n > jobs.length) return jobs;
+  return [...jobs.slice(jobs.length - n), ...jobs.slice(0, jobs.length - n)];
 }
 
 /**

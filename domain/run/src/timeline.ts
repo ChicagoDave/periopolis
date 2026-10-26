@@ -1,8 +1,9 @@
 /**
  * @file The timeline: five things that happen in twenty years, each announced ahead; the stress each puts on the city;
- * and the notices the player is given.
- * Public interface: EventType, TimelineEvent, Clock, beginClock, waveIn, isActive, isAnnounced, stressAt, Notice, notices,
- * pickEdge.
+ * and the notices the player is given. On a run built in order a closure is announced two years ahead, so the way
+ * round it is ordered and built before it closes (ADR-0021).
+ * Public interface: EventType, TimelineEvent, Clock, beginClock, waveIn, isActive, isAnnounced, stressAt, namedClosures,
+ * Notice, notices, pickEdge.
  * Owner context: Run (domain).
  */
 import { closable, SCHOOLS } from '@city/site';
@@ -79,15 +80,19 @@ export interface Clock {
  * children arrives, so no two of them ever push the same line past the band.
  * @param seed - the run's seed
  * @param rules - the clock's rules
+ * @param inOrder - whether the run is built in order (ADR-0012): then each closure is announced two years ahead, so
+ *   the way round it is proposed, ordered and built in the year before it closes (ADR-0021 Decision 3); without it the
+ *   sketch's one year, so the parity suite is unmoved (ADR-0003)
  */
-export function beginClock(seed: number, rules: RunRules): Clock {
+export function beginClock(seed: number, rules: RunRules, inOrder = false): Clock {
   const roll = dice(seed);
   const pick = (a: number, b: number): number => a + Math.floor(roll() * (b - a + 1));
+  const warning = inOrder ? 2 : 1;
   const events: TimelineEvent[] = [
     { id: 1, type: 'squeeze', start: pick(4, 5), lasts: 3, notice: 2 },
-    { id: 2, type: 'closure', start: pick(6, 9), lasts: 1, notice: 1 },
+    { id: 2, type: 'closure', start: pick(6, 9), lasts: 1, notice: warning },
     { id: 3, type: 'families', start: pick(8, 9), lasts: rules.wave, notice: 2 },
-    { id: 4, type: 'closure', start: pick(12, 18), lasts: 1, notice: 1 },
+    { id: 4, type: 'closure', start: pick(12, 18), lasts: 1, notice: warning },
     { id: 5, type: 'slump', start: pick(14, 15), lasts: 4, notice: 2 },
   ];
   return { year: 0, seed: seed >>> 0, jobs: [], events, record: [], lineYears: 0 };
@@ -131,6 +136,20 @@ export function stressAt(clock: Clock, band: number, year: number = clock.year):
     else if (e.type === 'closure' && e.edge) closed.push(e.edge);
   }
   return { people, children: 0, kids, closed };
+}
+
+/**
+ * The stretches named as closed for a year (ADR-0021): every closure whose stretch has been drawn and that is not yet
+ * over in that year, announced or running. The Site reads the needs with these carrying nobody, so the way round a
+ * closure is asked for from the announcement on, and nothing is asked once the closure has ended.
+ * @param clock - the clock
+ * @param year - the year the needs are read for
+ * @returns the edge keys, in the events' order; empty when no closure is named
+ */
+export function namedClosures(clock: Clock, year: number): EdgeKey[] {
+  const out: EdgeKey[] = [];
+  for (const e of clock.events) if (e.type === 'closure' && e.edge && year < e.start + e.lasts) out.push(e.edge);
+  return out;
 }
 
 /** What the player is told about one event: happening now, or announced for soon. */

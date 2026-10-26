@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { LAYERS, RATES, addPlantUnit, addRingBuilding, allTiles, edgeEnds, emptyLayout, erase, layStretch, placeNeighborhood, starterLayout, toggleExtra } from '@city/site';
 import type { ExtraKind, Layout, Outcome, PlantKind } from '@city/site';
-import { RULES, classOf, emergencyOf, inHand, pieceId, placeOrder, planned, putFirst, restoreClock, startRun, tick, tickMonth, totalSpend } from '../src/index.ts';
+import { RULES, classOf, emergencyOf, inHand, pieceId, placeOrder, planned, putFirst, putOrderFirst, restoreClock, startRun, tick, tickMonth, totalSpend } from '../src/index.ts';
 import type { Game, OrderEvent, OrderOutcome, PieceKind } from '../src/index.ts';
 
 const GROW = { growth: true, inOrder: true, infer: true } as const;
@@ -218,11 +218,14 @@ describe('the same orders placed by hand', () => {
       const row = rows[rows.length - 1];
       for (const f of row?.inferred ?? []) {
         if (f.type !== 'InferredOrder') continue;
+        const had = b.clock?.jobs.length ?? 0;
         for (const e of f.events) {
           if (e.type !== 'JobOrdered') continue;
           b = order(b, command(e));
           placed++;
         }
+        // The way round a closure the run put first (ADR-0021), the player puts first too.
+        if (f.first && b.clock) b = { layout: b.layout, clock: { ...b.clock, jobs: putOrderFirst(b.clock.jobs, b.clock.jobs.length - had) } };
       }
       expect(b.clock?.jobs.map((j) => ({ what: j.what, at: j.at, left: j.left, total: j.total }))).toEqual(a.clock?.jobs.map((j) => ({ what: j.what, at: j.at, left: j.left, total: j.total })));
     }

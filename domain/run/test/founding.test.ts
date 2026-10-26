@@ -118,31 +118,32 @@ describe('one neighborhood on an empty site, and nothing at all, twenty years gr
   const fromOne = twentyYears(startRun(one.layout, 42, RATES, RULES, { growth: true, inOrder: true, infer: true }));
   const fromNothing = twentyYears(startRun(emptyLayout(), 42, RATES, RULES, { growth: true, inOrder: true, infer: true }));
 
-  it('from one neighborhood: 100,000 people in 20 neighborhoods, every line held at year 20, 9 line-years (10 before the schools had room for the wave, ADR-0020; 11 before a plant came with its line, ADR-0019)', () => {
+  it('from one neighborhood: 100,000 people in 20 neighborhoods, every line held at year 20, 7 line-years (9 before the line held through a closure, ADR-0021; 10 before the schools had room for the wave, ADR-0020; 11 before a plant came with its line, ADR-0019)', () => {
     expect(Math.round(last(fromOne).pop)).toBe(100000);
     expect(hoodsOf(fromOne)).toBe(20);
     expect(last(fromOne).homes).toBe(100000);
     expect(last(fromOne).broken).toEqual([]);
-    expect(fromOne.clock?.lineYears).toBe(9);
+    expect(fromOne.clock?.lineYears).toBe(7);
     expect(firstPeople(fromOne)).toBe(3);
     const bag = inferredBag(fromOne);
     expect(bag.hood).toBe(34);
-    expect(bag.line).toBe(41);
+    // 42 stretches: 41 and the way round the closure of year 16 (ADR-0021).
+    expect(bag.line).toBe(42);
     expect(bag.water).toBe(3);
   });
 
-  it('the 9 line-years: the ring in year 1, no haul since each plant comes with its line (ADR-0019), the fields six years while the crews build homes first, a stop in year 16; no high school in year 18, its schools built with room for the wave (ADR-0020)', () => {
+  it('the 7 line-years: the ring in year 1, no haul since each plant comes with its line (ADR-0019), the fields six years while the crews build homes first; no stop lost in the closure year 16, the way round built ahead of it (ADR-0021); no high school in year 18, its schools built with room for the wave (ADR-0020)', () => {
     const broken = (fromOne.clock?.record ?? []).filter((r) => r.year > 0 && r.bad > 0).map((r) => `${r.year}: ${r.broken.join(', ')}`);
-    expect(broken).toEqual(['1: ring', '3: fields', '4: fields', '5: fields', '6: fields', '7: fields', '8: fields', '16: stops, ways']);
+    expect(broken).toEqual(['1: ring', '3: fields', '4: fields', '5: fields', '6: fields', '7: fields', '8: fields']);
   });
 
-  it('from nothing: 90,000 people in 18 neighborhoods at year 20, every line held, 2 line-years, the first in year 10, the second circle not yet opened (115,000 in 23 and opened before the schools had room for the wave, ADR-0020)', () => {
-    expect(Math.round(last(fromNothing).pop)).toBe(90000);
-    expect(hoodsOf(fromNothing)).toBe(18);
+  it('from nothing: 100,000 people in 20 neighborhoods at year 20, every line held, no line-years, the first in year 10, the second circle not yet opened (90,000 in 18 and 2 line-years before the line held through a closure, ADR-0021; 115,000 in 23 and opened before the schools had room for the wave, ADR-0020)', () => {
+    expect(Math.round(last(fromNothing).pop)).toBe(100000);
+    expect(hoodsOf(fromNothing)).toBe(20);
     expect(last(fromNothing).broken).toEqual([]);
-    expect(fromNothing.clock?.lineYears).toBe(2);
+    expect(fromNothing.clock?.lineYears).toBe(0);
     expect(firstPeople(fromNothing)).toBe(10);
-    expect(inferredBag(fromNothing).hood).toBe(33);
+    expect(inferredBag(fromNothing).hood).toBe(35);
     expect(fromNothing.layout.circles).toEqual(['0,0']);
   });
 

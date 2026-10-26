@@ -104,7 +104,7 @@ export interface RunOptions {
  */
 export function startRun(layout: Layout, seed: number, rates: SiteRates, rules: RunRules, options: RunOptions = {}): Game {
   if (options.infer && !(options.growth && options.inOrder)) throw new Error('a run that orders for itself needs growth and inOrder');
-  const dealt = beginClock(seed, rules);
+  const dealt = beginClock(seed, rules, options.inOrder === true);
   const stress = stressAt(dealt, rates.band);
   const admission = options.inOrder ? admit(layout, {}, rates, stress) : null;
   const clock: Clock = admission ? { ...dealt, inOrder: true, lived: admission.lived } : dealt;
@@ -419,7 +419,7 @@ function inferredOf(raw: readonly unknown[], tiles: readonly TileKey[]): Inferre
           events.push({ type: 'JobOrdered', what: what as PieceKind, at, total: e['total'], startsNow: e['startsNow'] === true, withSite: e['withSite'] === true });
         } else if (e['type'] === 'JobCanceled' || e['type'] === 'PieceTakenDown') events.push({ type: e['type'], what: what as PieceKind, at });
       }
-      if (events.length) out.push({ type: 'InferredOrder', why: why as InferredWhy, events });
+      if (events.length) out.push({ type: 'InferredOrder', why: why as InferredWhy, events, ...(f['first'] === true ? { first: true as const } : {}) });
     }
   }
   return out;
