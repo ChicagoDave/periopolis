@@ -29,8 +29,8 @@
 - **Deliverable**: A throwaway probe (deleted before commit) that, for each closure year, prints which stretch closes and when, which neighborhoods lose a stop reaching their ring and which ways break, the months the line is down, what the run does about it (needs raised, proposals, jobs queued and crewed), and whether the other records (one neighborhood, from nothing, the seventy-year runs) meet the same closures. Then ADR-0021, DRAFT with Open Questions, stating the measured cause and presenting the options for David without choosing (candidates to measure, not to pick: a second route or redundant stretch so a closure leaves stops and ways connected; the run reopening or rerouting around a closure within the year; counting a closure's months as a closed line rather than a broken check; leaving the closures as the accepted residual). David is interviewed via `/devarch:adr-interview`, one question at a time, and his choice recorded.
 - **Exit state**: ADR-0021 is ACCEPTED with one chosen mechanism and the measured cause of each closure break in its Context; no production code changed; probe files deleted.
 - **Demonstration**: The probe's output for both closure years quoted in ADR-0021's Context; `grep -c "^## Open Questions" docs/adrs/0021-*.md` prints 0 and the Status line reads ACCEPTED.
-- **Demonstrated**: 
-- **Status**: CURRENT (since 2026-10-22)
+- **Demonstrated**: 2026-10-25 (session 0ba30d): probe output for both closure years is quoted in ADR-0021's Context table; `grep -c "^## Open Questions" docs/adrs/0021-*.md` prints 0 and the Status line reads ACCEPTED after Q-2 (Site need under the named closure) and Q-3 (closures carry notice 2, the way round waits its turn in class 0) were resolved and adr-review scored 21/21; no production code changed, probe deleted. [reported by session, unverified]
+- **Status**: DONE
 
 ### Phase 2: Build the line the way ADR-0021 decides, and re-pin the records
 - **Tier**: Medium

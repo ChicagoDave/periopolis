@@ -3,7 +3,7 @@
 **Date**: 2026-10-23
 **Kind**: technical
 **Scope**: domain/site, domain/run, apps/board
-**Status**: DRAFT
+**Status**: ACCEPTED
 
 ## Context
 
@@ -54,22 +54,21 @@ Weighed with the game lens of ADR-0022:
 
 1. **The way round is ordered when a closure's stretch is named** (option (b), David 2026-10-25). A closure whose stretch is a bridge gets a way round: the fewest new stretches that join the closed stretch's two ends without it, one in every case measured. The line stays as the Site lays it (no standing redundancy, (a)), and a closure that cuts people off still counts as broken in the record (not a watch, (c)).
 
+2. **The Site orders the way round, as a need read under the named closure** (David 2026-10-25). Once a closure's stretch is named, the Site's checks run with that stretch closed; the neighborhoods it cuts off break the stops and ways checks, and the need is the way round. `needsOf` takes the year's closed stretches as `assessCore` already does (`stress.closed`); the need is the existing `line` need for the cut-off neighborhoods, and `proposeFor` lays it with the closed stretch treated as absent, so the fewest new stretches join the closed stretch's two ends without it and the `Need` shape and the Board's wording are unchanged. The proposal is ordered and crewed like any other need (ADR-0008). The Run orders nothing for itself (not ADR-0015's route), so the line's shape is reasoned about in one place and the Board explains the way round as it explains every other need. If Phase 2 finds the `line` need cannot carry it, a new need kind is recorded here as an amendment.
+
+3. **The closed stretch is named when the closure is announced, a year ahead, and the way round waits its turn in the queue** (David 2026-10-25). Today a closure carries `notice: 1`, and `yearPasses` draws its stretch when the year reaches `start - notice`, which is the close of the year before: announcement and naming are already one moment, and the stretch is known only as the closure year's months begin. A closure now carries `notice: 2`, so it is announced and its stretch drawn at the close of the year two before it; the year before runs its twelve months with the closure announced and its stretch named, and the Site reads it for that whole year, so the need, proposal and order come a year early. The way round is an ordinary class-0 job: it is not put first (not ADR-0012 Decision 7's emergency route). Phase 2 measures whether a year's lead time holds every closure on seed 42; if it does not, put-first is the measured fallback, and this decision is amended rather than silently bent.
+
 ## Consequences
 
-- No closure measured on seed 42's real path cuts anyone off, provided the way round is built before the closure's year closes. Who orders it, when the stretch is named, and how it is crewed are still open (Q-2, Q-3), and the measured figures depend on the crew order: in the queue 2 line-years for the full circle, put first 0.
+- No closure measured on seed 42's real path cuts anyone off, provided the way round is built before the closure's year closes. The probe measured the way round with no lead time: in the queue 2 line-years for the full circle, put first 0. With a year's lead time the figures are not yet measured; Phase 2 re-pins every record, and the stretch drawn on seed 42 changes because the draw moves to the announcement.
+- The naming moves in the Run timeline, so a closure announced in year 6 names its stretch in year 6. Every closure carries its stretch from announcement on, and a game can show the player the threat with a year to answer it.
+- The queue stays honest: no job jumps it for a closure. If Phase 2 finds a year's lead time is not enough, the fallback is to put the way round first, recorded as an amendment here.
+- `needsOf` and `proposeFor` take the year's named closures, so the Site is no longer a pure ordinary-year query. ADR-0018 Decision 5's invariant is restated: needs equal the checks broken under the year's known stresses. A year with no named closure reads exactly as before.
+- The Board shows the way round as a need with a proposal, in the same words as any other need; no second explanation path is added, and the player's veto (ADR-0015) reaches it as it reaches every order.
+- Amends ADR-0020 Decision 3 ("the needs do not read the timeline"): the needs read the timeline's named closures, and nothing else of it. ADR-0008 Decision 2's ordinary year is narrowed the same way. Phase 2 of `docs/work/line-holds-through-a-closure/plan.md` writes the dated notes on ADR-0008 and ADR-0020, and on ADR-0018 and ADR-0019 for the re-pinned figures.
 - Each closure adds a stretch that stays after the closure ends, so the line slowly gains loops where closures have fallen.
 - The record keeps line-years honest: a way round that is not built in time leaves the closure's breaks in the record.
 
-## Open Questions
-
-### Q-2: Who orders the way round: the Site, as a need read under the named closure (ADR-0008), or the Run, ordering for itself (ADR-0015)?
-- **Why it matters**: as a Site need, the way round shows up through `needsOf` and `proposeFor`, and so on the Board as a need with a proposal, and ADR-0018 Decision 5's invariant (needs equal the broken checks) has to cover a stress. As a Run order, the Site stays an ordinary-year query, and the way round is an inferred job the player can cancel or veto.
-- **Blocks**: Phase 2's seam.
-
-### Q-3: When is the closed stretch named, and how is the way round crewed?
-- **Why it matters**: today the stretch is named at the close of the year before, so the way round has only the closure year itself. Crewed ahead of the queue (like ADR-0012 Decision 7's emergency) it holds every closure measured, while waiting its turn in class 0 misses the full circle's year 7. Naming the stretch when the closure is announced would give a year's lead time, which a game needs and which might let it wait its turn, but that was not measured, and it changes which stretch is drawn.
-- **Blocks**: Phase 2's timeline and crew order, and the figures to re-pin.
-
 ## Session
 
-585eb2 (Phase 1 of `docs/work/line-holds-through-a-closure/plan.md`).
+585eb2 (Phase 1 of `docs/work/line-holds-through-a-closure/plan.md`); 0ba30d resolved Q-2 and Q-3 (2026-10-25).
