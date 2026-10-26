@@ -12,6 +12,7 @@ import type { Game, HeldBack, Notice, WorkInHand } from '@city/run';
 import { RATES, assess } from '@city/site';
 import type { AssessOptions, Assessment, TestId, TileKey } from '@city/site';
 import type { Orbit } from './draw/irl/camera.ts';
+import type { Light } from './draw/irl/gl.ts';
 import type { GameStore } from './storage.ts';
 import type { ToolId } from './wording.ts';
 
@@ -52,6 +53,8 @@ export interface Session {
   air: Air;
   /** The orbit the city IRL is seen from; null is fitted to the site on the next frame. Never saved. */
   orbit: Orbit | null;
+  /** The time of day the city IRL is lit for. Never saved. */
+  light: Light;
   tool: ToolId;
   picked: TileKey | null;
   lineFrom: TileKey | null;
@@ -88,6 +91,8 @@ export interface Session {
   lookIrl(): void;
   /** The orbit the city IRL is seen from; null fits it again. */
   setOrbit(orbit: Orbit | null): void;
+  /** Noon to night and back. */
+  toggleLight(): void;
   /** A quarter turn of the site from the air. */
   turnAir(): void;
   /** The next tilt: mid, high, low, round again. */
@@ -109,6 +114,7 @@ export function newSession(game: Game, store: GameStore): Session {
     view: { at: 'map' },
     air: AIR_START,
     orbit: null,
+    light: 'noon',
     tool: 'inspect',
     picked: null,
     lineFrom: null,
@@ -178,6 +184,9 @@ export function newSession(game: Game, store: GameStore): Session {
     },
     setOrbit(orbit) {
       s.orbit = orbit;
+    },
+    toggleLight() {
+      s.light = s.light === 'noon' ? 'night' : 'noon';
     },
     turnAir() {
       s.air = { ...s.air, turn: ((s.air.turn + 1) % 4) as Air['turn'] };

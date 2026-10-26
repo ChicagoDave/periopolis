@@ -150,8 +150,8 @@ describe('the prism', () => {
     expect(d.triangles).toBe(d.meshes.reduce((t, m) => t + m.triangles, 0));
     expect(Object.values(d.byKind).reduce((t, n) => t + (n ?? 0), 0)).toBe(d.triangles);
     // A strip of line is two triangles; a hexagonal neighborhood far is a fan of four and six sides of two.
-    expect(d.meshes.find((m) => m.block.kind === 'line')?.triangles).toBe(2);
-    expect(d.meshes.find((m) => m.block.kind === 'hood')?.triangles).toBe(4 + 6 * 2);
+    expect(d.meshes.find((m) => m.kind === 'line')?.triangles).toBe(2);
+    expect(d.meshes.find((m) => m.kind === 'hood')?.triangles).toBe(4 + 6 * 2);
     expect(d.bounds).toEqual(boundsOf(scene));
   });
 });

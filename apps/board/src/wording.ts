@@ -1032,6 +1032,9 @@ export const IRL_LABEL = 'IRL';
 /** Said when the city IRL opens. */
 export const IRL_OPENED = 'The city IRL. Drag to turn, scroll or the buttons to come nearer, shift-drag to slide. Back to the map returns.';
 
+/** The button that turns the city IRL to night and back, by what pressing it does. */
+export const LIGHT_LABEL: Readonly<Record<'noon' | 'night', string>> = { noon: 'Night', night: 'Day' };
+
 /** Said, and shown in the view bar, when the browser cannot draw the city IRL. */
 export const NO_WEBGL = 'This browser cannot draw the city IRL: it has no WebGL. The site from the air still can.';
 

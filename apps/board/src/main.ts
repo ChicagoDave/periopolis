@@ -270,6 +270,10 @@ function start(data: { game?: unknown }): void {
     fitIrl(page);
     page.render();
   });
+  byId('irl-night').addEventListener('click', () => {
+    s.toggleLight();
+    page.render();
+  });
   const irl = byId<HTMLCanvasElement>('irlcanvas');
   let orbitDrag: { x: number; y: number; slide: boolean } | null = null;
   irl.addEventListener('pointerdown', (e) => {

@@ -3,15 +3,15 @@
  * the scene is derived from the game as it stands at the detail the camera deserves, described, built once per
  * change and rendered under the session's orbit. The orbit is the session's, never saved; this module applies the
  * camera's pure functions to it with the scene's box and the canvas's size. The canvas carries data-blocks,
- * data-stories, data-sites, data-lit, data-lod, data-triangles, data-webgl and data-frames so a test can hold what was
- * built to the scene.
+ * data-stories, data-sites, data-lit, data-lod, data-triangles, data-homes, data-lit-homes, data-trees, data-chunks,
+ * data-rebuilt, data-rebuild-ms, data-light, data-webgl and data-frames so a test can hold what was built to the scene.
  * Public interface: drawIrl, turnIrl, dollyIrl, panIrl, fitIrl, irlSupported.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
 import { RATES } from '@city/site';
 import { byId } from '../../dom.ts';
 import type { Page } from '../../page.ts';
-import { lodFor } from '../angled/canvas.ts';
+import { MID_SCALE } from '../angled/canvas.ts';
 import { sceneOf } from '../angled/scene.ts';
 import type { Lod, Standing } from '../angled/scene.ts';
 import { palette } from '../angled/view.ts';
@@ -38,6 +38,11 @@ let frame: Frame | null = null;
 export function irlSupported(): boolean {
   if (supported === null) supported = webglSupported(byId<HTMLCanvasElement>('irlcanvas'));
   return supported;
+}
+
+/** The detail the orbit deserves: far, one block a tile; from the angled view's mid scale, every home instanced. */
+function lodAt(scale: number): Lod {
+  return scale >= MID_SCALE ? 'near' : 'far';
 }
 
 /** Everything that changes what is built: what stands, what is on order, who lives where, and the detail. */
@@ -94,7 +99,7 @@ export function drawIrl(page: Page): Painted | null {
   const aspect = cssWidth / cssHeight;
   let bounds = boundsOf(scene) ?? { minX: -500, maxX: 500, minY: -500, maxY: 500, maxZ: 0 };
   const orbit: Orbit = s.orbit ?? fitOrbit(bounds, aspect);
-  const lod = lodFor(pixelsPerMetre(orbit, cssHeight));
+  const lod = lodAt(pixelsPerMetre(orbit, cssHeight));
   if (lod !== 'far') {
     scene = sceneOf(s.game.layout, RATES, lod, standing);
     bounds = boundsOf(scene) ?? bounds;
@@ -123,10 +128,19 @@ export function drawIrl(page: Page): Painted | null {
   }
   const signature = signatureOf(page, standing, lod);
   if (!frame || frame.signature !== signature) {
-    const described = describeScene(scene);
-    renderer.build(described, palette(), tokens());
+    const started = performance.now();
+    const described = describeScene(scene, { rates: RATES, layout: s.game.layout });
+    const stats = renderer.build(described, palette(), tokens());
+    canvas.setAttribute('data-rebuild-ms', (performance.now() - started).toFixed(1));
     canvas.setAttribute('data-triangles', String(described.triangles));
-  }
+    canvas.setAttribute('data-homes', String(described.homes));
+    canvas.setAttribute('data-lit-homes', String(described.litHomes));
+    canvas.setAttribute('data-trees', String(described.trees));
+    canvas.setAttribute('data-chunks', String(stats.chunks));
+    canvas.setAttribute('data-rebuilt', String(stats.rebuilt));
+  } else canvas.setAttribute('data-rebuilt', '0');
+  renderer.setLight(s.light);
+  canvas.setAttribute('data-light', s.light);
   frame = { signature, bounds, width: cssWidth, height: cssHeight };
   const frames = renderer.render(orbit, cssWidth, cssHeight, dpr);
   canvas.setAttribute('data-frames', String(frames));

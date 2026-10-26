@@ -16,7 +16,7 @@ import type { Painted } from './angled/view.ts';
 import { ZOOM_MAX } from '../session.ts';
 import { fmt } from '../format.ts';
 import type { Page } from '../page.ts';
-import { LEVEL_NAME, NO_WEBGL, SITE_NAME, TILT_NAME, angledCaption, irlCaption, layerLines, placeholderNote } from '../wording.ts';
+import { LEVEL_NAME, LIGHT_LABEL, NO_WEBGL, SITE_NAME, TILT_NAME, angledCaption, irlCaption, layerLines, placeholderNote } from '../wording.ts';
 import { irlSupported } from './irl/view.ts';
 
 /** Room round the tile for the legend, the scale and the note, metres. */
@@ -158,6 +158,7 @@ export function drawViewBar(page: Page, painted: Painted | null = null): void {
     levels.hidden = true;
     air.hidden = true;
     byId('viewtext').textContent = irlSupported() ? irlCaption(painted?.blocks ?? 0, painted?.stories ?? 0, painted?.sites ?? 0, painted?.lit ?? 1) : NO_WEBGL;
+    byId('irl-night').textContent = LIGHT_LABEL[s.light];
     return;
   }
   if (s.view.at === 'angled') {

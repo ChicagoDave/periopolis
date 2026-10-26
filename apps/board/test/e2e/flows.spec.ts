@@ -20,6 +20,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const url = process.env.BOARD_URL ?? `file://${join(here, '../../dist/index.html')}`;
 
 const tile = (page: Page, k: string) => page.locator(`#board .tile[data-k="${k}"]`);
+/** The Ground's neighborhood, for the homes the IRL view instances. */
+const hoodPlan = planNeighborhood(RATES.shared, RATES.walking, RATES.base);
+
 const place = async (page: Page, tool: string, keys: readonly string[]): Promise<void> => {
   await page.click(`#tool-${tool}`);
   for (const k of keys) await tile(page, k).click();
@@ -578,11 +581,20 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await expect(page.locator('#levels')).toBeHidden();
   await expect(page.locator('#aircontrols')).toBeHidden();
   await expect(page.locator('#irlcontrols')).toBeVisible();
-  // Nearer, until the rows of townhouses are built: more blocks, the same stories' worth of homes in rows.
+  // Nearer, until every home is built: 20,410 townhouses instanced, all lit, 1,250 trees in the ten parks; by night the
+  // windows glow, and the same orbit builds nothing again.
   for (let i = 0; i < 6; i++) await page.click('#irl-in');
-  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'mid');
-  const rows = Number(await page.locator('#irlcanvas').getAttribute('data-blocks'));
-  expect(rows).toBeGreaterThan(38);
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'near');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-homes', String(10 * hoodPlan.figures.homes));
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lit-homes', String(10 * hoodPlan.figures.homes));
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-trees', '1250');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'noon');
+  await page.click('#irl-night');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'night');
+  await expect(page.locator('#irl-night')).toHaveText('Day');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-rebuilt', '0');
+  await page.click('#irl-night');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'noon');
   // Fit opens far again; a drag turns and renders another frame.
   await page.click('#irl-fit');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'far');
@@ -608,6 +620,45 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await page.click('#irl');
   await expect(page.locator('#viewbar')).toBeHidden();
   await expect(page.locator('#board')).toBeVisible();
+});
+
+test('the city IRL follows the clock: cranes on what is ordered, homes standing dark as the crews finish, windows lit as people arrive, a month rebuilding only the tiles that moved (ADR-0023)', async ({ page }) => {
+  await page.uncheck('#grow');
+  await page.click('#found');
+  await place(page, 'power', ['4,0', '4,0']);
+  await place(page, 'water', ['-4,0']);
+  await place(page, 'sewage', ['-4,3']);
+  await place(page, 'waste', ['-4,2']);
+  await place(page, 'hood', ['1,0', '2,-1']);
+  await page.click('#irl');
+  for (let i = 0; i < 6; i++) await page.click('#irl-in');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'near');
+  // Year 0: six tiles on order, each a scaffold with a crane, no home standing.
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sites', '6');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-homes', '0');
+  await expect(page.locator('#viewtext')).toHaveText('The city IRL: 6 blocks, 0 stories in all. 6 tiles under construction.');
+  // Year 2: the two neighborhoods stand, every home dark, the reactor site still building.
+  await page.click('#tick');
+  await page.click('#tick');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sites', '1');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-homes', String(2 * hoodPlan.figures.homes));
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lit-homes', '0');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-trees', '250');
+  // Year 3: the modules open and the childless share moves in: 60% of the homes lit.
+  await page.click('#tick');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sites', '0');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lit', '0.60');
+  const lit = Number(await page.locator('#irlcanvas').getAttribute('data-lit-homes'));
+  expect(lit).toBeGreaterThan(0);
+  expect(lit).toBeLessThan(2 * hoodPlan.figures.homes);
+  // A month later more homes are lit, and only the tiles whose people moved were built again, within a frame's budget.
+  await page.click('#month');
+  await expect(page.locator('#peoplenow')).toContainText('Year 4, month 1 of 12.');
+  const rebuilt = Number(await page.locator('#irlcanvas').getAttribute('data-rebuilt'));
+  expect(rebuilt).toBeLessThanOrEqual(2);
+  const ms = Number(await page.locator('#irlcanvas').getAttribute('data-rebuild-ms'));
+  expect(ms).toBeLessThan(200);
+  await expect(page.locator('#irl')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('the viewer from the air: nearer shows rows then homes, a turn and a tilt repaint, a month repaints only what moved, a drag slides, fit returns', async ({ page }) => {

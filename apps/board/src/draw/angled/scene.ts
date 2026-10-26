@@ -5,7 +5,9 @@
  * the crews are building is a low scaffold, a stretch on order a strip of its own kind, and every home block carries
  * how lit it is, the share of its people living there (ADR-0009, ADR-0012); mid, that share lights whole rows, in an
  * order seeded from the tile's key so the same share lights the same rows. Pure, no DOM; it decides no shape
- * itself, only where the Ground's shapes sit on the site (ADR-0014).
+ * itself, only where the Ground's shapes sit on the site (ADR-0014). A tile's blocks are remembered by key, detail
+ * and share, so a month that moves no one on a tile hands back the same blocks: a cache that is a function of its
+ * inputs, never a second record (ADR-0023 Decision 2).
  * Public interface: Lod, SceneKind, SceneBlock, Scene, Standing, PLANT_STORIES, LINE_WIDTH_M, SITE_HEIGHT_M,
  * tileCenterM, litRows, sceneOf.
  * Owner context: Board (adapter), the angled view (plan angled-view-through-time).
@@ -198,6 +200,19 @@ function lineStrip(edge: string, rates: SiteRates, kind: 'line' | 'siteline' = '
   };
 }
 
+/** A tile's blocks remembered by what they were derived from; cleared when it grows past a bound. */
+const remembered = new Map<string, SceneBlock[]>();
+const REMEMBER_MAX = 4096;
+
+function remember(cacheKey: string, derive: () => SceneBlock[]): SceneBlock[] {
+  const had = remembered.get(cacheKey);
+  if (had) return had;
+  if (remembered.size >= REMEMBER_MAX) remembered.clear();
+  const blocks = derive();
+  remembered.set(cacheKey, blocks);
+  return blocks;
+}
+
 /**
  * The scene of a layout as it stands, and of the clock's work and people when given: a block for every neighborhood
  * (one far, its rows mid) lit by the share of its people living there, every ring building, every plant, a strip for
@@ -221,10 +236,9 @@ export function sceneOf(layout: Layout, rates: SiteRates, lod: Lod, standing: St
     if (t.kind === 'hood') {
       const people = standing.occupied?.[key];
       const share = people === undefined || !(rates.hood > 0) ? 1 : Math.max(0, Math.min(1, people / rates.hood));
-      blocks.push(...neighborhoodBlocks(key, center, hood, rates, lod, share));
+      blocks.push(...remember(`${key}|hood|${lod}|${share}|${rates.tileKm}`, () => neighborhoodBlocks(key, center, hood, rates, lod, share)));
     } else if (t.kind === 'ring') {
-      const plan = (rings[t.n] ??= planRing(rates.walking, rates.base, t.n));
-      blocks.push(...ringBlocks(key, center, plan));
+      blocks.push(...remember(`${key}|ring|${t.n}|${rates.tileKm}`, () => ringBlocks(key, center, (rings[t.n] ??= planRing(rates.walking, rates.base, t.n)))));
     } else blocks.push(plantBlock(key, t.kind, center, rates));
   }
   let sites = 0;
