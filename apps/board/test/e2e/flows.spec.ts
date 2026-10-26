@@ -14,12 +14,8 @@ import { describeScene } from '../../src/draw/irl/describe.ts';
 import type { Layout } from '@city/site';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const here = dirname(fileURLToPath(import.meta.url));
-/** The built page from disk, or the published Board when BOARD_URL names it (ADR-0011). */
-const url = process.env.BOARD_URL ?? `file://${join(here, '../../dist/index.html')}`;
+/** The built page served by the config's preview server, or the published Board when BOARD_URL names it (ADR-0011). */
+const url = process.env.BOARD_URL ?? 'http://localhost:4173/';
 
 const tile = (page: Page, k: string) => page.locator(`#board .tile[data-k="${k}"]`);
 /** The Ground's neighborhood, for the homes the IRL view instances. */
@@ -561,6 +557,8 @@ test('the site from the air follows the clock: scaffolds for what is ordered, bl
 });
 
 test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a WebGL canvas and rendered, nearer rebuilds in rows, the map comes back (ADR-0023)", async ({ page }) => {
+  // Near the kit models every frame is millions of triangles, seconds each on the software GL the flows run on.
+  test.slow();
   await expect(page.locator('#irlcanvas')).toBeHidden();
   await expect(page.locator('#irl')).toHaveAttribute('aria-pressed', 'false');
   await page.click('#irl');
@@ -614,6 +612,9 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-homes', String(10 * hoodPlan.figures.homes));
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lit-homes', String(10 * hoodPlan.figures.homes));
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-trees', '1250');
+  // The townhouses nearest the camera are kit models (ADR-0024): the five packed GLBs arrive from the assets folder
+  // beside the page and every home group near the target stands on one; the rest keep the massing until Phase 7.
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-models', '5', { timeout: 90000 });
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'noon');
   await page.click('#irl-night');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'night');

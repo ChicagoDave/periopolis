@@ -24,6 +24,8 @@ import { boundsOf } from './camera.ts';
 import type { Bounds } from './camera.ts';
 import { hashOf, randomOf, variantOf } from './facade.ts';
 import type { HomeVariant } from './facade.ts';
+import { townhouseFor } from './kit.ts';
+import type { ModelId } from './kit.ts';
 
 /** Metres a flat block (a strip of line) is lifted off the ground, so it draws over it and not through it. */
 export const FLAT_LIFT_M = 0.3;
@@ -94,6 +96,8 @@ export interface HomeInstance {
   readonly depthM: number;
   readonly heightM: number;
   readonly variant: HomeVariant;
+  /** The kit model that stands for it (ADR-0024), chosen by its tile and index. */
+  readonly model: ModelId;
   /** 1 lived in, 0 empty. */
   readonly lit: 0 | 1;
 }
@@ -351,6 +355,7 @@ function homesOf(key: TileKey, blocks: readonly SceneBlock[]): HomeInstance[] {
       depthM: Math.hypot(c2.x - c1.x, c2.y - c1.y),
       heightM: b.block.heightM,
       variant: variantOf(seed + i * 2654435761),
+      model: townhouseFor(key, i),
       lit: b.lit >= 0.5 ? 1 : 0,
     };
   });

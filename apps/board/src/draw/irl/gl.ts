@@ -14,6 +14,7 @@ import {
   AmbientLight,
   BoxGeometry,
   BufferAttribute,
+  Matrix4,
   InstancedBufferAttribute,
   BufferGeometry,
   CanvasTexture,
@@ -36,6 +37,10 @@ import {
   WebGLRenderer,
   ACESFilmicToneMapping,
 } from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { fitToFront } from './kit.ts';
+import type { Fit, ModelId } from './kit.ts';
 import { DARK } from '../angled/canvas.ts';
 import type { Palette } from '../angled/canvas.ts';
 import { eyeOf } from './camera.ts';
@@ -307,18 +312,56 @@ const SUB_MATERIALS: ReadonlySet<string> = new Set(['guideway', 'closed', 'warne
 const GHOST_GROUND = 0.3;
 const GHOST_SURFACE = 0.12;
 
-/** A group of townhouse instances: one size and one variant, every chunk's homes of it in a slot of the mesh. */
+/** A packed kit model as loaded: one geometry and one material, ready to instance. */
+interface LoadedModel {
+  readonly geometry: BufferGeometry;
+  readonly material: MeshStandardMaterial;
+}
+
+/** Where the packed models are served from, beside the page (ADR-0024 Decision 4). */
+const MODELS_URL = 'assets/models/';
+
+/** Metres from the orbit's target within which a tile's homes stand as kit models; beyond, the massing stands in
+ * (a townhouse model is about 1,200 triangles against the box's 14; plan Phase 7 brings the full level of detail). */
+export const MODELS_WITHIN_M = 600;
+
+/** Where the view looks, so the kit models stand near it. */
+export interface Focus {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** How many neighborhoods take kit models however far the focus is from them, so something is always detailed. */
+export const MODELS_NEAREST = 3;
+
+/** The chunks whose homes stand as kit models: those within MODELS_WITHIN_M of the focus, and the MODELS_NEAREST
+ * nearest whatever their distance; judged by where a chunk's homes centre. */
+function nearChunks(chunks: readonly Chunk[], focus: Focus): Set<string> {
+  const ranked = chunks
+    .filter((c) => c.homes.length)
+    .map((c) => {
+      const cx = c.homes.reduce((t, x) => t + x.x, 0) / c.homes.length;
+      const cy = c.homes.reduce((t, x) => t + x.y, 0) / c.homes.length;
+      return { key: c.key, d: Math.hypot(cx - focus.x, cy - focus.y) };
+    })
+    .sort((a, b) => a.d - b.d);
+  return new Set(ranked.filter((r, i) => i < MODELS_NEAREST || r.d <= MODELS_WITHIN_M).map((r) => r.key));
+}
+
+/** The key of the group a home belongs to: its size, its kit model when its tile is near enough, and its variant. */
+function groupKey(h: HomeInstance, near: boolean): string {
+  return `${h.frontM.toFixed(2)}x${h.depthM.toFixed(2)}x${h.heightM.toFixed(2)}|${near ? h.model : 'box'}|${h.variant}`;
+}
+
+/** A group of townhouse instances: one size, one model (or, until it loads, one facade variant), every chunk's homes of it in a slot of the mesh. */
 interface HomeGroup {
   mesh: InstancedMesh | null;
   geometry: BufferGeometry | null;
   /** Each chunk's slot: where its homes start, how many, and the chunk's signature when they were written. */
   slots: Map<string, { start: number; count: number; signature: string }>;
   count: number;
-}
-
-/** The key of the group a home belongs to. */
-function groupKey(h: HomeInstance): string {
-  return `${h.frontM.toFixed(2)}x${h.depthM.toFixed(2)}x${h.heightM.toFixed(2)}|${h.variant}`;
+  /** Whether the mesh stands on the loaded kit model (true) or the massing stand-in (false). */
+  model: boolean;
 }
 
 /** The renderer on one canvas: built once, fed a described scene when it changes, rendered every frame. */
@@ -336,6 +379,13 @@ export class IrlRenderer {
   private readonly treeGeometry = treeGeometry();
   private trees: InstancedMesh | null = null;
   private readonly movers = new Map<MoverClass, InstancedMesh>();
+  private readonly loader = new GLTFLoader();
+  private readonly models = new Map<ModelId, LoadedModel | 'loading' | 'failed'>();
+  private readonly onLoaded: () => void;
+  private modelsPainted = 0;
+  /** Counts the models that have arrived, so a build after an arrival lays the homes out again. */
+  private modelsArrived = 0;
+  private focus: Focus = { x: 0, y: 0 };
   private homesSignature = '';
   private treesSignature = '';
   private light: Light = 'noon';
@@ -349,7 +399,9 @@ export class IrlRenderer {
    * @param onLost - called when the GL context is lost, so the page can say so
    * @param onRestored - called when it comes back, so the page can render again
    */
-  constructor(canvas: HTMLCanvasElement, onLost: () => void, onRestored: () => void) {
+  constructor(canvas: HTMLCanvasElement, onLost: () => void, onRestored: () => void, onLoaded: () => void = () => undefined) {
+    this.onLoaded = onLoaded;
+    this.loader.setMeshoptDecoder(MeshoptDecoder);
     this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFShadowMap;
@@ -373,6 +425,50 @@ export class IrlRenderer {
   /** Frames rendered since the renderer was made. */
   get rendered(): number {
     return this.frames;
+  }
+
+  /** Distinct kit models standing in instanced meshes, as of the last build. */
+  get kitModels(): number {
+    return this.modelsPainted;
+  }
+
+  /**
+   * A packed model, loaded once: its one mesh's geometry and material (the pack script joins a kit model to one),
+   * the material patched for per-instance light. Until it arrives (or if it fails) null, and the caller stands the
+   * massing in; when it arrives the page is told so it renders again.
+   */
+  private model(id: ModelId): LoadedModel | null {
+    const had = this.models.get(id);
+    if (had && had !== 'loading' && had !== 'failed') return had;
+    if (had) return null;
+    this.models.set(id, 'loading');
+    this.loader.load(
+      `${MODELS_URL}${id}.glb`,
+      (gltf) => {
+        let found: LoadedModel | null = null;
+        gltf.scene.traverse((o) => {
+          if (found || !(o as Mesh).isMesh) return;
+          const mesh = o as Mesh;
+          const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+          const material = (source as MeshStandardMaterial).clone();
+          material.emissive = new Color(WINDOW_LIGHT);
+          material.emissiveIntensity = 0;
+          litByAttribute(material);
+          found = { geometry: mesh.geometry, material };
+        });
+        this.models.set(id, found ?? 'failed');
+        if (found) {
+          this.modelsArrived++;
+          this.onLoaded();
+        }
+      },
+      undefined,
+      (error) => {
+        this.models.set(id, 'failed');
+        console.warn(`The city IRL could not load the model ${id}:`, error);
+      },
+    );
+    return null;
   }
 
   /** The material for a prism: plain colours, the facade sheets painted once, massing by vertex colour. */
@@ -476,12 +572,14 @@ export class IrlRenderer {
    * cleared), that group is laid out afresh.
    */
   private buildHomes(chunks: readonly Chunk[]): void {
-    // What each group should hold, chunk by chunk in key order.
+    // What each group should hold, chunk by chunk in key order; a chunk near the focus takes kit models.
     const wanted = new Map<string, { chunk: Chunk; homes: HomeInstance[] }[]>();
+    const nearSet = nearChunks(chunks, this.focus);
     for (const chunk of [...chunks].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))) {
       const byGroup = new Map<string, HomeInstance[]>();
+      const near = nearSet.has(chunk.key);
       for (const h of chunk.homes) {
-        const k = groupKey(h);
+        const k = groupKey(h, near);
         const list = byGroup.get(k);
         if (list) list.push(h);
         else byGroup.set(k, [h]);
@@ -507,12 +605,14 @@ export class IrlRenderer {
       const first = parts[0]?.homes[0] as HomeInstance;
       let group = this.homeGroups.get(key);
       if (!group) {
-        group = { mesh: null, geometry: null, slots: new Map(), count: 0 };
+        group = { mesh: null, geometry: null, slots: new Map(), count: 0, model: false };
         this.homeGroups.set(key, group);
       }
+      const loaded = key.split('|')[1] === 'box' ? null : this.model(first.model);
       const total = parts.reduce((t, p) => t + p.homes.length, 0);
       const sameLayout =
         group.mesh !== null &&
+        group.model === (loaded !== null) &&
         group.count === total &&
         parts.length === group.slots.size &&
         parts.every((p, i) => {
@@ -524,10 +624,13 @@ export class IrlRenderer {
           this.scene.remove(group.mesh);
           group.mesh.dispose();
         }
-        group.geometry?.dispose();
-        group.geometry = homeGeometry(first.frontM, first.depthM, first.heightM);
+        if (!group.model) group.geometry?.dispose();
+        // The kit model when it has loaded (its geometry shared, so a clone carries this group's light attribute);
+        // the massing stand-in until then.
+        group.model = loaded !== null;
+        group.geometry = loaded ? loaded.geometry.clone() : homeGeometry(first.frontM, first.depthM, first.heightM);
         group.geometry.setAttribute('aLit', new InstancedBufferAttribute(new Float32Array(total), 1));
-        group.mesh = new InstancedMesh(group.geometry, this.homeMaterials(first.variant), total);
+        group.mesh = new InstancedMesh(group.geometry, loaded ? loaded.material : this.homeMaterials(first.variant), total);
         group.mesh.castShadow = true;
         group.mesh.receiveShadow = true;
         this.scene.add(group.mesh);
@@ -536,6 +639,8 @@ export class IrlRenderer {
       }
       const mesh = group.mesh as InstancedMesh;
       const lit = group.geometry?.getAttribute('aLit') as InstancedBufferAttribute;
+      // A kit model is placed by its fit: scaled to the front, floor on the ground, front face at the street edge.
+      const fit: Fit | null = loaded ? fitToFront(first.model, first.frontM, first.depthM) : null;
       let start = 0;
       let touched = false;
       for (const { chunk, homes } of parts) {
@@ -545,7 +650,13 @@ export class IrlRenderer {
             const at = start + i;
             dummy.position.copy(toGl({ x: h.x, y: h.y, z: 0 }));
             dummy.rotation.set(0, h.yaw, 0);
+            dummy.scale.set(1, 1, 1);
             dummy.updateMatrix();
+            if (fit) {
+              // In the home's own frame: the fit's offset, then its scale.
+              const local = new Matrix4().makeTranslation(fit.offset.x, fit.offset.y, fit.offset.z).multiply(new Matrix4().makeScale(fit.scale, fit.scale, fit.scale));
+              dummy.matrix.multiply(local);
+            }
             mesh.setMatrixAt(at, dummy.matrix);
             // A little variety in the wall's shade, the same for the same home; an empty home a shade greyer.
             const shade = (0.9 + (0.12 * ((((h.x * 7 + h.y * 13) % 11) + 11) % 11)) / 10) * (h.lit ? 1 : 0.85);
@@ -608,8 +719,9 @@ export class IrlRenderer {
    * the sun's shadow camera are fitted to the box, and the sky, fog and lights follow the tokens and the time of day.
    * @returns what was rebuilt
    */
-  build(described: Described, palette: Palette, tokens: Tokens): BuildStats {
+  build(described: Described, palette: Palette, tokens: Tokens, focus?: Focus): BuildStats {
     this.tokens = tokens;
+    if (focus) this.focus = focus;
     const keep = new Set(described.chunks.map((c) => c.key));
     for (const [key, c] of this.chunks) {
       if (keep.has(key)) continue;
@@ -634,10 +746,11 @@ export class IrlRenderer {
       this.chunks.set(chunk.key, { signature: chunk.signature, meshes: built.surface, sub: built.sub });
       rebuilt++;
     }
-    const homesSignature = described.chunks
+    const nearSet = nearChunks(described.chunks, this.focus);
+    const homesSignature = `${this.modelsArrived}|${described.chunks
       .filter((c) => c.homes.length)
-      .map((c) => `${c.key}:${c.signature}`)
-      .join(';');
+      .map((c) => `${c.key}:${c.signature}:${nearSet.has(c.key) ? 'kit' : 'box'}`)
+      .join(';')}`;
     if (homesSignature !== this.homesSignature) {
       this.buildHomes(described.chunks);
       this.homesSignature = homesSignature;
@@ -654,7 +767,12 @@ export class IrlRenderer {
     this.applyLight();
     this.applySub();
     let homes = 0;
-    for (const g of this.homeGroups.values()) homes += g.count;
+    const standing = new Set<string>();
+    for (const [key, g] of this.homeGroups) {
+      homes += g.count;
+      if (g.model && g.mesh) standing.add(key.split('|')[1] ?? key);
+    }
+    this.modelsPainted = standing.size;
     return { rebuilt, chunks: this.chunks.size, homes, trees: this.trees?.count ?? 0 };
   }
 

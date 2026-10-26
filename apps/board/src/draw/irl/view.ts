@@ -217,13 +217,20 @@ export function drawIrl(page: Page): Painted | null {
         frame = null;
         page.render();
       },
+      () => {
+        // A kit model arrived: build again so the stand-in gives way to it.
+        frame = null;
+        page.render();
+      },
     );
   }
-  const signature = signatureOf(page, standing, lod);
+  // The kit models stand near the orbit's target; the signature carries which tiles that is, so a move rebuilds.
+  const focus = { x: orbit.target.x, y: orbit.target.y };
+  const signature = `${signatureOf(page, standing, lod)}|${Math.round(focus.x / 100)},${Math.round(focus.y / 100)}`;
   if (!frame || frame.signature !== signature) {
     const started = performance.now();
     const described = describeScene(scene, { rates: RATES, layout: s.game.layout, closed: s.closed, warned: s.warned, ordered: Object.keys(s.hand.lines) });
-    const stats = renderer.build(described, palette(), tokens());
+    const stats = renderer.build(described, palette(), tokens(), focus);
     canvas.setAttribute('data-rebuild-ms', (performance.now() - started).toFixed(1));
     canvas.setAttribute('data-triangles', String(described.triangles));
     canvas.setAttribute('data-homes', String(described.homes));
@@ -231,6 +238,7 @@ export function drawIrl(page: Page): Painted | null {
     canvas.setAttribute('data-trees', String(described.trees));
     canvas.setAttribute('data-chunks', String(stats.chunks));
     canvas.setAttribute('data-rebuilt', String(stats.rebuilt));
+    canvas.setAttribute('data-models', String(renderer.kitModels));
     canvas.setAttribute('data-guideways', String(described.guideways));
     canvas.setAttribute('data-closed', String(described.closed));
     canvas.setAttribute('data-warned', String(described.warned));

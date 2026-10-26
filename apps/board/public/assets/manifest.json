@@ -1,0 +1,1085 @@
+{
+  "kits": {
+    "suburban": {
+      "name": "City Kit (Suburban) 2.0",
+      "url": "https://kenney.nl/assets/city-kit-suburban",
+      "licence": "CC0 1.0"
+    },
+    "commercial": {
+      "name": "City Kit (Commercial) 2.1",
+      "url": "https://kenney.nl/assets/city-kit-commercial",
+      "licence": "CC0 1.0"
+    },
+    "industrial": {
+      "name": "City Kit (Industrial) 2.0",
+      "url": "https://kenney.nl/assets/city-kit-industrial",
+      "licence": "CC0 1.0"
+    },
+    "roads": {
+      "name": "City Kit (Roads) 2.2",
+      "url": "https://kenney.nl/assets/city-kit-roads",
+      "licence": "CC0 1.0"
+    },
+    "car": {
+      "name": "Car Kit 3.1",
+      "url": "https://kenney.nl/assets/car-kit",
+      "licence": "CC0 1.0"
+    }
+  },
+  "models": [
+    {
+      "id": "townhouse-a",
+      "kit": "commercial",
+      "file": "building-a.glb",
+      "for": "a townhouse (three storeys)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 27128,
+      "triangles": 1024,
+      "native": {
+        "min": [
+          -0.442,
+          0,
+          -0.47
+        ],
+        "max": [
+          0.442,
+          1.293,
+          0.47
+        ],
+        "size": [
+          0.884,
+          1.293,
+          0.94
+        ]
+      }
+    },
+    {
+      "id": "townhouse-b",
+      "kit": "commercial",
+      "file": "building-b.glb",
+      "for": "a townhouse (three storeys)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 27992,
+      "triangles": 1073,
+      "native": {
+        "min": [
+          -0.485,
+          0,
+          -0.47
+        ],
+        "max": [
+          0.485,
+          1.293,
+          0.47
+        ],
+        "size": [
+          0.97,
+          1.293,
+          0.94
+        ]
+      }
+    },
+    {
+      "id": "townhouse-c",
+      "kit": "commercial",
+      "file": "building-c.glb",
+      "for": "a townhouse (two storeys)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 26724,
+      "triangles": 946,
+      "native": {
+        "min": [
+          -0.442,
+          0,
+          -0.545
+        ],
+        "max": [
+          0.442,
+          0.893,
+          0.545
+        ],
+        "size": [
+          0.884,
+          0.893,
+          1.09
+        ]
+      }
+    },
+    {
+      "id": "townhouse-d",
+      "kit": "commercial",
+      "file": "building-d.glb",
+      "for": "a townhouse (three storeys)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 27292,
+      "triangles": 1011,
+      "native": {
+        "min": [
+          -0.42,
+          0,
+          -0.45
+        ],
+        "max": [
+          0.42,
+          1.293,
+          0.45
+        ],
+        "size": [
+          0.84,
+          1.293,
+          0.9
+        ]
+      }
+    },
+    {
+      "id": "townhouse-h",
+      "kit": "commercial",
+      "file": "building-h.glb",
+      "for": "a townhouse (three storeys)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 30080,
+      "triangles": 1244,
+      "native": {
+        "min": [
+          -0.442,
+          0,
+          -0.504
+        ],
+        "max": [
+          0.442,
+          1.293,
+          0.504
+        ],
+        "size": [
+          0.884,
+          1.293,
+          1.008
+        ]
+      }
+    },
+    {
+      "id": "tower-a",
+      "kit": "commercial",
+      "file": "building-skyscraper-a.glb",
+      "for": "a ring building",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 26408,
+      "triangles": 943,
+      "native": {
+        "min": [
+          -0.68,
+          0,
+          -0.68
+        ],
+        "max": [
+          0.68,
+          2.88,
+          0.68
+        ],
+        "size": [
+          1.36,
+          2.88,
+          1.36
+        ]
+      }
+    },
+    {
+      "id": "tower-b",
+      "kit": "commercial",
+      "file": "building-skyscraper-b.glb",
+      "for": "a ring building",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 28364,
+      "triangles": 1079,
+      "native": {
+        "min": [
+          -0.68,
+          0,
+          -0.68
+        ],
+        "max": [
+          0.68,
+          4.48,
+          0.68
+        ],
+        "size": [
+          1.36,
+          4.48,
+          1.36
+        ]
+      }
+    },
+    {
+      "id": "tower-c",
+      "kit": "commercial",
+      "file": "building-skyscraper-c.glb",
+      "for": "a ring building",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 30904,
+      "triangles": 1277,
+      "native": {
+        "min": [
+          -0.64,
+          0,
+          -0.694
+        ],
+        "max": [
+          0.64,
+          4.08,
+          0.694
+        ],
+        "size": [
+          1.28,
+          4.08,
+          1.388
+        ]
+      }
+    },
+    {
+      "id": "tower-d",
+      "kit": "commercial",
+      "file": "building-skyscraper-d.glb",
+      "for": "a ring building",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 31292,
+      "triangles": 1240,
+      "native": {
+        "min": [
+          -0.64,
+          0,
+          -0.694
+        ],
+        "max": [
+          0.64,
+          5.47,
+          0.694
+        ],
+        "size": [
+          1.28,
+          5.47,
+          1.388
+        ]
+      }
+    },
+    {
+      "id": "tower-e",
+      "kit": "commercial",
+      "file": "building-skyscraper-e.glb",
+      "for": "a ring building",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 26412,
+      "triangles": 970,
+      "native": {
+        "min": [
+          -0.647,
+          0,
+          -0.621
+        ],
+        "max": [
+          0.648,
+          4.08,
+          0.621
+        ],
+        "size": [
+          1.295,
+          4.08,
+          1.242
+        ]
+      }
+    },
+    {
+      "id": "tower-far",
+      "kit": "commercial",
+      "file": "low-detail-building-a.glb",
+      "for": "a ring building far away",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 15200,
+      "triangles": 144,
+      "native": {
+        "min": [
+          -0.25,
+          0,
+          -0.25
+        ],
+        "max": [
+          0.25,
+          2,
+          0.25
+        ],
+        "size": [
+          0.5,
+          2,
+          0.5
+        ]
+      }
+    },
+    {
+      "id": "works-a",
+      "kit": "industrial",
+      "file": "building-a.glb",
+      "for": "a plant's works",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 36020,
+      "triangles": 1538,
+      "native": {
+        "min": [
+          -1.041,
+          0,
+          -0.621
+        ],
+        "max": [
+          1.043,
+          1.47,
+          0.621
+        ],
+        "size": [
+          2.084,
+          1.47,
+          1.242
+        ]
+      }
+    },
+    {
+      "id": "works-b",
+      "kit": "industrial",
+      "file": "building-b.glb",
+      "for": "a plant's works",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 38456,
+      "triangles": 1664,
+      "native": {
+        "min": [
+          -1.041,
+          0,
+          -0.639
+        ],
+        "max": [
+          1.043,
+          1.47,
+          0.623
+        ],
+        "size": [
+          2.084,
+          1.47,
+          1.262
+        ]
+      }
+    },
+    {
+      "id": "works-c",
+      "kit": "industrial",
+      "file": "building-c.glb",
+      "for": "a plant's works",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 37028,
+      "triangles": 1477,
+      "native": {
+        "min": [
+          -0.842,
+          0,
+          -0.911
+        ],
+        "max": [
+          1.034,
+          1.25,
+          1.197
+        ],
+        "size": [
+          1.876,
+          1.25,
+          2.108
+        ]
+      }
+    },
+    {
+      "id": "works-d",
+      "kit": "industrial",
+      "file": "building-d.glb",
+      "for": "a plant's works",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 28284,
+      "triangles": 947,
+      "native": {
+        "min": [
+          -0.442,
+          0,
+          -0.8
+        ],
+        "max": [
+          0.442,
+          1.415,
+          0.62
+        ],
+        "size": [
+          0.884,
+          1.415,
+          1.42
+        ]
+      }
+    },
+    {
+      "id": "chimney",
+      "kit": "industrial",
+      "file": "chimney-large.glb",
+      "for": "a plant's stack",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 18020,
+      "triangles": 218,
+      "native": {
+        "min": [
+          -0.54,
+          0,
+          -0.54
+        ],
+        "max": [
+          0.54,
+          1.7,
+          0.54
+        ],
+        "size": [
+          1.08,
+          1.7,
+          1.08
+        ]
+      }
+    },
+    {
+      "id": "tank",
+      "kit": "industrial",
+      "file": "detail-tank-large.glb",
+      "for": "a water or sewage basin",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 21752,
+      "triangles": 463,
+      "native": {
+        "min": [
+          -0.754,
+          0,
+          -0.894
+        ],
+        "max": [
+          0.754,
+          0.962,
+          0.754
+        ],
+        "size": [
+          1.508,
+          0.962,
+          1.648
+        ]
+      }
+    },
+    {
+      "id": "water-tower",
+      "kit": "industrial",
+      "file": "water-tower.glb",
+      "for": "the water plant",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 27184,
+      "triangles": 844,
+      "native": {
+        "min": [
+          -0.426,
+          0,
+          -0.416
+        ],
+        "max": [
+          0.426,
+          2.142,
+          0.416
+        ],
+        "size": [
+          0.852,
+          2.142,
+          0.832
+        ]
+      }
+    },
+    {
+      "id": "solar",
+      "kit": "industrial",
+      "file": "solar-panel-landscape-group.glb",
+      "for": "a plant's yard",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 25360,
+      "triangles": 594,
+      "native": {
+        "min": [
+          -0.757,
+          0,
+          -0.448
+        ],
+        "max": [
+          0.757,
+          0.262,
+          0.448
+        ],
+        "size": [
+          1.513,
+          0.262,
+          0.895
+        ]
+      }
+    },
+    {
+      "id": "road-straight",
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "for": "a street",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 14436,
+      "triangles": 44,
+      "native": {
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          0.02,
+          0.5
+        ],
+        "size": [
+          1,
+          0.02,
+          1
+        ]
+      }
+    },
+    {
+      "id": "road-crossing",
+      "kit": "roads",
+      "file": "road-crossing.glb",
+      "for": "a crossing",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 14752,
+      "triangles": 96,
+      "native": {
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          0.02,
+          0.5
+        ],
+        "size": [
+          1,
+          0.02,
+          1
+        ]
+      }
+    },
+    {
+      "id": "road-crossroad",
+      "kit": "roads",
+      "file": "road-crossroad.glb",
+      "for": "a crossroad",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 15008,
+      "triangles": 104,
+      "native": {
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          0.02,
+          0.5
+        ],
+        "size": [
+          1,
+          0.02,
+          1
+        ]
+      }
+    },
+    {
+      "id": "road-bend",
+      "kit": "roads",
+      "file": "road-bend.glb",
+      "for": "a bend",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 15896,
+      "triangles": 149,
+      "native": {
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          0.02,
+          0.5
+        ],
+        "size": [
+          1,
+          0.02,
+          1
+        ]
+      }
+    },
+    {
+      "id": "lamp",
+      "kit": "roads",
+      "file": "light-curved.glb",
+      "for": "a street lamp",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 14744,
+      "triangles": 41,
+      "native": {
+        "min": [
+          -0.025,
+          0,
+          -0.2
+        ],
+        "max": [
+          0.025,
+          0.675,
+          0.025
+        ],
+        "size": [
+          0.05,
+          0.675,
+          0.225
+        ]
+      }
+    },
+    {
+      "id": "lamp-double",
+      "kit": "roads",
+      "file": "light-square-double.glb",
+      "for": "a plaza lamp",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 15048,
+      "triangles": 72,
+      "native": {
+        "min": [
+          -0.025,
+          0,
+          -0.212
+        ],
+        "max": [
+          0.025,
+          0.6,
+          0.212
+        ],
+        "size": [
+          0.05,
+          0.6,
+          0.425
+        ]
+      }
+    },
+    {
+      "id": "barrier",
+      "kit": "roads",
+      "file": "construction-barrier.glb",
+      "for": "a closed stretch",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 15080,
+      "triangles": 60,
+      "native": {
+        "min": [
+          -0.068,
+          0,
+          -0.112
+        ],
+        "max": [
+          0.068,
+          0.13,
+          0.112
+        ],
+        "size": [
+          0.135,
+          0.13,
+          0.225
+        ]
+      }
+    },
+    {
+      "id": "cone",
+      "kit": "roads",
+      "file": "construction-cone.glb",
+      "for": "a site",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 14884,
+      "triangles": 66,
+      "native": {
+        "min": [
+          -0.038,
+          0,
+          -0.038
+        ],
+        "max": [
+          0.038,
+          0.094,
+          0.038
+        ],
+        "size": [
+          0.075,
+          0.094,
+          0.075
+        ]
+      }
+    },
+    {
+      "id": "site-fence",
+      "kit": "roads",
+      "file": "construction-fence.glb",
+      "for": "a building site",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-roads",
+      "bytes": 16056,
+      "triangles": 104,
+      "native": {
+        "min": [
+          -0.038,
+          0,
+          -0.188
+        ],
+        "max": [
+          0.038,
+          0.179,
+          0.188
+        ],
+        "size": [
+          0.075,
+          0.179,
+          0.375
+        ]
+      }
+    },
+    {
+      "id": "tree-small",
+      "kit": "suburban",
+      "file": "tree-small.glb",
+      "for": "a street tree",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "bytes": 15160,
+      "triangles": 42,
+      "native": {
+        "min": [
+          -0.105,
+          0,
+          -0.121
+        ],
+        "max": [
+          0.105,
+          0.567,
+          0.121
+        ],
+        "size": [
+          0.21,
+          0.567,
+          0.243
+        ]
+      }
+    },
+    {
+      "id": "tree-large",
+      "kit": "suburban",
+      "file": "tree-large.glb",
+      "for": "a park tree",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "bytes": 15168,
+      "triangles": 42,
+      "native": {
+        "min": [
+          -0.105,
+          0,
+          -0.121
+        ],
+        "max": [
+          0.105,
+          0.767,
+          0.121
+        ],
+        "size": [
+          0.21,
+          0.767,
+          0.243
+        ]
+      }
+    },
+    {
+      "id": "hedge",
+      "kit": "suburban",
+      "file": "fence-low.glb",
+      "for": "a garden hedge",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "bytes": 17060,
+      "triangles": 180,
+      "native": {
+        "min": [
+          -0.638,
+          0,
+          -0.437
+        ],
+        "max": [
+          0.638,
+          0.17,
+          0.4
+        ],
+        "size": [
+          1.275,
+          0.17,
+          0.837
+        ]
+      }
+    },
+    {
+      "id": "fence",
+      "kit": "suburban",
+      "file": "fence.glb",
+      "for": "a garden fence",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "bytes": 15676,
+      "triangles": 88,
+      "native": {
+        "min": [
+          -0.238,
+          0,
+          -0.038
+        ],
+        "max": [
+          0.238,
+          0.27,
+          0.038
+        ],
+        "size": [
+          0.475,
+          0.27,
+          0.075
+        ]
+      }
+    },
+    {
+      "id": "planter",
+      "kit": "suburban",
+      "file": "planter.glb",
+      "for": "a plaza planter",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "bytes": 17576,
+      "triangles": 200,
+      "native": {
+        "min": [
+          -0.2,
+          0,
+          -0.151
+        ],
+        "max": [
+          0.2,
+          0.177,
+          0.149
+        ],
+        "size": [
+          0.4,
+          0.177,
+          0.3
+        ]
+      }
+    },
+    {
+      "id": "path",
+      "kit": "suburban",
+      "file": "path-stones-long.glb",
+      "for": "a park path",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "bytes": 15280,
+      "triangles": 48,
+      "native": {
+        "min": [
+          -0.07,
+          0,
+          -0.2
+        ],
+        "max": [
+          0.07,
+          0.01,
+          0.2
+        ],
+        "size": [
+          0.14,
+          0.01,
+          0.4
+        ]
+      }
+    },
+    {
+      "id": "pod",
+      "kit": "car",
+      "file": "hatchback-sports.glb",
+      "for": "a pod (the Ledger's Ami)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/car-kit",
+      "bytes": 34264,
+      "triangles": 1382,
+      "native": {
+        "min": [
+          -0.65,
+          0,
+          -1.45
+        ],
+        "max": [
+          0.65,
+          1.1,
+          1.4
+        ],
+        "size": [
+          1.3,
+          1.1,
+          2.85
+        ]
+      }
+    },
+    {
+      "id": "cab",
+      "kit": "car",
+      "file": "taxi.glb",
+      "for": "a cab (the Ledger's robotaxi)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/car-kit",
+      "bytes": 35700,
+      "triangles": 1405,
+      "native": {
+        "min": [
+          -0.75,
+          0,
+          -1.4
+        ],
+        "max": [
+          0.75,
+          1.5,
+          1.35
+        ],
+        "size": [
+          1.5,
+          1.5,
+          2.75
+        ]
+      }
+    },
+    {
+      "id": "shuttle",
+      "kit": "car",
+      "file": "van.glb",
+      "for": "a shuttle (the Ledger's Navya)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/car-kit",
+      "bytes": 34344,
+      "triangles": 1362,
+      "native": {
+        "min": [
+          -0.75,
+          0,
+          -1.4
+        ],
+        "max": [
+          0.75,
+          1.35,
+          1.35
+        ],
+        "size": [
+          1.5,
+          1.35,
+          2.75
+        ]
+      }
+    },
+    {
+      "id": "cart",
+      "kit": "car",
+      "file": "delivery-flat.glb",
+      "for": "a delivery cart",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/car-kit",
+      "bytes": 39608,
+      "triangles": 1944,
+      "native": {
+        "min": [
+          -0.75,
+          0,
+          -1.65
+        ],
+        "max": [
+          0.75,
+          1.35,
+          1.6
+        ],
+        "size": [
+          1.5,
+          1.35,
+          3.25
+        ]
+      }
+    },
+    {
+      "id": "bike",
+      "kit": "car",
+      "file": "kart-oodi.glb",
+      "for": "a bike on the lane (stand-in)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/car-kit",
+      "bytes": 49572,
+      "triangles": 2246,
+      "native": {
+        "min": [
+          -0.487,
+          0,
+          -0.602
+        ],
+        "max": [
+          0.487,
+          1.329,
+          0.826
+        ],
+        "size": [
+          0.974,
+          1.329,
+          1.428
+        ]
+      }
+    }
+  ],
+  "totalBytes": 955212
+}
