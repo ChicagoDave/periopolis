@@ -50,6 +50,7 @@ import { SUB_DEPTH_M } from './describe.ts';
 import type { Chunk, Described, HomeInstance, MaterialId, PropInstance, Tree } from './describe.ts';
 import { SHORE_SOIL_M } from './describe.ts';
 import type { MoverClass, Placed } from './movers.ts';
+import type { TrafficClass, TrafficPlaced } from './traffic.ts';
 import { homeFacade, officeFacade, plantFacade, HOME_VARIANTS } from './facade.ts';
 import type { FacadeSheet, HomeVariant } from './facade.ts';
 
@@ -399,12 +400,23 @@ const PLAIN: Readonly<Record<Exclude<MaterialId, 'massing' | 'office' | 'plant' 
   pipe: { color: '#7A6652', roughness: 0.6 },
 };
 
-/** A mover's body by class, metres: length along its heading, width, height (the Ledger's bodies, a height Mine). */
-const MOVER_BODY: Readonly<Record<MoverClass, { l: number; w: number; h: number; color: string }>> = {
-  pod: { l: 2.41, w: 1.39, h: 1.55, color: '#F2F0E8' },
-  cab: { l: 3.63, w: 1.9, h: 1.7, color: '#2E3A46' },
-  shuttle: { l: 4.75, w: 2.11, h: 2.6, color: '#3F7FBF' },
+/** A mover's body by class, metres: length along its heading, width, height (the Ledger's bodies, a height Mine);
+ * the kit model that stands for it when loaded, else a box of its colour. */
+const MOVER_BODY: Readonly<Record<MoverClass, { l: number; w: number; h: number; color: string; model: ModelId }>> = {
+  pod: { l: 2.41, w: 1.39, h: 1.55, color: '#F2F0E8', model: 'pod' },
+  cab: { l: 3.63, w: 1.9, h: 1.7, color: '#2E3A46', model: 'cab' },
+  shuttle: { l: 4.75, w: 2.11, h: 2.6, color: '#3F7FBF', model: 'shuttle' },
 };
+
+/** Surface traffic's bodies: length, height, colour, and the kit model (plan Phase 5). */
+const TRAFFIC_BODY: Readonly<Record<TrafficClass, { l: number; w: number; h: number; color: string; model: ModelId }>> = {
+  bike: { l: 1.8, w: 0.6, h: 1.1, color: '#C8402A', model: 'bike' },
+  cart: { l: 3.25, w: 1.5, h: 1.6, color: '#E0B228', model: 'cart' },
+};
+
+/** A kit vehicle's forward is its native +z; a scene heading is atan2 in (x east, y south), so the turn about y that
+ * points the body along the heading is the heading itself plus a quarter turn (Mine, checked by eye). */
+const VEHICLE_YAW = Math.PI / 2;
 
 /** The materials that stand on the sub level; everything else is the surface, ghosted when the sub level shows. */
 const SUB_MATERIALS: ReadonlySet<string> = new Set(['guideway', 'closed', 'warned', 'ordered', 'stop', 'entry', 'walkway', 'pipe']);
@@ -482,6 +494,8 @@ export class IrlRenderer {
   private readonly movers = new Map<MoverClass, InstancedMesh>();
   private readonly props = new Map<ModelId, InstancedMesh>();
   private propsSignature = '';
+  private readonly traffic = new Map<TrafficClass, InstancedMesh>();
+  private readonly treeMeshes: InstancedMesh[] = [];
   private shore: Mesh[] = [];
   private readonly loader = new GLTFLoader();
   private readonly models = new Map<ModelId, LoadedModel | 'loading' | 'failed'>();
@@ -550,6 +564,9 @@ export class IrlRenderer {
       `${MODELS_URL}${id}.glb`,
       (gltf) => {
         let found: LoadedModel | null = null;
+        // The pack quantizes positions to the unit range and puts the scale back on the node, so the node's world
+        // transform is baked into the geometry: what is instanced is then in the kit's units, as the manifest measures.
+        gltf.scene.updateMatrixWorld(true);
         gltf.scene.traverse((o) => {
           if (found || !(o as Mesh).isMesh) return;
           const mesh = o as Mesh;
@@ -558,7 +575,14 @@ export class IrlRenderer {
           material.emissive = new Color(WINDOW_LIGHT);
           material.emissiveIntensity = 0;
           litByAttribute(material);
-          found = { geometry: mesh.geometry, material };
+          const geometry = mesh.geometry.clone();
+          geometry.applyMatrix4(mesh.matrixWorld);
+          if (this.sub && id !== 'pod' && id !== 'cab' && id !== 'shuttle') {
+            material.transparent = true;
+            material.opacity = GHOST_SURFACE;
+            material.depthWrite = false;
+          }
+          found = { geometry, material };
         });
         this.models.set(id, found ?? 'failed');
         if (found) {
@@ -786,10 +810,12 @@ export class IrlRenderer {
    * Rebuild the props (lamps, planters) from every chunk's: one instanced mesh a kit model, each placed by its height
    * fit; a model not yet loaded leaves its props out until it arrives.
    */
-  private buildProps(chunks: readonly Chunk[]): void {
+  private buildProps(chunks: readonly Chunk[], nearSet: ReadonlySet<string>): void {
     const byModel = new Map<ModelId, PropInstance[]>();
     for (const c of chunks) {
+      const near = nearSet.has(c.key);
       for (const p of c.props) {
+        if (p.bulk && !near) continue;
         const list = byModel.get(p.model);
         if (list) list.push(p);
         else byModel.set(p.model, [p]);
@@ -829,7 +855,8 @@ export class IrlRenderer {
     }
   }
 
-  /** Rebuild the trees from every chunk's: one instanced mesh. */
+  /** Rebuild the trees from every chunk's: one instanced mesh a species on the kit's models, or the cone until a
+   * species' model arrives. */
   private buildTrees(chunks: readonly Chunk[]): void {
     const trees: Tree[] = [];
     for (const c of chunks) trees.push(...c.trees);
@@ -838,7 +865,41 @@ export class IrlRenderer {
       this.trees.dispose();
       this.trees = null;
     }
+    for (const m of this.treeMeshes) {
+      this.scene.remove(m);
+      m.dispose();
+    }
+    this.treeMeshes.length = 0;
     if (!trees.length) return;
+    const dummyTree = new Object3D();
+    const left: Tree[] = [];
+    for (const species of ['tree-small', 'tree-large'] as const) {
+      const mine = trees.filter((t) => t.species === species);
+      if (!mine.length) continue;
+      const loaded = this.model(species);
+      if (!loaded) {
+        left.push(...mine);
+        continue;
+      }
+      const mesh = new InstancedMesh(loaded.geometry, loaded.material, mine.length);
+      mine.forEach((t, i) => {
+        const fit = fitToHeight(species, t.heightM);
+        dummyTree.position.copy(toGl({ x: t.x, y: t.y, z: 0 }));
+        dummyTree.rotation.set(0, (t.x + t.y) % 6.28, 0);
+        dummyTree.scale.set(1, 1, 1);
+        dummyTree.updateMatrix();
+        dummyTree.matrix.multiply(new Matrix4().makeTranslation(fit.offset.x, fit.offset.y, fit.offset.z).multiply(new Matrix4().makeScale(fit.scale, fit.scale, fit.scale)));
+        mesh.setMatrixAt(i, dummyTree.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.scene.add(mesh);
+      this.treeMeshes.push(mesh);
+    }
+    if (!left.length) return;
+    trees.length = 0;
+    trees.push(...left);
     const trunk = this.material('path');
     const leafKey = 'leaves';
     let leaves = this.materials.get(leafKey);
@@ -908,20 +969,20 @@ export class IrlRenderer {
       this.buildHomes(described.chunks);
       this.homesSignature = homesSignature;
     }
-    const treesSignature = described.chunks
+    const treesSignature = `${this.modelsArrived}|${described.chunks
       .filter((c) => c.trees.length)
       .map((c) => c.key)
-      .join(';');
+      .join(';')}`;
     if (treesSignature !== this.treesSignature) {
       this.buildTrees(described.chunks);
       this.treesSignature = treesSignature;
     }
     const propsSignature = `${this.modelsArrived}|${described.chunks
       .filter((c) => c.props.length)
-      .map((c) => `${c.key}:${c.props.length}`)
+      .map((c) => `${c.key}:${c.props.length}:${nearSet.has(c.key) ? 'near' : 'far'}`)
       .join(';')}`;
     if (propsSignature !== this.propsSignature) {
-      this.buildProps(described.chunks);
+      this.buildProps(described.chunks, nearSet);
       this.propsSignature = propsSignature;
     }
     this.fitGround(described, tokens);
@@ -1018,26 +1079,95 @@ export class IrlRenderer {
         this.movers.delete(cls);
       }
       if (!list.length) continue;
+      const body = MOVER_BODY[cls];
+      const loaded = this.model(body.model);
+      const wantKit = loaded !== null;
+      if (mesh && (mesh.userData.kit === true) !== wantKit) {
+        this.scene.remove(mesh);
+        if (!mesh.userData.kit) mesh.geometry.dispose();
+        mesh.dispose();
+        mesh = undefined;
+        this.movers.delete(cls);
+      }
       if (!mesh) {
-        const body = MOVER_BODY[cls];
-        const geometry = new BoxGeometry(body.l, body.h, body.w);
-        geometry.translate(0, body.h / 2, 0);
         const key = `mover-${cls}`;
         let material = this.materials.get(key);
         if (!material) {
           material = new MeshStandardMaterial({ color: new Color(body.color), roughness: 0.4, metalness: 0.2, emissive: new Color(WINDOW_LIGHT), emissiveIntensity: 0.25 });
           this.materials.set(key, material);
         }
-        mesh = new InstancedMesh(geometry, material, list.length);
+        let geometry: BufferGeometry;
+        if (loaded) geometry = loaded.geometry;
+        else {
+          geometry = new BoxGeometry(body.l, body.h, body.w);
+          geometry.translate(0, body.h / 2, 0);
+        }
+        mesh = new InstancedMesh(geometry, loaded ? loaded.material : material, list.length);
+        mesh.userData.kit = wantKit;
         mesh.frustumCulled = false;
         this.scene.add(mesh);
         this.movers.set(cls, mesh);
       }
+      const fit = loaded ? fitToFootprint(body.model, body.l) : null;
       list.forEach((p, i) => {
         dummy.position.copy(toGl({ x: p.x, y: p.y, z: SUB_DEPTH_M + 1 }));
-        // Scene heading is atan2 in (x east, y south); in three's space y south is -z, so the turn about y is the heading itself.
-        dummy.rotation.set(0, p.heading, 0);
+        // Scene heading is atan2 in (x east, y south); the box's length lies along x, the kit body's along its z.
+        dummy.rotation.set(0, p.heading + (fit ? VEHICLE_YAW : 0), 0);
+        dummy.scale.set(1, 1, 1);
         dummy.updateMatrix();
+        if (fit) dummy.matrix.multiply(new Matrix4().makeTranslation(fit.offset.x, fit.offset.y, fit.offset.z).multiply(new Matrix4().makeScale(fit.scale, fit.scale, fit.scale)));
+        (mesh as InstancedMesh).setMatrixAt(i, dummy.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+
+  /**
+   * The surface traffic placed for this frame: one instanced mesh a class on the kit's body (a box until it arrives),
+   * each on the ground turned to its heading.
+   */
+  setTraffic(placed: Readonly<Record<TrafficClass, readonly TrafficPlaced[]>>): void {
+    const dummy = new Object3D();
+    for (const cls of ['bike', 'cart'] as const) {
+      const list = placed[cls];
+      const body = TRAFFIC_BODY[cls];
+      const loaded = this.model(body.model);
+      let mesh = this.traffic.get(cls);
+      if (mesh && (mesh.count !== list.length || (mesh.userData.kit === true) !== (loaded !== null))) {
+        this.scene.remove(mesh);
+        if (!mesh.userData.kit) mesh.geometry.dispose();
+        mesh.dispose();
+        mesh = undefined;
+        this.traffic.delete(cls);
+      }
+      if (!list.length) continue;
+      if (!mesh) {
+        const key = `traffic-${cls}`;
+        let material = this.materials.get(key);
+        if (!material) {
+          material = new MeshStandardMaterial({ color: new Color(body.color), roughness: 0.5, metalness: 0.1 });
+          this.materials.set(key, material);
+        }
+        let geometry: BufferGeometry;
+        if (loaded) geometry = loaded.geometry;
+        else {
+          geometry = new BoxGeometry(body.l, body.h, body.w);
+          geometry.translate(0, body.h / 2, 0);
+        }
+        mesh = new InstancedMesh(geometry, loaded ? loaded.material : material, list.length);
+        mesh.userData.kit = loaded !== null;
+        mesh.frustumCulled = false;
+        mesh.castShadow = true;
+        this.scene.add(mesh);
+        this.traffic.set(cls, mesh);
+      }
+      const fit = loaded ? fitToFootprint(body.model, body.l) : null;
+      list.forEach((p, i) => {
+        dummy.position.copy(toGl({ x: p.x, y: p.y, z: 0.1 }));
+        dummy.rotation.set(0, p.heading + (fit ? VEHICLE_YAW : 0), 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        if (fit) dummy.matrix.multiply(new Matrix4().makeTranslation(fit.offset.x, fit.offset.y, fit.offset.z).multiply(new Matrix4().makeScale(fit.scale, fit.scale, fit.scale)));
         (mesh as InstancedMesh).setMatrixAt(i, dummy.matrix);
       });
       mesh.instanceMatrix.needsUpdate = true;
@@ -1061,6 +1191,13 @@ export class IrlRenderer {
       m.needsUpdate = true;
     };
     for (const [key, m] of this.materials) if (!SUB_MATERIALS.has(key) && !key.startsWith('mover-')) ghost(m, GHOST_SURFACE);
+    // The kit models' materials live with the models; a vehicle's (the fleet rides the sub level) stays as it is.
+    for (const [id, loaded] of this.models) {
+      if (loaded === 'loading' || loaded === 'failed') continue;
+      if (id === 'pod' || id === 'cab' || id === 'shuttle') continue;
+      ghost(loaded.material, GHOST_SURFACE);
+    }
+    for (const m of this.traffic.values()) m.visible = !on;
     if (this.ground) ghost(this.ground.material as MeshStandardMaterial, GHOST_GROUND);
     for (const m of this.shore) ghost(m.material as MeshStandardMaterial, GHOST_GROUND);
     this.sun.castShadow = !on;
@@ -1128,6 +1265,8 @@ export class IrlRenderer {
       m.dispose();
     }
     for (const m of this.props.values()) m.dispose();
+    for (const m of this.traffic.values()) m.dispose();
+    for (const m of this.treeMeshes) m.dispose();
     for (const m of this.shore) m.geometry.dispose();
     for (const m of this.materials.values()) m.dispose();
     this.ground?.geometry.dispose();

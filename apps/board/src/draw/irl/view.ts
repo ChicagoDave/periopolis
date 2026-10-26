@@ -9,8 +9,10 @@
  * The fleet of movers is kept here as the last frame's states, the basis for the next (a cache of the animation, never
  * a fact of the city), reconciled to the Ledger's fleet for the people living there and to the line as it stands,
  * and stepped by the wall clock in a frame loop that runs while the view is open.
+ * The surface traffic (bikes on the lane, carts on the streets) is kept the same way, one set a neighborhood, and
+ * stepped in the same loop, which runs whenever the view is open and backs off when a frame is slow.
  * Public interface: drawIrl, turnIrl, dollyIrl, panIrl, fitIrl, irlSupported, SubCounts, subCounts, moverCount,
- * MOVER_LOOP_MS.
+ * trafficCount, MOVER_LOOP_MS.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
 import { RATES } from '@city/site';
@@ -27,6 +29,11 @@ import { describeScene } from './describe.ts';
 import { IrlRenderer, webglSupported } from './gl.ts';
 import { fleetOf, graphOf, placeOf, reconcile, step } from './movers.ts';
 import type { LineGraph, MoverClass, MoverState, Placed } from './movers.ts';
+import { pathsOf, placeTraffic, stepTraffic, trafficOf } from './traffic.ts';
+import type { Path, TrafficClass, TrafficPlaced, TrafficState } from './traffic.ts';
+import { planNeighborhood } from '@city/ground';
+import { tileCenterM } from '../angled/scene.ts';
+import { hashOf } from './facade.ts';
 
 /** The renderer on the page's canvas, made on first use; null once the browser has said it cannot. */
 let renderer: IrlRenderer | null = null;
@@ -68,11 +75,56 @@ interface FleetFrame {
   readonly at: number;
 }
 let fleet: FleetFrame | null = null;
-let loop: ReturnType<typeof setInterval> | null = null;
+let loop: ReturnType<typeof setTimeout> | null = null;
 
 /** Movers running now. */
 export function moverCount(): number {
   return fleet?.movers.length ?? 0;
+}
+
+/** One neighborhood's surface traffic: its paths and the states on them. */
+interface TileTraffic {
+  readonly paths: readonly Path[];
+  states: readonly TrafficState[];
+}
+const trafficByTile = new Map<string, TileTraffic>();
+let trafficAt = 0;
+
+/** Bikes and carts running now. */
+export function trafficCount(): Readonly<Record<TrafficClass, number>> {
+  let bike = 0;
+  let cart = 0;
+  for (const t of trafficByTile.values()) for (const s of t.states) if (s.cls === 'bike') bike++; else cart++;
+  return { bike, cart };
+}
+
+/**
+ * The surface traffic moved on to now: a set for every neighborhood standing (made when it first stands, from the
+ * Ground's lane and homes, seeded by its tile), stepped by the seconds since the last frame, dropped with its tile.
+ * Off near detail there is none to place.
+ */
+function trafficNow(page: Page, now: number, near: boolean): Readonly<Record<TrafficClass, TrafficPlaced[]>> {
+  const { s } = page;
+  const placed: Record<TrafficClass, TrafficPlaced[]> = { bike: [], cart: [] };
+  const seconds = trafficAt ? Math.min(5, (now - trafficAt) / 1000) : 0;
+  trafficAt = now;
+  if (!near) {
+    trafficByTile.clear();
+    return placed;
+  }
+  const hoods = new Set(Object.keys(s.game.layout.tiles).filter((k) => s.game.layout.tiles[k]?.kind === 'hood'));
+  for (const key of [...trafficByTile.keys()]) if (!hoods.has(key)) trafficByTile.delete(key);
+  const plan = planNeighborhood(RATES.shared, RATES.walking, RATES.base);
+  for (const key of hoods) {
+    let t = trafficByTile.get(key);
+    if (!t) {
+      const paths = pathsOf(plan, tileCenterM(key, RATES));
+      t = { paths, states: trafficOf(paths, plan.figures.laneM, plan.figures.homes, hashOf(key)) };
+      trafficByTile.set(key, t);
+    } else t.states = stepTraffic(t.paths, t.states, seconds);
+    for (const st of t.states) placed[st.cls].push(placeTraffic(t.paths, st));
+  }
+  return placed;
 }
 
 /** The people living in the city now: on a clock those the Run admits, off it every home full. */
@@ -101,29 +153,35 @@ function fleetNow(page: Page, now: number): Readonly<Record<MoverClass, Placed[]
   return placed;
 }
 
-/** Keep the fleet moving while the view is open: a tick places the movers and renders a frame, while the sub level
- * shows; with the surface over them the movers are out of sight, so a tick then costs nothing and the fleet catches up
- * (by at most five seconds) when the sub level is shown again. */
+/**
+ * Keep the traffic moving while the view is open: a tick places the movers (when the sub level shows) and the
+ * surface traffic (at near detail) and renders a frame. The next tick waits at least MOVER_LOOP_MS and at least four
+ * times what the frame took, so a slow renderer (software GL) is never saturated and the page stays responsive.
+ */
 function keepMoving(page: Page): void {
   if (loop) return;
-  loop = setInterval(() => {
-    if (page.s.view.at !== 'irl' || !renderer || !frame) {
-      if (loop) clearInterval(loop);
-      loop = null;
-      return;
+  const tick = (): void => {
+    loop = null;
+    if (page.s.view.at !== 'irl' || !renderer || !frame) return;
+    const started = performance.now();
+    const near = byId<HTMLCanvasElement>('irlcanvas').getAttribute('data-lod') === 'near';
+    if (page.s.sub) renderer.setMovers(fleetNow(page, started));
+    if (near) renderer.setTraffic(trafficNow(page, started, true));
+    if (page.s.sub || near) {
+      const orbit = page.s.orbit ?? fitOrbit(frame.bounds, frame.width / frame.height);
+      const frames = renderer.render(orbit, frame.width, frame.height, Math.min(2, window.devicePixelRatio || 1));
+      const canvas = byId<HTMLCanvasElement>('irlcanvas');
+      canvas.setAttribute('data-frames', String(frames));
+      const first = fleet?.movers[0];
+      if (first && fleet) {
+        const p = placeOf(fleet.graph, first);
+        canvas.setAttribute('data-mover0', `${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+      }
     }
-    if (!page.s.sub) return;
-    renderer.setMovers(fleetNow(page, performance.now()));
-    const orbit = page.s.orbit ?? fitOrbit(frame.bounds, frame.width / frame.height);
-    const frames = renderer.render(orbit, frame.width, frame.height, Math.min(2, window.devicePixelRatio || 1));
-    const canvas = byId<HTMLCanvasElement>('irlcanvas');
-    canvas.setAttribute('data-frames', String(frames));
-    const first = fleet?.movers[0];
-    if (first && fleet) {
-      const p = placeOf(fleet.graph, first);
-      canvas.setAttribute('data-mover0', `${p.x.toFixed(1)},${p.y.toFixed(1)}`);
-    }
-  }, MOVER_LOOP_MS);
+    const took = performance.now() - started;
+    loop = setTimeout(tick, Math.max(MOVER_LOOP_MS, 4 * took));
+  };
+  loop = setTimeout(tick, MOVER_LOOP_MS);
 }
 
 /** Whether the browser can draw the city IRL; decided once, on the page's canvas. */
@@ -178,7 +236,7 @@ export function drawIrl(page: Page): Painted | null {
   if (on) board.toggleAttribute('hidden', true);
   if (!on) {
     frame = null;
-    if (loop) clearInterval(loop);
+    if (loop) clearTimeout(loop);
     loop = null;
     return null;
   }
@@ -249,6 +307,7 @@ export function drawIrl(page: Page): Painted | null {
     canvas.setAttribute('data-streets', String(described.streets));
     canvas.setAttribute('data-crossings', String(described.crossings));
     canvas.setAttribute('data-props', String(described.props));
+    canvas.setAttribute('data-bulk-props', String(described.bulkProps));
     canvas.setAttribute('data-shore', described.terrain ? described.terrain.shoreY.toFixed(0) : '');
     canvas.setAttribute('data-guideways', String(described.guideways));
     canvas.setAttribute('data-closed', String(described.closed));
@@ -264,6 +323,10 @@ export function drawIrl(page: Page): Painted | null {
   frame = { signature, bounds, width: cssWidth, height: cssHeight };
   renderer.setMovers(fleetNow(page, performance.now()));
   canvas.setAttribute('data-movers', String(moverCount()));
+  renderer.setTraffic(trafficNow(page, performance.now(), lod === 'near'));
+  const traffic = trafficCount();
+  canvas.setAttribute('data-bikes', String(traffic.bike));
+  canvas.setAttribute('data-carts', String(traffic.cart));
   const frames = renderer.render(orbit, cssWidth, cssHeight, dpr);
   canvas.setAttribute('data-frames', String(frames));
   keepMoving(page);

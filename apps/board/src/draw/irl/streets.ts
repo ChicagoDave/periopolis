@@ -3,10 +3,12 @@
  * face alternately, so between an odd line and the next even one fronts face fronts and the 12 m gap is a street, an
  * 8 m shared surface between two 2 m sidewalks with kerbs, a crossing at each end; the other gaps are gardens. The
  * bike lane runs the Ground's three edges. A park gets a ring path and a cross; the center and the ring's plaza are
- * paved and ringed with lamps and planters from the kit. Pure, no DOM: records in scene metres (x east, y south)
- * that the describer turns into prisms and props, and a test can count.
- * Public interface: SurfaceKind, Strip, Prop, Streets, STREET_M, SIDEWALK_M, CROSSING_M, PATH_M, LANE_M, streetsOf,
- * plazaOf.
+ * paved and ringed with lamps and planters from the kit. Along every street a tree each TREE_PITCH_M on both
+ * sidewalks and a lamp each LAMP_PITCH_M on one; along every garden gap a hedge a home (plan Phase 5). Pure, no
+ * DOM: records in scene metres (x east, y south) that the describer turns into prisms and props, and a test can
+ * count. Bulk props (trees, hedges) are marked so the adapter can detail only the neighborhoods near the camera.
+ * Public interface: SurfaceKind, Strip, Prop, Streets, STREET_M, SIDEWALK_M, CROSSING_M, PATH_M, LANE_M,
+ * TREE_PITCH_M, LAMP_PITCH_M, streetsOf, plazaOf.
  * Owner context: Board (adapter), the IRL view (plan simcity-detail-city).
  */
 import type { Disc, NeighborhoodPlan, Point, RingPlan, Segment } from '@city/ground';
@@ -20,13 +22,15 @@ export interface Strip {
   readonly corners: readonly Point[];
 }
 
-/** A kit model placed on the ground: which, where, which way it faces (radians from facing south), and how tall. */
+/** A kit model placed on the ground: which, where, which way it faces (radians from facing south), and how tall;
+ * bulk when it is one of many (a street tree, a hedge) that only the neighborhoods near the camera need. */
 export interface Prop {
   readonly model: string;
   readonly x: number;
   readonly y: number;
   readonly yaw: number;
   readonly heightM: number;
+  readonly bulk?: true;
 }
 
 /** A neighborhood's streets and open ground, and the sums a test holds them to. */
@@ -50,6 +54,12 @@ export const PATH_M = 2.5;
 export const LANE_M = 3;
 /** The kerb, metres wide (Mine). */
 const KERB_M = 0.25;
+/** Metres between street trees on a sidewalk, and between lamps (Mine). */
+export const TREE_PITCH_M = 24;
+export const LAMP_PITCH_M = 48;
+/** A street tree's height and a hedge's, metres (Mine). */
+const STREET_TREE_M = 7;
+const HEDGE_M = 1.2;
 /** The lamp's height, metres (Mine). */
 const LAMP_M = 6;
 
@@ -151,6 +161,28 @@ export function streetsOf(plan: NeighborhoodPlan, at: Point, fields = false): St
     strips.push({ kind: 'crossing', corners: rect(x1 - CROSSING_M, x1, top + side, bottom - side, at) });
     streets++;
     crossings += 2;
+    // Street trees on both sidewalks, a lamp on the north one, from past the crossing to before the far one.
+    for (let x = x0 + CROSSING_M + TREE_PITCH_M / 2; x < x1 - CROSSING_M; x += TREE_PITCH_M) {
+      props.push({ model: 'tree-small', x: at.x + x, y: at.y + top + (side - KERB_M) / 2, yaw: 0, heightM: STREET_TREE_M, bulk: true });
+      props.push({ model: 'tree-small', x: at.x + x, y: at.y + bottom - (side - KERB_M) / 2, yaw: Math.PI, heightM: STREET_TREE_M, bulk: true });
+    }
+    for (let x = x0 + CROSSING_M + LAMP_PITCH_M / 2; x < x1 - CROSSING_M; x += LAMP_PITCH_M) {
+      props.push({ model: 'lamp', x: at.x + x, y: at.y + top + side - KERB_M - 0.4, yaw: 0, heightM: 6, bulk: true });
+    }
+  }
+  // Hedges along the garden gaps: between an even line and the odd one after it (backs facing backs), one a home
+  // along the gap's middle, where the two lines' rows overlap.
+  for (let i = 0; i + 1 < ys.length; i += 2) {
+    const yA = ys[i] as number;
+    const yB = ys[i + 1] as number;
+    if (Math.abs(yB - yA - pitch) > 1e-6) continue;
+    const rowsA = plan.surface.rows.filter((r) => cm(r.y) === yA);
+    const rowsB = plan.surface.rows.filter((r) => cm(r.y) === yB);
+    const x0 = Math.max(Math.min(...rowsA.map((r) => r.x0)), Math.min(...rowsB.map((r) => r.x0)));
+    const x1 = Math.min(Math.max(...rowsA.map((r) => r.x1)), Math.max(...rowsB.map((r) => r.x1)));
+    const mid = (yA + yB) / 2;
+    const front = (rowsA[0]?.frontageM ?? 6) / (rowsA[0]?.homes ?? 1);
+    for (let x = x0 + front / 2; x < x1; x += front) props.push({ model: 'hedge', x: at.x + x, y: at.y + mid, yaw: 0, heightM: HEDGE_M, bulk: true });
   }
   for (const seg of plan.surface.lane) strips.push({ kind: 'lane', corners: along(seg, LANE_M, at) });
   const park = plan.surface.park;

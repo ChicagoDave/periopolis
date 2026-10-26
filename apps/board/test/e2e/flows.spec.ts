@@ -558,7 +558,7 @@ test('the site from the air follows the clock: scaffolds for what is ordered, bl
 
 test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a WebGL canvas and rendered, nearer rebuilds in rows, the map comes back (ADR-0023)", async ({ page }) => {
   // Near the kit models every frame is millions of triangles, seconds each on the software GL the flows run on.
-  test.slow();
+  test.setTimeout(300000);
   await expect(page.locator('#irlcanvas')).toBeHidden();
   await expect(page.locator('#irl')).toHaveAttribute('aria-pressed', 'false');
   await page.click('#irl');
@@ -625,6 +625,10 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-props', String(nearDescribed.props));
   expect(nearDescribed.streets).toBeGreaterThan(80);
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-shore', String(nearDescribed.terrain?.shoreY.toFixed(0)));
+  // Surface traffic (ADR-0024 Decision 6): a bike each 60 m of lane and a cart each 100 homes, a set a neighborhood.
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-bikes', String(10 * Math.round(hoodPlan.figures.laneM / 60)));
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-carts', String(10 * Math.round(hoodPlan.figures.homes / 100)));
+  expect(nearDescribed.bulkProps).toBeGreaterThan(5000);
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'noon');
   await page.click('#irl-night');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'night');

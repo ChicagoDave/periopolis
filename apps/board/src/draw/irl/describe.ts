@@ -114,11 +114,12 @@ export interface HomeInstance {
   readonly lit: 0 | 1;
 }
 
-/** One tree in a park: where, and how tall. */
+/** One tree in a park: where, how tall, and which of the kit's species (plan Phase 5). */
 export interface Tree {
   readonly x: number;
   readonly y: number;
   readonly heightM: number;
+  readonly species: 'tree-small' | 'tree-large';
 }
 
 /** A kit model placed on the ground as a prop (a lamp, a planter, a tower, a works, a school): the streets module's
@@ -187,10 +188,11 @@ export interface Described {
   readonly warned: number;
   readonly stops: number;
   readonly entries: number;
-  /** Streets laid, crossings and props placed. */
+  /** Streets laid, crossings and props placed; of the props, how many are bulk (street trees, hedges). */
   readonly streets: number;
   readonly crossings: number;
   readonly props: number;
+  readonly bulkProps: number;
   /** The site's terrain; null without a context. */
   readonly terrain: Terrain | null;
   /** The box round everything; null for an empty scene. */
@@ -393,7 +395,8 @@ function treesOf(key: TileKey, park: Disc, center: Point, fields: readonly Groun
     const x = (next() * 2 - 1) * inner;
     const y = (next() * 2 - 1) * inner;
     if (Math.hypot(x, y) > inner) continue;
-    const tree = { x: center.x + park.at.x + x, y: center.y + park.at.y + y, heightM: 5 + next() * 4 };
+    const height = 5 + next() * 4;
+    const tree: Tree = { x: center.x + park.at.x + x, y: center.y + park.at.y + y, heightM: height, species: height > 7.5 ? 'tree-large' : 'tree-small' };
     placed++;
     if (fields && insideRect(tree, fields)) continue;
     out.push(tree);
@@ -666,6 +669,7 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
     streets: streetsLaid,
     crossings: crossingsLaid,
     props: chunks.reduce((t, c) => t + c.props.length, 0),
+    bulkProps: chunks.reduce((t, c) => t + c.props.filter((p) => p.bulk).length, 0),
     terrain: context ? terrainOf(context) : null,
     bounds: boundsOf(scene),
   };

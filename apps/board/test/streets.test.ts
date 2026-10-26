@@ -79,11 +79,13 @@ describe('the streets', () => {
       close(Math.hypot(c.x - b.x, c.y - b.y), LANE_M);
     }
     expect(laid.strips.filter((s) => s.kind === 'parkpath').length).toBe(24 + 2);
-    expect(laid.props.length).toBe(12);
-    expect(laid.props.filter((p) => p.model === 'lamp-double').length).toBe(6);
-    expect(laid.props.filter((p) => p.model === 'planter').length).toBe(6);
+    // The center's furniture, apart from the bulk vegetation along the streets (traffic.test.ts holds that).
+    const furniture = laid.props.filter((p) => !p.bulk);
+    expect(furniture.length).toBe(12);
+    expect(furniture.filter((p) => p.model === 'lamp-double').length).toBe(6);
+    expect(furniture.filter((p) => p.model === 'planter').length).toBe(6);
     const centre = { x: at.x + hood.surface.center.at.x, y: at.y + hood.surface.center.at.y };
-    for (const p of laid.props) {
+    for (const p of furniture) {
       expect(Math.hypot(p.x - centre.x, p.y - centre.y)).toBeLessThan(hood.surface.center.radiusM);
       // Facing south is yaw 0; the prop's heading (sin yaw, cos yaw) points at the middle.
       const toMid = Math.atan2(centre.x - p.x, centre.y - p.y);
