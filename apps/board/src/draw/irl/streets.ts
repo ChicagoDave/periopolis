@@ -119,8 +119,9 @@ function furnish(disc: Disc, at: Point, count: number): Prop[] {
  * the park gets a ring path and a cross path; the center is paved and furnished.
  * @param plan - the Ground's neighborhood
  * @param at - the tile's middle, scene metres
+ * @param fields - whether the park's south half holds the playing fields, which the cross path then stops short of
  */
-export function streetsOf(plan: NeighborhoodPlan, at: Point): Streets {
+export function streetsOf(plan: NeighborhoodPlan, at: Point, fields = false): Streets {
   const strips: Strip[] = [];
   const props: Prop[] = [];
   const ys = [...new Set(plan.surface.rows.map((r) => cm(r.y)))].sort((a, b) => a - b);
@@ -154,7 +155,8 @@ export function streetsOf(plan: NeighborhoodPlan, at: Point): Streets {
   for (const seg of plan.surface.lane) strips.push({ kind: 'lane', corners: along(seg, LANE_M, at) });
   const park = plan.surface.park;
   for (const poly of ringPath(park, park.radiusM - 8 - PATH_M, park.radiusM - 8, 24, at)) strips.push({ kind: 'parkpath', corners: poly });
-  strips.push({ kind: 'parkpath', corners: rect(park.at.x - PATH_M / 2, park.at.x + PATH_M / 2, park.at.y - park.radiusM + 8, park.at.y + park.radiusM - 8, at) });
+  // The cross path's north-south arm stops at the park's middle when the fields take the south half.
+  strips.push({ kind: 'parkpath', corners: rect(park.at.x - PATH_M / 2, park.at.x + PATH_M / 2, park.at.y - park.radiusM + 8, fields ? park.at.y : park.at.y + park.radiusM - 8, at) });
   strips.push({ kind: 'parkpath', corners: rect(park.at.x - park.radiusM + 8, park.at.x + park.radiusM - 8, park.at.y - PATH_M / 2, park.at.y + PATH_M / 2, at) });
   props.push(...furnish(plan.surface.center, at, 12));
   return { strips, props, streets, crossings };

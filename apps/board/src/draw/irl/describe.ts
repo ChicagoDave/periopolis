@@ -8,7 +8,10 @@
  * for a closure ahead, or on order, each its own material), a stop under every tile the line touches, and at near
  * detail a neighborhood's entries, walkways and goods pipes. At near detail a neighborhood also gets its streets,
  * sidewalks, kerbs, crossings, bike lane and park paths as flat prisms and its plaza furniture as props (kit models
- * placed by the streets module, ADR-0024 Decision 3), and the site gets its terrain: the shore the Site names. Each chunk carries a signature so the adapter rebuilds only the tiles that changed. Pure, no
+ * placed by the streets module, ADR-0024 Decision 3), and the site gets its terrain: the shore the Site names. Near,
+ * the ring's buildings, a plant's works and a neighborhood's schools stand as kit models too (Decision 1): each a
+ * prop with a footprint or height fit, the plant on a paved yard with its stacks, tanks, tower or solar panels one
+ * set a unit, the fields a flat pitch, and the trees and the park's cross path keep clear of the fields. Each chunk carries a signature so the adapter rebuilds only the tiles that changed. Pure, no
  * DOM, no three.js: the same scene describes byte for byte the same (ADR-0023 Decisions 2 and 3). A chunk is
  * remembered by its signature, so a tile that did not change is handed back, not described again.
  * Public interface: Prism, MaterialId, Level, MeshRecord, HomeInstance, Tree, PropInstance, Terrain, Chunk,
@@ -21,13 +24,14 @@ import type { Disc, Point, RingPlan, Segment } from '@city/ground';
 import { edgeEnds, extent, lineNetwork } from '@city/site';
 import type { EdgeKey, Layout, SiteRates, TileKey } from '@city/site';
 import type { GroundPoint } from '../angled/projection.ts';
+import { STORY_M } from '../angled/extrude.ts';
 import { tileCenterM } from '../angled/scene.ts';
 import type { Scene, SceneBlock, SceneKind } from '../angled/scene.ts';
 import { boundsOf } from './camera.ts';
 import type { Bounds } from './camera.ts';
 import { hashOf, randomOf, variantOf } from './facade.ts';
 import type { HomeVariant } from './facade.ts';
-import { townhouseFor } from './kit.ts';
+import { TOWERS, townhouseFor } from './kit.ts';
 import type { ModelId } from './kit.ts';
 import { plazaOf, streetsOf } from './streets.ts';
 import type { Prop, SurfaceKind } from './streets.ts';
@@ -65,6 +69,8 @@ export type MaterialId =
   | 'entry'
   | 'walkway'
   | 'pipe'
+  | 'fields'
+  | 'yard'
   | SurfaceKind;
 
 /** Where a prism stands: on the surface, or on the sub level under it. */
@@ -115,8 +121,9 @@ export interface Tree {
   readonly heightM: number;
 }
 
-/** A kit model placed on the ground as a prop (a lamp, a planter): the streets module's record. */
-export type PropInstance = Prop;
+/** A kit model placed on the ground as a prop (a lamp, a planter, a tower, a works, a school): the streets module's
+ * record, with a footprint to fit to instead of a height when given. */
+export type PropInstance = Prop & { readonly footprintM?: number };
 
 /** The site's terrain: where the shore lies (the Site's south edge, ADR-0016), and how far the land reaches. */
 export interface Terrain {
@@ -209,7 +216,7 @@ function foldBlock(h: number, block: SceneBlock): number {
 }
 
 /** How far each paving is lifted off the ground, metres, so what lies over reads over (Mine). */
-const SURFACE_LIFT: Readonly<Record<SurfaceKind, number>> = { asphalt: 0.08, sidewalk: 0.2, kerb: 0.22, crossing: 0.1, lane: 0.14, parkpath: 0.12, plaza: 0.1 };
+const SURFACE_LIFT: Readonly<Record<SurfaceKind | 'fields' | 'yard', number>> = { asphalt: 0.08, sidewalk: 0.2, kerb: 0.22, crossing: 0.1, lane: 0.14, parkpath: 0.12, plaza: 0.1, fields: 0.12, yard: 0.1 };
 
 /** The site's terrain from the Site's outline: the shore is the south edge, one tile radius south of the last row
  * of tiles (ADR-0016); the land runs a tile radius past the outline on the other sides. */
@@ -358,23 +365,79 @@ function materialOf(block: SceneBlock, near: boolean): MaterialId {
     case 'ring':
       return near ? 'office' : 'massing';
     case 'hood':
+    case 'school':
       return 'massing';
+    case 'fields':
+      return 'fields';
     default:
       return near ? 'plant' : 'massing';
   }
 }
 
-/** Trees seeded into a park: one a TREE_SPACING_M square of its area, placed by the tile's seed inside the disc. */
-function treesOf(key: TileKey, park: Disc, center: Point): Tree[] {
+/** Whether a point lies inside an axis-aligned rectangle given by its corners. */
+function insideRect(p: Point, corners: readonly GroundPoint[]): boolean {
+  const xs = corners.map((c) => c.x);
+  const ys = corners.map((c) => c.y);
+  return p.x >= Math.min(...xs) && p.x <= Math.max(...xs) && p.y >= Math.min(...ys) && p.y <= Math.max(...ys);
+}
+
+/** Trees seeded into a park: one a TREE_SPACING_M square of its area, placed by the tile's seed inside the disc and
+ * off the fields when the park has them (the ones that would fall there are dropped, so the seed's stream is kept). */
+function treesOf(key: TileKey, park: Disc, center: Point, fields: readonly GroundPoint[] | null): Tree[] {
   const count = Math.max(0, Math.floor(park.areaM2 / (TREE_SPACING_M * TREE_SPACING_M)));
   const next = randomOf(hashOf(`${key}/trees`));
   const out: Tree[] = [];
   const inner = Math.max(0, park.radiusM - 4);
-  while (out.length < count) {
+  let placed = 0;
+  while (placed < count) {
     const x = (next() * 2 - 1) * inner;
     const y = (next() * 2 - 1) * inner;
     if (Math.hypot(x, y) > inner) continue;
-    out.push({ x: center.x + park.at.x + x, y: center.y + park.at.y + y, heightM: 5 + next() * 4 });
+    const tree = { x: center.x + park.at.x + x, y: center.y + park.at.y + y, heightM: 5 + next() * 4 };
+    placed++;
+    if (fields && insideRect(tree, fields)) continue;
+    out.push(tree);
+  }
+  return out;
+}
+
+/** The plant's works on its yard: one set of models a unit, round a ring on the yard (Mine). */
+const PLANT_SETS: Readonly<Record<string, readonly { model: ModelId; heightM?: number; footprintM?: number; dx: number; dy: number }[]>> = {
+  power: [
+    { model: 'works-a', footprintM: 70, dx: 0, dy: 0 },
+    { model: 'chimney', heightM: 45, dx: 45, dy: -20 },
+    { model: 'tank', footprintM: 30, dx: -50, dy: 20 },
+  ],
+  water: [
+    { model: 'works-b', footprintM: 60, dx: 0, dy: 0 },
+    { model: 'water-tower', heightM: 35, dx: 45, dy: 10 },
+    { model: 'tank', footprintM: 30, dx: -45, dy: -15 },
+  ],
+  sewage: [
+    { model: 'works-c', footprintM: 55, dx: 0, dy: 0 },
+    { model: 'tank', footprintM: 34, dx: 50, dy: 15 },
+    { model: 'tank', footprintM: 34, dx: -50, dy: 15 },
+  ],
+  waste: [
+    { model: 'works-d', footprintM: 60, dx: 0, dy: 0 },
+    { model: 'chimney-small', heightM: 25, dx: 40, dy: -20 },
+    { model: 'solar', footprintM: 50, dx: -50, dy: 20 },
+  ],
+};
+
+/** A plant's props at near detail: its sets laid one a unit on a ring 110 m out from the tile's middle. */
+function plantProps(key: TileKey, kind: string, units: number, center: Point): PropInstance[] {
+  const set = PLANT_SETS[kind] ?? PLANT_SETS.power ?? [];
+  const out: PropInstance[] = [];
+  const n = Math.max(1, units);
+  for (let u = 0; u < n; u++) {
+    const a = (u / n) * 2 * Math.PI + hashOf(key) % 7 / 7;
+    const ux = n === 1 ? 0 : 110 * Math.cos(a);
+    const uy = n === 1 ? 0 : 110 * Math.sin(a);
+    for (const s of set) {
+      const prop: PropInstance = { model: s.model, x: center.x + ux + s.dx, y: center.y + uy + s.dy, yaw: 0, heightM: s.heightM ?? 0, ...(s.footprintM ? { footprintM: s.footprintM } : {}) };
+      out.push(prop);
+    }
   }
   return out;
 }
@@ -508,9 +571,32 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
     const center = context ? tileCenterM(key, context.rates) : null;
     const homeSet = new Set(near && tile?.kind === 'hood' ? blocks.filter((b) => b.kind === 'hood') : []);
     const homeBlocks = [...homeSet];
+    const fieldsBlock = blocks.find((b) => b.kind === 'fields') ?? null;
+    let schoolIndex = 0;
     for (const block of blocks) {
       if (homeSet.has(block)) continue;
-      const m = record(block.kind, materialOf(block, near), prismOf(block.block.corners, block.block.heightM), block.lit, block);
+      // Near, with the plans in hand, the ring's buildings, the plants' works and the schools stand as kit models.
+      if (context && near && (block.kind === 'ring' || block.kind === 'school' || (tile && tile.kind !== 'hood' && tile.kind !== 'ring' && block.kind === tile.kind))) {
+        const cx = block.block.corners.reduce((t, c) => t + c.x, 0) / block.block.corners.length;
+        const cy = block.block.corners.reduce((t, c) => t + c.y, 0) / block.block.corners.length;
+        if (block.kind === 'ring') {
+          const i = chunkProps.length;
+          chunkProps.push({ model: TOWERS[hashOf(`${key}/tower/${i}`) % TOWERS.length] as ModelId, x: cx, y: cy, yaw: 0, heightM: block.stories * STORY_M });
+        } else if (block.kind === 'school') {
+          const xs = block.block.corners.map((c) => c.x);
+          const ys = block.block.corners.map((c) => c.y);
+          const w = Math.max(...xs) - Math.min(...xs);
+          const d = Math.max(...ys) - Math.min(...ys);
+          chunkProps.push({ model: block.stories >= 3 ? 'school-tall' : 'school-wide', x: cx, y: cy, yaw: w >= d ? 0 : Math.PI / 2, heightM: 0, footprintM: Math.max(w, d) });
+          schoolIndex++;
+        } else {
+          // A plant: its yard paved, then its works.
+          chunkMeshes.push(record(block.kind, 'yard', prismOf(block.block.corners, 0, 0.1), 1));
+          chunkProps.push(...plantProps(key, block.kind, (tile as { n?: number }).n ?? 1, { x: cx, y: cy }));
+        }
+        continue;
+      }
+      const m = record(block.kind, materialOf(block, near), prismOf(block.block.corners, block.block.heightM, block.kind === 'fields' ? SURFACE_LIFT.fields : FLAT_LIFT_M), block.lit, block);
       chunkMeshes.push(m);
       meshes.push(m);
       byKind[block.kind] = (byKind[block.kind] ?? 0) + m.triangles;
@@ -521,10 +607,11 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
       const s = hoodPlan.surface;
       chunkMeshes.push(record('hood', 'park', prismOf(discPolygon(s.park, center), 0, 0.1), 1));
       chunkMeshes.push(record('hood', 'plaza', prismOf(discPolygon(s.center, center), 0, 0.1), 1));
-      chunkTrees = treesOf(key, s.park, center);
+      const fields = fieldsBlock ? fieldsBlock.block.corners : null;
+      chunkTrees = treesOf(key, s.park, center, fields);
       // The streets and open ground: each strip a flat prism lifted by its kind so kerbs stand over asphalt and
       // crossings over the street; the furniture as props.
-      const laid = streetsOf(hoodPlan, center);
+      const laid = streetsOf(hoodPlan, center, fields !== null);
       for (const strip of laid.strips) chunkMeshes.push(record('hood', strip.kind, prismOf(strip.corners, 0, SURFACE_LIFT[strip.kind]), 1));
       chunkProps.push(...laid.props);
     } else if (center && context && near && tile?.kind === 'ring') {
@@ -549,6 +636,7 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
       }
     }
     for (const m of chunkMeshes) triangles += m.triangles;
+    void schoolIndex;
     homes += chunkHomes.length;
     litHomes += chunkHomes.filter((h) => h.lit === 1).length;
     trees += chunkTrees.length;

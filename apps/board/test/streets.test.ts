@@ -102,13 +102,16 @@ describe('the city described with its streets', () => {
     const hoods = Object.values(layout.tiles).filter((t) => t?.kind === 'hood').length;
     expect(near.streets).toBe(hoods * laid.streets);
     expect(near.crossings).toBe(hoods * laid.crossings);
-    expect(near.props).toBe(hoods * 12 + 16);
+    // Twelve a center and sixteen round the ring's plaza, plus the towers, the plants' works and the schools (ADR-0024).
+    expect(near.props).toBe(near.chunks.reduce((t, c) => t + c.props.length, 0));
+    expect(near.props).toBeGreaterThanOrEqual(hoods * 12 + 16 + 8);
+    expect(near.chunks.flatMap((c) => c.props).filter((p) => p.model === 'lamp-double' || p.model === 'planter').length).toBe(hoods * 12 + 16);
     const chunk = near.chunks.find((c) => c.key === '1,0');
     if (!chunk) throw new Error('chunk');
     expect(chunk.meshes.filter((m) => m.material === 'asphalt').length).toBe(laid.streets);
     expect(chunk.meshes.filter((m) => m.material === 'lane').length).toBe(3);
     expect(chunk.meshes.filter((m) => m.material === 'path').length).toBe(0);
-    expect(chunk.props.length).toBe(12);
+    expect(chunk.props.filter((p) => p.model === 'lamp-double' || p.model === 'planter').length).toBe(12);
     const terrain = near.terrain;
     if (!terrain) throw new Error('terrain');
     for (const b of near.chunks.flatMap((c) => c.meshes)) for (let i = 1; i < b.prism.positions.length; i += 3) expect(b.prism.positions[i] as number).toBeLessThan(terrain.shoreY);

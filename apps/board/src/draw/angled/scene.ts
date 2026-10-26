@@ -8,23 +8,77 @@
  * itself, only where the Ground's shapes sit on the site (ADR-0014). A tile's blocks are remembered by key, detail
  * and share, so a month that moves no one on a tile hands back the same blocks: a cache that is a function of its
  * inputs, never a second record (ADR-0023 Decision 2).
+ * Mid and near, a neighborhood's schools and fields stand too (ADR-0024): a school a block in the center's disc, north,
+ * west or east by kind, and fields a flat pitch in the park's south half, placements marked Mine; far, the tile's one
+ * block covers them as it covers the homes.
  * Public interface: Lod, SceneKind, SceneBlock, Scene, Standing, PLANT_STORIES, LINE_WIDTH_M, SITE_HEIGHT_M,
- * tileCenterM, litRows, sceneOf.
+ * SCHOOL_PLOTS, FIELDS_PLOT, SchoolPlot, tileCenterM, litRows, schoolCorners, fieldsCorners, sceneOf.
  * Owner context: Board (adapter), the angled view (plan angled-view-through-time).
  */
 import { hexFrame, planNeighborhood, planRing } from '@city/ground';
 import type { NeighborhoodPlan, Point, RingPlan } from '@city/ground';
 import type { JobItem, SiteInHand } from '@city/run';
 import { edgeEnds, tileAt } from '@city/site';
-import type { EdgeKey, Layout, SiteRates, Tile, TileKey } from '@city/site';
+import type { EdgeKey, ExtraKind, Layout, SchoolKind, SiteRates, Tile, TileKey } from '@city/site';
 import { STORY_M } from './extrude.ts';
 import type { Block } from './extrude.ts';
 
 /** How much detail: far is one block a tile, mid the rows of townhouses and each ring building, near every home. */
 export type Lod = 'far' | 'mid' | 'near';
 
-/** What a block is: what stands, a stretch of line, a tile under construction, a stretch under construction. */
-export type SceneKind = Tile['kind'] | 'line' | 'site' | 'siteline';
+/** What a block is: what stands, a stretch of line, a tile under construction, a stretch under construction, a
+ * school, or playing fields. */
+export type SceneKind = Tile['kind'] | 'line' | 'site' | 'siteline' | 'school' | 'fields';
+
+/** Where a school stands in a neighborhood's center disc, metres from the tile's middle: its middle, its width
+ * (x) and depth (y), and its storeys (Mine: the Ledger counts seats, not ground). */
+export interface SchoolPlot {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly d: number;
+  readonly stories: number;
+}
+
+/** The three schools' plots: elementary north of the middle, middle school west, high school east, all inside the
+ * center's 80 m disc (the Ground's). */
+export const SCHOOL_PLOTS: Readonly<Record<SchoolKind, SchoolPlot>> = {
+  elementary: { x: 0, y: -40, w: 50, d: 30, stories: 2 },
+  middle: { x: -45, y: 0, w: 30, d: 50, stories: 3 },
+  high: { x: 45, y: 0, w: 30, d: 50, stories: 3 },
+};
+
+/** The playing fields: a pitch in the park's south half, metres from the park's middle (Mine). */
+export const FIELDS_PLOT = { dy: 50, w: 100, d: 64 } as const;
+
+/** A school's corners, metres from a tile's middle. */
+export function schoolCorners(kind: SchoolKind, center: Point): Point[] {
+  const p = SCHOOL_PLOTS[kind];
+  return shifted(
+    [
+      { x: p.x - p.w / 2, y: p.y - p.d / 2 },
+      { x: p.x + p.w / 2, y: p.y - p.d / 2 },
+      { x: p.x + p.w / 2, y: p.y + p.d / 2 },
+      { x: p.x - p.w / 2, y: p.y + p.d / 2 },
+    ],
+    center,
+  );
+}
+
+/** The fields' corners, metres, given the park's middle on the tile and the tile's middle. */
+export function fieldsCorners(park: Point, center: Point): Point[] {
+  const cx = park.x;
+  const cy = park.y + FIELDS_PLOT.dy;
+  return shifted(
+    [
+      { x: cx - FIELDS_PLOT.w / 2, y: cy - FIELDS_PLOT.d / 2 },
+      { x: cx + FIELDS_PLOT.w / 2, y: cy - FIELDS_PLOT.d / 2 },
+      { x: cx + FIELDS_PLOT.w / 2, y: cy + FIELDS_PLOT.d / 2 },
+      { x: cx - FIELDS_PLOT.w / 2, y: cy + FIELDS_PLOT.d / 2 },
+    ],
+    center,
+  );
+}
 
 /** The height of a scaffold on a tile the crews are building, metres: half a story. */
 export const SITE_HEIGHT_M = STORY_M / 2;
@@ -126,7 +180,17 @@ function slab(row: { readonly y: number; readonly x0: number }, from: number, to
   );
 }
 
-function neighborhoodBlocks(key: TileKey, center: Point, plan: NeighborhoodPlan, rates: SiteRates, lod: Lod, share: number): SceneBlock[] {
+/** A neighborhood's schools and fields as blocks, mid and near: one a school it has, and the fields if it has them. */
+function extraBlocks(key: TileKey, center: Point, plan: NeighborhoodPlan, extras: readonly ExtraKind[]): SceneBlock[] {
+  const out: SceneBlock[] = [];
+  for (const kind of extras) {
+    if (kind === 'fields') out.push({ key, kind: 'fields', stories: 0, lit: 1, block: { corners: fieldsCorners(plan.surface.park.at, center), heightM: 0 } });
+    else out.push({ key, kind: 'school', stories: SCHOOL_PLOTS[kind].stories, lit: 1, block: { corners: schoolCorners(kind, center), heightM: SCHOOL_PLOTS[kind].stories * STORY_M } });
+  }
+  return out;
+}
+
+function neighborhoodBlocks(key: TileKey, center: Point, plan: NeighborhoodPlan, rates: SiteRates, lod: Lod, share: number, extras: readonly ExtraKind[] = []): SceneBlock[] {
   const stories = plan.surface.rows[0]?.stories ?? 0;
   if (lod === 'far') return [{ key, kind: 'hood', stories, lit: share, block: { corners: tileHex(center, rates), heightM: stories * STORY_M } }];
   const depth = plan.figures.rowDepthM;
@@ -142,16 +206,17 @@ function neighborhoodBlocks(key: TileKey, center: Point, plan: NeighborhoodPlan,
         out.push({ key, kind: 'hood', stories: row.stories, lit: lit[i] ? 1 : 0, block: { corners: slab(row, h * front, (h + 1) * front, depth, center), heightM: row.stories * STORY_M } });
       }
     }
-    return out;
+    return [...out, ...extraBlocks(key, center, plan, extras)];
   }
   const lit = litRows(key, plan.surface.rows.length, share);
-  return plan.surface.rows.map((row, i) => ({
+  const rows = plan.surface.rows.map((row, i) => ({
     key,
-    kind: 'hood',
+    kind: 'hood' as const,
     stories: row.stories,
     lit: lit[i] ? 1 : 0,
     block: { corners: slab(row, 0, row.frontageM, depth, center), heightM: row.stories * STORY_M },
   }));
+  return [...rows, ...extraBlocks(key, center, plan, extras)];
 }
 
 function ringBlocks(key: TileKey, center: Point, plan: RingPlan): SceneBlock[] {
@@ -236,7 +301,8 @@ export function sceneOf(layout: Layout, rates: SiteRates, lod: Lod, standing: St
     if (t.kind === 'hood') {
       const people = standing.occupied?.[key];
       const share = people === undefined || !(rates.hood > 0) ? 1 : Math.max(0, Math.min(1, people / rates.hood));
-      blocks.push(...remember(`${key}|hood|${lod}|${share}|${rates.tileKm}`, () => neighborhoodBlocks(key, center, hood, rates, lod, share)));
+      const extras = (Object.keys(t.has) as ExtraKind[]).filter((k) => t.has[k]).sort();
+      blocks.push(...remember(`${key}|hood|${lod}|${share}|${extras.join(',')}|${rates.tileKm}`, () => neighborhoodBlocks(key, center, hood, rates, lod, share, extras)));
     } else if (t.kind === 'ring') {
       blocks.push(...remember(`${key}|ring|${t.n}|${rates.tileKm}`, () => ringBlocks(key, center, (rings[t.n] ??= planRing(rates.walking, rates.base, t.n)))));
     } else blocks.push(plantBlock(key, t.kind, center, rates));

@@ -611,13 +611,15 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'near');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-homes', String(10 * hoodPlan.figures.homes));
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lit-homes', String(10 * hoodPlan.figures.homes));
-  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-trees', '1250');
+  // The parks' trees, less those that fell on a playing field (ADR-0024): the describer's own figure.
+  const nearDescribed = describeScene(sceneOf(starterLayout(), RATES, 'near'), { rates: RATES, layout: starterLayout() });
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-trees', String(nearDescribed.trees));
+  expect(nearDescribed.trees).toBeGreaterThan(1100);
   // The townhouses nearest the camera are kit models (ADR-0024): the five packed GLBs arrive from the assets folder
   // beside the page and every home group near the target stands on one; the rest keep the massing until Phase 7.
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-models', '5', { timeout: 90000 });
   // Streets and open ground (ADR-0024 Decision 3): every neighborhood's streets between its facing lines with two
   // crossings each, twelve props round its center and sixteen round the ring's plaza, the shore south of the site.
-  const nearDescribed = describeScene(sceneOf(starterLayout(), RATES, 'near'), { rates: RATES, layout: starterLayout() });
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-streets', String(nearDescribed.streets));
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-crossings', String(2 * nearDescribed.streets));
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-props', String(nearDescribed.props));

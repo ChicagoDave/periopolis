@@ -39,7 +39,7 @@ import {
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { fitToFront, fitToHeight } from './kit.ts';
+import { fitToFootprint, fitToFront, fitToHeight } from './kit.ts';
 import type { Fit, ModelId } from './kit.ts';
 import type { SurfaceKind } from './streets.ts';
 import { DARK } from '../angled/canvas.ts';
@@ -289,11 +289,13 @@ function treeGeometry(): BufferGeometry {
 interface PavingSpec {
   readonly base: string;
   readonly grain: number;
-  readonly pattern?: 'pavers' | 'stripes' | 'gravel';
+  readonly pattern?: 'pavers' | 'stripes' | 'gravel' | 'lines';
   readonly metres: number;
   readonly roughness: number;
 }
-const PAVINGS: Readonly<Record<SurfaceKind | 'grass' | 'soil', PavingSpec>> = {
+const PAVINGS: Readonly<Record<SurfaceKind | 'grass' | 'soil' | 'fields' | 'yard', PavingSpec>> = {
+  fields: { base: '#4C9A4A', grain: 10, pattern: 'lines', metres: 32, roughness: 1 },
+  yard: { base: '#A9A59C', grain: 8, metres: 6, roughness: 0.95 },
   asphalt: { base: '#4B4F52', grain: 14, metres: 6, roughness: 0.95 },
   sidewalk: { base: '#B9B4A8', grain: 8, pattern: 'pavers', metres: 2, roughness: 0.9 },
   kerb: { base: '#D6D2C8', grain: 4, metres: 2, roughness: 0.8 },
@@ -315,7 +317,7 @@ function paintRandom(seed: number): () => number {
 }
 
 /** Paint a paving into a repeating texture. */
-function paintPaving(kind: SurfaceKind | 'grass' | 'soil'): CanvasTexture {
+function paintPaving(kind: SurfaceKind | 'grass' | 'soil' | 'fields' | 'yard'): CanvasTexture {
   const spec = PAVINGS[kind];
   const size = 128;
   const canvas = document.createElement('canvas');
@@ -349,6 +351,15 @@ function paintPaving(kind: SurfaceKind | 'grass' | 'soil'): CanvasTexture {
     } else if (spec.pattern === 'stripes') {
       ctx.fillStyle = 'rgba(245,245,240,0.9)';
       for (let i = 0; i < 4; i++) ctx.fillRect(0, (i * size) / 4 + size / 16, size, size / 8);
+    } else if (spec.pattern === 'lines') {
+      // A pitch's white lines: the touchline round the edge and the halfway line.
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(6, 6, size - 12, size - 12);
+      ctx.beginPath();
+      ctx.moveTo(size / 2, 6);
+      ctx.lineTo(size / 2, size - 6);
+      ctx.stroke();
     } else if (spec.pattern === 'gravel') {
       for (let i = 0; i < 400; i++) {
         const v = next() * 40 - 20;
@@ -371,7 +382,7 @@ function paintPaving(kind: SurfaceKind | 'grass' | 'soil'): CanvasTexture {
 const PAVED: ReadonlySet<string> = new Set(Object.keys(PAVINGS));
 
 /** Plain colours for the materials that are not facades. */
-const PLAIN: Readonly<Record<Exclude<MaterialId, 'massing' | 'office' | 'plant' | SurfaceKind>, { color: string; roughness: number }>> = {
+const PLAIN: Readonly<Record<Exclude<MaterialId, 'massing' | 'office' | 'plant' | 'fields' | 'yard' | SurfaceKind>, { color: string; roughness: number }>> = {
   strip: { color: '#4A5250', roughness: 0.95 },
   survey: { color: '#C98A2E', roughness: 0.9 },
   scaffold: { color: '#B9772A', roughness: 0.9 },
@@ -566,6 +577,7 @@ export class IrlRenderer {
 
   /** The material for a prism: plain colours, the facade sheets painted once, massing by vertex colour. */
   private material(id: MaterialId | 'grass' | 'soil'): MeshStandardMaterial {
+    type Paved = SurfaceKind | 'grass' | 'soil' | 'fields' | 'yard';
     let m = this.materials.get(id);
     if (m) return m;
     if (id === 'massing') {
@@ -574,7 +586,7 @@ export class IrlRenderer {
     }
     else if (id === 'office') m = sheetMaterial(officeFacade());
     else if (id === 'plant') m = sheetMaterial(plantFacade());
-    else if (PAVED.has(id)) m = new MeshStandardMaterial({ map: paintPaving(id as SurfaceKind | 'grass' | 'soil'), roughness: PAVINGS[id as SurfaceKind | 'grass' | 'soil'].roughness, metalness: 0 });
+    else if (PAVED.has(id)) m = new MeshStandardMaterial({ map: paintPaving(id as Paved), roughness: PAVINGS[id as Paved].roughness, metalness: 0 });
     else m = new MeshStandardMaterial({ color: new Color(PLAIN[id as keyof typeof PLAIN].color), roughness: PLAIN[id as keyof typeof PLAIN].roughness, metalness: 0 });
     if (id === 'stop' || id === 'closed' || id === 'warned') {
       m.emissive = new Color(id === 'stop' ? WINDOW_LIGHT : PLAIN[id as 'closed' | 'warned'].color);
@@ -627,7 +639,7 @@ export class IrlRenderer {
       if (material === 'massing') {
         tint.set(palette[kind]).multiplyScalar(DARK + (1 - DARK) * lit);
         // By night a far block glows by its occupied share: homes by their people, a ring by its offices, a plant a little.
-        const glow = kind === 'hood' ? lit : kind === 'ring' ? 0.6 : kind === 'line' || kind === 'site' || kind === 'siteline' ? 0 : 0.25;
+        const glow = kind === 'hood' ? lit : kind === 'ring' ? 0.6 : kind === 'school' ? 0.3 : kind === 'line' || kind === 'site' || kind === 'siteline' || kind === 'fields' ? 0 : 0.25;
         for (let i = 0; i < prism.positions.length; i += 3) {
           b.colors.push(tint.r, tint.g, tint.b);
           b.lit.push(glow);
@@ -647,7 +659,7 @@ export class IrlRenderer {
       }
       geometry.setIndex(b.indices);
       const mesh = new Mesh(geometry, this.material(material));
-      const flat = material === 'strip' || material === 'survey' || material === 'park' || material === 'path' || PAVED.has(material);
+      const flat = material === 'strip' || material === 'survey' || material === 'park' || material === 'path' || material === 'fields' || material === 'yard' || PAVED.has(material);
       const sub = SUB_MATERIALS.has(material);
       mesh.castShadow = !flat && !sub;
       mesh.receiveShadow = !sub;
@@ -801,7 +813,7 @@ export class IrlRenderer {
       if (!loaded) continue;
       const mesh = new InstancedMesh(loaded.geometry, loaded.material, list.length);
       list.forEach((p, i) => {
-        const fit = fitToHeight(id, p.heightM);
+        const fit = p.footprintM ? fitToFootprint(id, p.footprintM) : fitToHeight(id, p.heightM);
         dummy.position.copy(toGl({ x: p.x, y: p.y, z: 0 }));
         dummy.rotation.set(0, p.yaw, 0);
         dummy.scale.set(1, 1, 1);

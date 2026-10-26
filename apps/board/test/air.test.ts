@@ -23,7 +23,7 @@ import { AIR_START, ZOOM_MAX, newSession } from '../src/session.ts';
 import { memoryStore } from '../src/storage.ts';
 
 const hood = planNeighborhood(RATES.shared, RATES.walking, RATES.base);
-const PALETTE: Palette = { hood: 'H', ring: 'R', power: 'P', water: 'W', sewage: 'S', waste: 'T', line: 'L', site: 'X', siteline: 'Y' };
+const PALETTE: Palette = { hood: 'H', ring: 'R', power: 'P', water: 'W', sewage: 'S', waste: 'T', line: 'L', site: 'X', siteline: 'Y', school: 'K', fields: 'F' };
 const close = (a: number, b: number): void => expect(Math.abs(a - b)).toBeLessThan(1e-6);
 
 /** A painter that counts, and records its clips. */

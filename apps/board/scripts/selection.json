@@ -1,50 +1,289 @@
 {
   "kits": {
-    "suburban": { "name": "City Kit (Suburban) 2.0", "url": "https://kenney.nl/assets/city-kit-suburban", "licence": "CC0 1.0" },
-    "commercial": { "name": "City Kit (Commercial) 2.1", "url": "https://kenney.nl/assets/city-kit-commercial", "licence": "CC0 1.0" },
-    "industrial": { "name": "City Kit (Industrial) 2.0", "url": "https://kenney.nl/assets/city-kit-industrial", "licence": "CC0 1.0" },
-    "roads": { "name": "City Kit (Roads) 2.2", "url": "https://kenney.nl/assets/city-kit-roads", "licence": "CC0 1.0" },
-    "car": { "name": "Car Kit 3.1", "url": "https://kenney.nl/assets/car-kit", "licence": "CC0 1.0" }
+    "suburban": {
+      "name": "City Kit (Suburban) 2.0",
+      "url": "https://kenney.nl/assets/city-kit-suburban",
+      "licence": "CC0 1.0"
+    },
+    "commercial": {
+      "name": "City Kit (Commercial) 2.1",
+      "url": "https://kenney.nl/assets/city-kit-commercial",
+      "licence": "CC0 1.0"
+    },
+    "industrial": {
+      "name": "City Kit (Industrial) 2.0",
+      "url": "https://kenney.nl/assets/city-kit-industrial",
+      "licence": "CC0 1.0"
+    },
+    "roads": {
+      "name": "City Kit (Roads) 2.2",
+      "url": "https://kenney.nl/assets/city-kit-roads",
+      "licence": "CC0 1.0"
+    },
+    "car": {
+      "name": "Car Kit 3.1",
+      "url": "https://kenney.nl/assets/car-kit",
+      "licence": "CC0 1.0"
+    }
   },
   "models": [
-    { "id": "townhouse-a", "kit": "commercial", "file": "building-a", "for": "a townhouse (three storeys)" },
-    { "id": "townhouse-b", "kit": "commercial", "file": "building-b", "for": "a townhouse (three storeys)" },
-    { "id": "townhouse-c", "kit": "commercial", "file": "building-c", "for": "a townhouse (two storeys)" },
-    { "id": "townhouse-d", "kit": "commercial", "file": "building-d", "for": "a townhouse (three storeys)" },
-    { "id": "townhouse-h", "kit": "commercial", "file": "building-h", "for": "a townhouse (three storeys)" },
-    { "id": "tower-a", "kit": "commercial", "file": "building-skyscraper-a", "for": "a ring building" },
-    { "id": "tower-b", "kit": "commercial", "file": "building-skyscraper-b", "for": "a ring building" },
-    { "id": "tower-c", "kit": "commercial", "file": "building-skyscraper-c", "for": "a ring building" },
-    { "id": "tower-d", "kit": "commercial", "file": "building-skyscraper-d", "for": "a ring building" },
-    { "id": "tower-e", "kit": "commercial", "file": "building-skyscraper-e", "for": "a ring building" },
-    { "id": "tower-far", "kit": "commercial", "file": "low-detail-building-a", "for": "a ring building far away" },
-    { "id": "works-a", "kit": "industrial", "file": "building-a", "for": "a plant's works" },
-    { "id": "works-b", "kit": "industrial", "file": "building-b", "for": "a plant's works" },
-    { "id": "works-c", "kit": "industrial", "file": "building-c", "for": "a plant's works" },
-    { "id": "works-d", "kit": "industrial", "file": "building-d", "for": "a plant's works" },
-    { "id": "chimney", "kit": "industrial", "file": "chimney-large", "for": "a plant's stack" },
-    { "id": "tank", "kit": "industrial", "file": "detail-tank-large", "for": "a water or sewage basin" },
-    { "id": "water-tower", "kit": "industrial", "file": "water-tower", "for": "the water plant" },
-    { "id": "solar", "kit": "industrial", "file": "solar-panel-landscape-group", "for": "a plant's yard" },
-    { "id": "road-straight", "kit": "roads", "file": "road-straight", "for": "a street" },
-    { "id": "road-crossing", "kit": "roads", "file": "road-crossing", "for": "a crossing" },
-    { "id": "road-crossroad", "kit": "roads", "file": "road-crossroad", "for": "a crossroad" },
-    { "id": "road-bend", "kit": "roads", "file": "road-bend", "for": "a bend" },
-    { "id": "lamp", "kit": "roads", "file": "light-curved", "for": "a street lamp" },
-    { "id": "lamp-double", "kit": "roads", "file": "light-square-double", "for": "a plaza lamp" },
-    { "id": "barrier", "kit": "roads", "file": "construction-barrier", "for": "a closed stretch" },
-    { "id": "cone", "kit": "roads", "file": "construction-cone", "for": "a site" },
-    { "id": "site-fence", "kit": "roads", "file": "construction-fence", "for": "a building site" },
-    { "id": "tree-small", "kit": "suburban", "file": "tree-small", "for": "a street tree" },
-    { "id": "tree-large", "kit": "suburban", "file": "tree-large", "for": "a park tree" },
-    { "id": "hedge", "kit": "suburban", "file": "fence-low", "for": "a garden hedge" },
-    { "id": "fence", "kit": "suburban", "file": "fence", "for": "a garden fence" },
-    { "id": "planter", "kit": "suburban", "file": "planter", "for": "a plaza planter" },
-    { "id": "path", "kit": "suburban", "file": "path-stones-long", "for": "a park path" },
-    { "id": "pod", "kit": "car", "file": "hatchback-sports", "for": "a pod (the Ledger's Ami)" },
-    { "id": "cab", "kit": "car", "file": "taxi", "for": "a cab (the Ledger's robotaxi)" },
-    { "id": "shuttle", "kit": "car", "file": "van", "for": "a shuttle (the Ledger's Navya)" },
-    { "id": "cart", "kit": "car", "file": "delivery-flat", "for": "a delivery cart" },
-    { "id": "bike", "kit": "car", "file": "kart-oodi", "for": "a bike on the lane (stand-in)" }
+    {
+      "id": "townhouse-a",
+      "kit": "commercial",
+      "file": "building-a",
+      "for": "a townhouse (three storeys)"
+    },
+    {
+      "id": "townhouse-b",
+      "kit": "commercial",
+      "file": "building-b",
+      "for": "a townhouse (three storeys)"
+    },
+    {
+      "id": "townhouse-c",
+      "kit": "commercial",
+      "file": "building-c",
+      "for": "a townhouse (two storeys)"
+    },
+    {
+      "id": "townhouse-d",
+      "kit": "commercial",
+      "file": "building-d",
+      "for": "a townhouse (three storeys)"
+    },
+    {
+      "id": "townhouse-h",
+      "kit": "commercial",
+      "file": "building-h",
+      "for": "a townhouse (three storeys)"
+    },
+    {
+      "id": "tower-a",
+      "kit": "commercial",
+      "file": "building-skyscraper-a",
+      "for": "a ring building"
+    },
+    {
+      "id": "tower-b",
+      "kit": "commercial",
+      "file": "building-skyscraper-b",
+      "for": "a ring building"
+    },
+    {
+      "id": "tower-c",
+      "kit": "commercial",
+      "file": "building-skyscraper-c",
+      "for": "a ring building"
+    },
+    {
+      "id": "tower-d",
+      "kit": "commercial",
+      "file": "building-skyscraper-d",
+      "for": "a ring building"
+    },
+    {
+      "id": "tower-e",
+      "kit": "commercial",
+      "file": "building-skyscraper-e",
+      "for": "a ring building"
+    },
+    {
+      "id": "tower-far",
+      "kit": "commercial",
+      "file": "low-detail-building-a",
+      "for": "a ring building far away"
+    },
+    {
+      "id": "works-a",
+      "kit": "industrial",
+      "file": "building-a",
+      "for": "a plant's works"
+    },
+    {
+      "id": "works-b",
+      "kit": "industrial",
+      "file": "building-b",
+      "for": "a plant's works"
+    },
+    {
+      "id": "works-c",
+      "kit": "industrial",
+      "file": "building-c",
+      "for": "a plant's works"
+    },
+    {
+      "id": "works-d",
+      "kit": "industrial",
+      "file": "building-d",
+      "for": "a plant's works"
+    },
+    {
+      "id": "chimney",
+      "kit": "industrial",
+      "file": "chimney-large",
+      "for": "a plant's stack"
+    },
+    {
+      "id": "tank",
+      "kit": "industrial",
+      "file": "detail-tank-large",
+      "for": "a water or sewage basin"
+    },
+    {
+      "id": "water-tower",
+      "kit": "industrial",
+      "file": "water-tower",
+      "for": "the water plant"
+    },
+    {
+      "id": "solar",
+      "kit": "industrial",
+      "file": "solar-panel-landscape-group",
+      "for": "a plant's yard"
+    },
+    {
+      "id": "road-straight",
+      "kit": "roads",
+      "file": "road-straight",
+      "for": "a street"
+    },
+    {
+      "id": "road-crossing",
+      "kit": "roads",
+      "file": "road-crossing",
+      "for": "a crossing"
+    },
+    {
+      "id": "road-crossroad",
+      "kit": "roads",
+      "file": "road-crossroad",
+      "for": "a crossroad"
+    },
+    {
+      "id": "road-bend",
+      "kit": "roads",
+      "file": "road-bend",
+      "for": "a bend"
+    },
+    {
+      "id": "lamp",
+      "kit": "roads",
+      "file": "light-curved",
+      "for": "a street lamp"
+    },
+    {
+      "id": "lamp-double",
+      "kit": "roads",
+      "file": "light-square-double",
+      "for": "a plaza lamp"
+    },
+    {
+      "id": "barrier",
+      "kit": "roads",
+      "file": "construction-barrier",
+      "for": "a closed stretch"
+    },
+    {
+      "id": "cone",
+      "kit": "roads",
+      "file": "construction-cone",
+      "for": "a site"
+    },
+    {
+      "id": "site-fence",
+      "kit": "roads",
+      "file": "construction-fence",
+      "for": "a building site"
+    },
+    {
+      "id": "tree-small",
+      "kit": "suburban",
+      "file": "tree-small",
+      "for": "a street tree"
+    },
+    {
+      "id": "tree-large",
+      "kit": "suburban",
+      "file": "tree-large",
+      "for": "a park tree"
+    },
+    {
+      "id": "hedge",
+      "kit": "suburban",
+      "file": "fence-low",
+      "for": "a garden hedge"
+    },
+    {
+      "id": "fence",
+      "kit": "suburban",
+      "file": "fence",
+      "for": "a garden fence"
+    },
+    {
+      "id": "planter",
+      "kit": "suburban",
+      "file": "planter",
+      "for": "a plaza planter"
+    },
+    {
+      "id": "path",
+      "kit": "suburban",
+      "file": "path-stones-long",
+      "for": "a park path"
+    },
+    {
+      "id": "pod",
+      "kit": "car",
+      "file": "hatchback-sports",
+      "for": "a pod (the Ledger's Ami)"
+    },
+    {
+      "id": "cab",
+      "kit": "car",
+      "file": "taxi",
+      "for": "a cab (the Ledger's robotaxi)"
+    },
+    {
+      "id": "shuttle",
+      "kit": "car",
+      "file": "van",
+      "for": "a shuttle (the Ledger's Navya)"
+    },
+    {
+      "id": "cart",
+      "kit": "car",
+      "file": "delivery-flat",
+      "for": "a delivery cart"
+    },
+    {
+      "id": "bike",
+      "kit": "car",
+      "file": "kart-oodi",
+      "for": "a bike on the lane (stand-in)"
+    },
+    {
+      "id": "school-wide",
+      "kit": "commercial",
+      "file": "building-e",
+      "for": "a school (wide and low)"
+    },
+    {
+      "id": "school-tall",
+      "kit": "commercial",
+      "file": "building-k",
+      "for": "a school (wide, two storeys)"
+    },
+    {
+      "id": "works-e",
+      "kit": "industrial",
+      "file": "building-e",
+      "for": "a plant's works"
+    },
+    {
+      "id": "chimney-small",
+      "kit": "industrial",
+      "file": "chimney-small",
+      "for": "a plant's small stack"
+    }
   ]
 }

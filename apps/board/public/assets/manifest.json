@@ -1079,7 +1079,115 @@
           1.428
         ]
       }
+    },
+    {
+      "id": "school-wide",
+      "kit": "commercial",
+      "file": "building-e.glb",
+      "for": "a school (wide and low)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 32236,
+      "triangles": 1420,
+      "native": {
+        "min": [
+          -0.82,
+          0,
+          -0.504
+        ],
+        "max": [
+          0.82,
+          0.893,
+          0.504
+        ],
+        "size": [
+          1.64,
+          0.893,
+          1.008
+        ]
+      }
+    },
+    {
+      "id": "school-tall",
+      "kit": "commercial",
+      "file": "building-k.glb",
+      "for": "a school (wide, two storeys)",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "bytes": 45672,
+      "triangles": 2458,
+      "native": {
+        "min": [
+          -1.042,
+          0,
+          -0.471
+        ],
+        "max": [
+          1.042,
+          1.47,
+          0.471
+        ],
+        "size": [
+          2.084,
+          1.47,
+          0.942
+        ]
+      }
+    },
+    {
+      "id": "works-e",
+      "kit": "industrial",
+      "file": "building-e.glb",
+      "for": "a plant's works",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 31884,
+      "triangles": 1177,
+      "native": {
+        "min": [
+          -0.842,
+          0,
+          -0.396
+        ],
+        "max": [
+          0.842,
+          1.65,
+          0.894
+        ],
+        "size": [
+          1.684,
+          1.65,
+          1.29
+        ]
+      }
+    },
+    {
+      "id": "chimney-small",
+      "kit": "industrial",
+      "file": "chimney-small.glb",
+      "for": "a plant's small stack",
+      "licence": "CC0 1.0",
+      "source": "https://kenney.nl/assets/city-kit-industrial",
+      "bytes": 15504,
+      "triangles": 86,
+      "native": {
+        "min": [
+          -0.15,
+          0,
+          -0.15
+        ],
+        "max": [
+          0.15,
+          0.75,
+          0.15
+        ],
+        "size": [
+          0.3,
+          0.75,
+          0.3
+        ]
+      }
     }
   ],
-  "totalBytes": 955212
+  "totalBytes": 1080508
 }

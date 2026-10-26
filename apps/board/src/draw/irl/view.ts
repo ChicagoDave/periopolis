@@ -40,6 +40,8 @@ interface Frame {
   readonly height: number;
 }
 let frame: Frame | null = null;
+/** A render scheduled for a burst of model arrivals; null when none is pending. */
+let arrival: ReturnType<typeof setTimeout> | null = null;
 
 /** The sub level's counts from the last build, for the view bar. */
 export interface SubCounts {
@@ -218,9 +220,14 @@ export function drawIrl(page: Page): Painted | null {
         page.render();
       },
       () => {
-        // A kit model arrived: build again so the stand-in gives way to it.
-        frame = null;
-        page.render();
+        // A kit model arrived: build again so the stand-in gives way to it. Arrivals come in a burst, so they are
+        // coalesced into one render a tick rather than a full rebuild each.
+        if (arrival) return;
+        arrival = setTimeout(() => {
+          arrival = null;
+          frame = null;
+          page.render();
+        }, 60);
       },
     );
   }

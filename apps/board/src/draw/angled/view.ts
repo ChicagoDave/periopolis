@@ -47,6 +47,8 @@ export function palette(): Palette {
     line: token('--ink-2', '#4D5C53'),
     site: token('--flag', '#8F5600'),
     siteline: token('--flag', '#8F5600'),
+    school: '#C9A227',
+    fields: '#3F8F4F',
   };
 }
 

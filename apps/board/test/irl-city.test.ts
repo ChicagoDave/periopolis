@@ -177,12 +177,13 @@ describe('the city described at near detail', () => {
     const again = describeScene(sceneOf(layout, RATES, 'near', { occupied: { '1,0': RATES.hood / 2 } }), context(layout)).chunks.find((c) => c.key === '1,0');
     expect(JSON.stringify(again?.trees)).toBe(JSON.stringify(chunk.trees));
   });
-  it('the ring is eight office prisms round a plaza, a plant a plant prism, a strip a strip; far, everything is massing', () => {
+  it('the ring is eight tower props round a plaza, a plant a paved yard with its works, a strip a strip; far, everything is massing', () => {
     const ring = d.chunks.find((c) => c.key === '0,0');
     if (!ring) throw new Error('ring');
-    expect(ring.meshes.filter((m) => m.material === 'office').length).toBe(planRing(RATES.walking, RATES.base, 8).surface.buildings.length);
+    expect(ring.props.filter((p) => p.model.startsWith('tower-')).length).toBe(planRing(RATES.walking, RATES.base, 8).surface.buildings.length);
+    expect(ring.meshes.filter((m) => m.material === 'office').length).toBe(0);
     expect(ring.meshes.filter((m) => m.material === 'plaza').length).toBe(1);
-    expect(d.meshes.filter((m) => m.kind === 'power').every((m) => m.material === 'plant')).toBe(true);
+    expect(d.chunks.filter((c) => c.meshes.some((m) => m.material === 'yard')).length).toBe(4);
     expect(d.meshes.filter((m) => m.kind === 'line').every((m) => m.material === 'strip')).toBe(true);
     const far = describeScene(sceneOf(layout, RATES, 'far'), context(layout));
     expect(far.homes).toBe(0);
@@ -273,7 +274,10 @@ describe('the city on the clock', () => {
     const d = describeScene(scene, context(layout));
     const ms = performance.now() - started;
     expect(d.homes).toBe(20 * hood.figures.homes);
-    expect(d.trees).toBe(20 * Math.floor(hood.surface.park.areaM2 / (TREE_SPACING_M * TREE_SPACING_M)));
+    // A park with playing fields loses the trees that fell on the pitch.
+    const full = 20 * Math.floor(hood.surface.park.areaM2 / (TREE_SPACING_M * TREE_SPACING_M));
+    expect(d.trees).toBeLessThanOrEqual(full);
+    expect(d.trees).toBeGreaterThan(0.9 * full);
     expect(ms).toBeLessThan(1000 * (process.env.CI ? 4 : 1));
     process.stdout.write(`describe 100k near: ${d.homes} homes, ${d.trees} trees, ${d.triangles} triangles in ${ms.toFixed(1)} ms\n`);
   });
@@ -358,5 +362,67 @@ describe('the sub level', () => {
     expect(namedAt).not.toBeNull();
     expect(closedAt).not.toBeNull();
     expect(namedAt as number).toBeLessThan(closedAt as number);
+  });
+});
+
+describe('buildings as models (ADR-0024)', () => {
+  const layout = starterLayout();
+  const near = describeScene(sceneOf(layout, RATES, 'near'), context(layout));
+  it("near, the ring's eight buildings are tower props fitted by the Ledger's height, with no office prism left", () => {
+    const ring = near.chunks.find((c) => c.key === '0,0');
+    if (!ring) throw new Error('ring');
+    const towers = ring.props.filter((p) => p.model.startsWith('tower-'));
+    expect(towers.length).toBe(8);
+    for (const t of towers) {
+      expect(t.footprintM).toBeUndefined();
+      close(t.heightM, 25 * STOREY_M);
+    }
+    expect(ring.meshes.filter((m) => m.material === 'office').length).toBe(0);
+    expect(ring.props.length).toBe(8 + 16);
+  });
+  it('near, a plant is a paved yard with one set of works a unit by its kind, and no hexagonal block', () => {
+    for (const [key, tile] of Object.entries(layout.tiles)) {
+      if (!tile || tile.kind === 'hood' || tile.kind === 'ring') continue;
+      const chunk = near.chunks.find((c) => c.key === key);
+      if (!chunk) throw new Error(key);
+      expect(chunk.meshes.filter((m) => m.material === 'yard').length).toBe(1);
+      expect(chunk.meshes.filter((m) => m.material === 'plant' || m.material === 'massing').length).toBe(0);
+      expect(chunk.props.length).toBe(3 * tile.n);
+      const works = chunk.props.filter((p) => p.model.startsWith('works-'));
+      expect(works.length).toBe(tile.n);
+      if (tile.kind === 'water') expect(chunk.props.some((p) => p.model === 'water-tower')).toBe(true);
+      if (tile.kind === 'power') expect(chunk.props.some((p) => p.model === 'chimney')).toBe(true);
+      if (tile.kind === 'waste') expect(chunk.props.some((p) => p.model === 'solar')).toBe(true);
+      if (tile.kind === 'sewage') expect(chunk.props.filter((p) => p.model === 'tank').length).toBe(2 * tile.n);
+    }
+  });
+  it("near, a neighborhood's schools are school props on their plots and its fields a pitch the trees and the cross path keep clear of; the counts equal the Ground's", () => {
+    const withSchool = Object.entries(layout.tiles).find(([, t]) => t?.kind === 'hood' && Object.keys((t as { has: Record<string, true> }).has).some((k) => k !== 'fields'));
+    const withFields = Object.entries(layout.tiles).find(([, t]) => t?.kind === 'hood' && (t as { has: Record<string, true> }).has.fields);
+    if (!withSchool || !withFields) throw new Error('the ledger city has schools and fields');
+    const sc = near.chunks.find((c) => c.key === withSchool[0]);
+    if (!sc) throw new Error('chunk');
+    const schools = sc.props.filter((p) => p.model.startsWith('school-'));
+    const kinds = Object.keys((withSchool[1] as { has: Record<string, true> }).has).filter((k) => k !== 'fields');
+    expect(schools.length).toBe(kinds.length);
+    for (const s of schools) expect(s.footprintM).toBe(50);
+    expect(sc.homes.length).toBe(hood.figures.homes);
+    const fc = near.chunks.find((c) => c.key === withFields[0]);
+    if (!fc) throw new Error('chunk');
+    const pitch = fc.meshes.find((m) => m.material === 'fields');
+    if (!pitch) throw new Error('fields');
+    const xs = pitch.prism.positions.filter((_, i) => i % 3 === 0);
+    const ys = pitch.prism.positions.filter((_, i) => i % 3 === 1);
+    const box = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+    close(box.x1 - box.x0, 100);
+    close(box.y1 - box.y0, 64);
+    for (const t of fc.trees) expect(t.x >= box.x0 && t.x <= box.x1 && t.y >= box.y0 && t.y <= box.y1).toBe(false);
+    expect(fc.trees.length).toBeLessThan(Math.floor(hood.surface.park.areaM2 / (TREE_SPACING_M * TREE_SPACING_M)));
+    const arms = fc.meshes.filter((m) => m.material === 'parkpath');
+    expect(arms.length).toBe(26);
+    const vertical = arms.filter((m) => { const px = m.prism.positions.filter((_, i) => i % 3 === 0); return Math.max(...px) - Math.min(...px) < 3; });
+    expect(vertical.length).toBe(1);
+    const vy = vertical[0]?.prism.positions.filter((_, i) => i % 3 === 1) ?? [];
+    expect(Math.max(...vy)).toBeLessThan(box.y0 + 1e-6);
   });
 });

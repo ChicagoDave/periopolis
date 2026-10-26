@@ -51,5 +51,9 @@ Every model here is CC0 1.0 (public domain dedication), packed from the kits bel
 | shuttle | car | van.glb | a shuttle (the Ledger's Navya) | 34344 | 1362 | 1.5 × 1.35 × 2.75 |
 | cart | car | delivery-flat.glb | a delivery cart | 39608 | 1944 | 1.5 × 1.35 × 3.25 |
 | bike | car | kart-oodi.glb | a bike on the lane (stand-in) | 49572 | 2246 | 0.974 × 1.329 × 1.428 |
+| school-wide | commercial | building-e.glb | a school (wide and low) | 32236 | 1420 | 1.64 × 0.893 × 1.008 |
+| school-tall | commercial | building-k.glb | a school (wide, two storeys) | 45672 | 2458 | 2.084 × 1.47 × 0.942 |
+| works-e | industrial | building-e.glb | a plant's works | 31884 | 1177 | 1.684 × 1.65 × 1.29 |
+| chimney-small | industrial | chimney-small.glb | a plant's small stack | 15504 | 86 | 0.3 × 0.75 × 0.3 |
 
-Total: 39 models, 955212 bytes.
+Total: 43 models, 1080508 bytes.

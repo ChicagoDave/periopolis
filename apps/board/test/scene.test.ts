@@ -27,7 +27,7 @@ const ring = planRing(RATES.walking, RATES.base, 8);
 const R = RATES.tileKm * 1000;
 const close = (a: number, b: number): void => expect(Math.abs(a - b)).toBeLessThan(1e-6);
 const count = (layout: Layout, kind: string): number => Object.values(layout.tiles).filter((t) => t?.kind === kind).length;
-const PALETTE: Palette = { hood: 'H', ring: 'R', power: 'P', water: 'W', sewage: 'S', waste: 'T', line: 'L', site: 'X', siteline: 'Y' };
+const PALETTE: Palette = { hood: 'H', ring: 'R', power: 'P', water: 'W', sewage: 'S', waste: 'T', line: 'L', site: 'X', siteline: 'Y', school: 'K', fields: 'F' };
 
 describe('the tile lattice in metres', () => {
   it("a tile's middle is the map's hex lattice at the Ledger's tile radius", () => {
@@ -92,7 +92,26 @@ describe("the scene of the ledger's city", () => {
     // The ring, the plants and the strips are as they are far.
     expect(mid.blocks.filter((b) => b.kind === 'ring').length).toBe(far.blocks.filter((b) => b.kind === 'ring').length);
     expect(mid.blocks.filter((b) => b.kind === 'line').length).toBe(stretches);
-    expect(mid.stories - far.stories).toBe(hoods * (hood.surface.rows.reduce((t, r) => t + r.stories, 0) - (hood.surface.rows[0]?.stories ?? 0)));
+    // Mid, a neighborhood's schools stand too (ADR-0024), a block each in the center's disc, and its fields a flat pitch
+    // in the park; far, the tile's one block covers them.
+    const schools = mid.blocks.filter((b) => b.kind === 'school');
+    const fields = mid.blocks.filter((b) => b.kind === 'fields');
+    const extras = Object.values(starterLayout().tiles).filter((t) => t?.kind === 'hood').flatMap((t) => Object.keys((t as { has: Record<string, true> }).has));
+    expect(schools.length).toBe(extras.filter((k) => k !== 'fields').length);
+    expect(fields.length).toBe(extras.filter((k) => k === 'fields').length);
+    expect(far.blocks.some((b) => b.kind === 'school' || b.kind === 'fields')).toBe(false);
+    for (const b of schools) {
+      const key = b.key;
+      const centre = tileCenterM(key, RATES);
+      for (const c of b.block.corners) expect(Math.hypot(c.x - centre.x, c.y - centre.y)).toBeLessThan(hood.surface.center.radiusM);
+      expect(b.stories).toBeGreaterThanOrEqual(2);
+    }
+    for (const b of fields) {
+      const centre = tileCenterM(b.key, RATES);
+      for (const c of b.block.corners) expect(Math.hypot(c.x - centre.x - hood.surface.park.at.x, c.y - centre.y - hood.surface.park.at.y)).toBeLessThan(hood.surface.park.radiusM);
+      expect(b.block.heightM).toBe(0);
+    }
+    expect(mid.stories - far.stories).toBe(hoods * (hood.surface.rows.reduce((t, r) => t + r.stories, 0) - (hood.surface.rows[0]?.stories ?? 0)) + schools.reduce((t, b) => t + b.stories, 0));
   });
 
   it('an empty site is an empty scene', () => {
