@@ -4,8 +4,9 @@
  * change and rendered under the session's orbit. The orbit is the session's, never saved; this module applies the
  * camera's pure functions to it with the scene's box and the canvas's size. The canvas carries data-blocks,
  * data-stories, data-sites, data-lit, data-lod, data-triangles, data-homes, data-lit-homes, data-trees, data-chunks,
- * data-rebuilt, data-rebuild-ms, data-light, data-webgl and data-frames so a test can hold what was built to the scene.
- * Public interface: drawIrl, turnIrl, dollyIrl, panIrl, fitIrl, irlSupported.
+ * data-rebuilt, data-rebuild-ms, data-light, data-sub, data-guideways, data-closed, data-warned, data-stops, data-entries,
+ * data-webgl and data-frames so a test can hold what was built to the scene.
+ * Public interface: drawIrl, turnIrl, dollyIrl, panIrl, fitIrl, irlSupported, SubCounts, subCounts.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
 import { RATES } from '@city/site';
@@ -34,6 +35,20 @@ interface Frame {
 }
 let frame: Frame | null = null;
 
+/** The sub level's counts from the last build, for the view bar. */
+export interface SubCounts {
+  readonly guideways: number;
+  readonly closed: number;
+  readonly warned: number;
+  readonly stops: number;
+}
+let lastSub: SubCounts = { guideways: 0, closed: 0, warned: 0, stops: 0 };
+
+/** What the sub level holds as last built. */
+export function subCounts(): SubCounts {
+  return lastSub;
+}
+
 /** Whether the browser can draw the city IRL; decided once, on the page's canvas. */
 export function irlSupported(): boolean {
   if (supported === null) supported = webglSupported(byId<HTMLCanvasElement>('irlcanvas'));
@@ -57,7 +72,8 @@ function signatureOf(page: Page, standing: Standing, lod: Lod): string {
   const occupied = Object.entries(standing.occupied ?? {})
     .map(([k, n]) => `${k}=${Math.round(n)}`)
     .join(';');
-  return [tiles, lines, sites, ordered, occupied, lod].join('|');
+  const line = `${s.closed.join(';')}/${s.warned.join(';')}`;
+  return [tiles, lines, sites, ordered, occupied, line, lod].join('|');
 }
 
 /** The page's ground and sky, from its tokens so the view follows the theme. */
@@ -129,7 +145,7 @@ export function drawIrl(page: Page): Painted | null {
   const signature = signatureOf(page, standing, lod);
   if (!frame || frame.signature !== signature) {
     const started = performance.now();
-    const described = describeScene(scene, { rates: RATES, layout: s.game.layout });
+    const described = describeScene(scene, { rates: RATES, layout: s.game.layout, closed: s.closed, warned: s.warned, ordered: Object.keys(s.hand.lines) });
     const stats = renderer.build(described, palette(), tokens());
     canvas.setAttribute('data-rebuild-ms', (performance.now() - started).toFixed(1));
     canvas.setAttribute('data-triangles', String(described.triangles));
@@ -138,9 +154,17 @@ export function drawIrl(page: Page): Painted | null {
     canvas.setAttribute('data-trees', String(described.trees));
     canvas.setAttribute('data-chunks', String(stats.chunks));
     canvas.setAttribute('data-rebuilt', String(stats.rebuilt));
+    canvas.setAttribute('data-guideways', String(described.guideways));
+    canvas.setAttribute('data-closed', String(described.closed));
+    canvas.setAttribute('data-warned', String(described.warned));
+    canvas.setAttribute('data-stops', String(described.stops));
+    canvas.setAttribute('data-entries', String(described.entries));
+    lastSub = { guideways: described.guideways, closed: described.closed, warned: described.warned, stops: described.stops };
   } else canvas.setAttribute('data-rebuilt', '0');
   renderer.setLight(s.light);
+  renderer.setSub(s.sub);
   canvas.setAttribute('data-light', s.light);
+  canvas.setAttribute('data-sub', s.sub ? 'on' : 'off');
   frame = { signature, bounds, width: cssWidth, height: cssHeight };
   const frames = renderer.render(orbit, cssWidth, cssHeight, dpr);
   canvas.setAttribute('data-frames', String(frames));

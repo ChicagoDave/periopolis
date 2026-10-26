@@ -274,6 +274,10 @@ function start(data: { game?: unknown }): void {
     s.toggleLight();
     page.render();
   });
+  byId('irl-sub').addEventListener('click', () => {
+    s.toggleSub();
+    page.render();
+  });
   const irl = byId<HTMLCanvasElement>('irlcanvas');
   let orbitDrag: { x: number; y: number; slide: boolean } | null = null;
   irl.addEventListener('pointerdown', (e) => {

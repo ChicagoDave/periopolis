@@ -8,7 +8,9 @@
  * Owner context: Board (adapter), tests.
  */
 import { planNeighborhood, planRing } from '@city/ground';
-import { RATES, applyProposal, emptyLayout, placeNeighborhood, proposeFor, proposeNeighborhood } from '@city/site';
+import { RATES, applyProposal, emptyLayout, placeNeighborhood, proposeFor, proposeNeighborhood, starterLayout } from '@city/site';
+import { sceneOf } from '../../src/draw/angled/scene.ts';
+import { describeScene } from '../../src/draw/irl/describe.ts';
 import type { Layout } from '@city/site';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -572,8 +574,22 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-blocks', '38');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-stories', '238');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'far');
-  // Every strip is 2 triangles, every hexagonal block 16 (a fan of 4 and 6 sides of 2), every ring building 10 (2 and 4 sides of 2).
-  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-triangles', String(16 * 2 + 14 * 16 + 8 * 10));
+  // Every strip is 2 triangles, every hexagonal block 16 (a fan of 4 and 6 sides of 2), every ring building 10 (2 and 4 sides
+  // of 2), and under the ground a guideway a stretch and a stop a tile the line touches, 10 each: the describer's own figure.
+  const described = describeScene(sceneOf(starterLayout(), RATES, 'far'), { rates: RATES, layout: starterLayout() });
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-triangles', String(described.triangles));
+  expect(described.triangles).toBe(16 * 2 + 14 * 16 + 8 * 10 + (16 + described.stops) * 10);
+  // The sub level: hidden until asked; shown, the guideway under every stretch and a stop under every tile the line touches.
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sub', 'off');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-guideways', '16');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-stops', String(described.stops));
+  await page.click('#irl-sub');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sub', 'on');
+  await expect(page.locator('#irl-sub')).toHaveText('Surface');
+  await expect(page.locator('#viewtext')).toHaveText(`The city IRL: 38 blocks, 238 stories in all. The sub level: 16 stretches of guideway, ${described.stops} stops.`);
+  await page.click('#irl-sub');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sub', 'off');
+  await expect(page.locator('#irl-sub')).toHaveText('Sub level');
   const frames = Number(await page.locator('#irlcanvas').getAttribute('data-frames'));
   expect(frames).toBeGreaterThanOrEqual(1);
   await expect(page.locator('#viewbar')).toBeVisible();
@@ -644,6 +660,7 @@ test('the city IRL follows the clock: cranes on what is ordered, homes standing 
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-homes', String(2 * hoodPlan.figures.homes));
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lit-homes', '0');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-trees', '250');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-entries', String(2 * hoodPlan.sub.entries.length));
   // Year 3: the modules open and the childless share moves in: 60% of the homes lit.
   await page.click('#tick');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sites', '0');

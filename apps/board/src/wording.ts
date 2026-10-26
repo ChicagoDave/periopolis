@@ -1032,6 +1032,24 @@ export const IRL_LABEL = 'IRL';
 /** Said when the city IRL opens. */
 export const IRL_OPENED = 'The city IRL. Drag to turn, scroll or the buttons to come nearer, shift-drag to slide. Back to the map returns.';
 
+/** The button that shows the city IRL's sub level and hides it again, by what pressing it does. */
+export const SUB_LABEL: Readonly<Record<'on' | 'off', string>> = { off: 'Sub level', on: 'Surface' };
+
+/**
+ * The view bar's sentence for the sub level: the guideway in stretches, the stops, and what is closed or named ahead.
+ * @param guideways - stretches of guideway, on order included
+ * @param stops - stops under the tiles the line touches
+ * @param closed - stretches closed for repairs this year
+ * @param warned - stretches named for a closure ahead
+ */
+export function subCaption(guideways: number, stops: number, closed = 0, warned = 0): string {
+  if (!guideways) return 'The sub level: no line yet.';
+  const parts = [`The sub level: ${count(guideways, 'stretch', 'stretches')} of guideway, ${count(stops, 'stop', 'stops')}.`];
+  if (closed) parts.push(`${count(closed, 'stretch', 'stretches')} closed for repairs.`);
+  if (warned) parts.push(`${count(warned, 'stretch', 'stretches')} named for a closure ahead.`);
+  return parts.join(' ');
+}
+
 /** The button that turns the city IRL to night and back, by what pressing it does. */
 export const LIGHT_LABEL: Readonly<Record<'noon' | 'night', string>> = { noon: 'Night', night: 'Day' };
 

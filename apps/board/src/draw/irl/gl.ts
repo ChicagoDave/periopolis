@@ -3,8 +3,9 @@
  * a sun that casts soft shadows (or a moon at night), a ground plane, one merged mesh a material for every chunk of
  * the described scene, one instanced mesh of townhouses a size, material variant and light, and one instanced mesh
  * of trees; it paints the procedural facades into textures, rebuilds only the chunks whose signature changed,
- * renders under the orbit camera, resizes with the canvas and survives a lost context. It decides nothing about
- * what is built: the describer does (ADR-0023 Decisions 1 and 2).
+ * renders under the orbit camera, resizes with the canvas and survives a lost context. The sub level's meshes are
+ * built with the rest and shown on the toggle, which fades the ground and ghosts everything on the surface. It
+ * decides nothing about what is built: the describer does (ADR-0023 Decisions 1, 2 and 5).
  * Public interface: Tokens, Light, BuildStats, IrlRenderer, webglSupported.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
@@ -278,7 +279,22 @@ const PLAIN: Readonly<Record<Exclude<MaterialId, 'massing' | 'office' | 'plant'>
   park: { color: '#6E9A58', roughness: 1 },
   plaza: { color: '#C9C4B8', roughness: 0.95 },
   path: { color: '#B8A98C', roughness: 1 },
+  guideway: { color: '#34495A', roughness: 0.55 },
+  closed: { color: '#B3261E', roughness: 0.7 },
+  warned: { color: '#E5AE45', roughness: 0.7 },
+  ordered: { color: '#C98A2E', roughness: 0.9 },
+  stop: { color: '#E8E2D4', roughness: 0.8 },
+  entry: { color: '#8C97A0', roughness: 0.8 },
+  walkway: { color: '#A9B4BC', roughness: 0.95 },
+  pipe: { color: '#7A6652', roughness: 0.6 },
 };
+
+/** The materials that stand on the sub level; everything else is the surface, ghosted when the sub level shows. */
+const SUB_MATERIALS: ReadonlySet<string> = new Set(['guideway', 'closed', 'warned', 'ordered', 'stop', 'entry', 'walkway', 'pipe']);
+
+/** How faint the surface goes when the sub level shows: the ground, and the buildings and trees on it. */
+const GHOST_GROUND = 0.3;
+const GHOST_SURFACE = 0.12;
 
 /** A group of townhouse instances: one size and one variant, every chunk's homes of it in a slot of the mesh. */
 interface HomeGroup {
@@ -303,7 +319,7 @@ export class IrlRenderer {
   private readonly sky: HemisphereLight;
   private readonly ambient: AmbientLight;
   private ground: Mesh | null = null;
-  private readonly chunks = new Map<string, { signature: string; meshes: Mesh[] }>();
+  private readonly chunks = new Map<string, { signature: string; meshes: Mesh[]; sub: Mesh[] }>();
   private readonly materials = new Map<string, MeshStandardMaterial>();
   private readonly homeGroups = new Map<string, HomeGroup>();
   private readonly treeGeometry = treeGeometry();
@@ -311,6 +327,7 @@ export class IrlRenderer {
   private homesSignature = '';
   private treesSignature = '';
   private light: Light = 'noon';
+  private sub = false;
   private tokens: Tokens = { ground: '#E1E8DF', sky: '#CFE0EE' };
   private far = 20000;
   private frames = 0;
@@ -357,6 +374,10 @@ export class IrlRenderer {
     else if (id === 'office') m = sheetMaterial(officeFacade());
     else if (id === 'plant') m = sheetMaterial(plantFacade());
     else m = new MeshStandardMaterial({ color: new Color(PLAIN[id].color), roughness: PLAIN[id].roughness, metalness: 0 });
+    if (id === 'stop' || id === 'closed' || id === 'warned') {
+      m.emissive = new Color(id === 'stop' ? WINDOW_LIGHT : PLAIN[id].color);
+      m.emissiveIntensity = 0.35;
+    }
     this.materials.set(id, m);
     return m;
   }
@@ -385,8 +406,8 @@ export class IrlRenderer {
     return [facade, wall, roof];
   }
 
-  /** Build a chunk's merged meshes, one a material. */
-  private chunkMeshes(chunk: Chunk, palette: Palette): Mesh[] {
+  /** Build a chunk's merged meshes, one a material; the sub level's are returned apart and shown on the toggle. */
+  private chunkMeshes(chunk: Chunk, palette: Palette): { surface: Mesh[]; sub: Mesh[] } {
     const buckets = new Map<MaterialId, { positions: number[]; normals: number[]; uvs: number[]; colors: number[]; lit: number[]; indices: number[] }>();
     const tint = new Color();
     for (const { material, prism, kind, lit } of chunk.meshes) {
@@ -412,7 +433,7 @@ export class IrlRenderer {
       }
       for (const ix of prism.indices) b.indices.push(at + ix);
     }
-    const out: Mesh[] = [];
+    const out = { surface: [] as Mesh[], sub: [] as Mesh[] };
     for (const [material, b] of buckets) {
       const geometry = new BufferGeometry();
       geometry.setAttribute('position', new BufferAttribute(new Float32Array(b.positions), 3));
@@ -425,9 +446,13 @@ export class IrlRenderer {
       geometry.setIndex(b.indices);
       const mesh = new Mesh(geometry, this.material(material));
       const flat = material === 'strip' || material === 'survey' || material === 'park' || material === 'plaza' || material === 'path';
-      mesh.castShadow = !flat;
-      mesh.receiveShadow = true;
-      out.push(mesh);
+      const sub = SUB_MATERIALS.has(material);
+      mesh.castShadow = !flat && !sub;
+      mesh.receiveShadow = !sub;
+      if (sub) {
+        mesh.visible = this.sub;
+        out.sub.push(mesh);
+      } else out.surface.push(mesh);
     }
     return out;
   }
@@ -576,7 +601,7 @@ export class IrlRenderer {
     const keep = new Set(described.chunks.map((c) => c.key));
     for (const [key, c] of this.chunks) {
       if (keep.has(key)) continue;
-      for (const m of c.meshes) {
+      for (const m of [...c.meshes, ...c.sub]) {
         this.scene.remove(m);
         m.geometry.dispose();
       }
@@ -587,14 +612,14 @@ export class IrlRenderer {
       const had = this.chunks.get(chunk.key);
       if (had && had.signature === chunk.signature) continue;
       if (had) {
-        for (const m of had.meshes) {
+        for (const m of [...had.meshes, ...had.sub]) {
           this.scene.remove(m);
           m.geometry.dispose();
         }
       }
-      const meshes = this.chunkMeshes(chunk, palette);
-      for (const m of meshes) this.scene.add(m);
-      this.chunks.set(chunk.key, { signature: chunk.signature, meshes });
+      const built = this.chunkMeshes(chunk, palette);
+      for (const m of [...built.surface, ...built.sub]) this.scene.add(m);
+      this.chunks.set(chunk.key, { signature: chunk.signature, meshes: built.surface, sub: built.sub });
       rebuilt++;
     }
     const homesSignature = described.chunks
@@ -615,6 +640,7 @@ export class IrlRenderer {
     }
     this.fitGround(described, tokens);
     this.applyLight();
+    this.applySub();
     let homes = 0;
     for (const g of this.homeGroups.values()) homes += g.count;
     return { rebuilt, chunks: this.chunks.size, homes, trees: this.trees?.count ?? 0 };
@@ -638,6 +664,7 @@ export class IrlRenderer {
     const plane = new PlaneGeometry(spanX + 2 * margin, spanY + 2 * margin);
     plane.rotateX(-Math.PI / 2);
     this.ground = new Mesh(plane, new MeshStandardMaterial({ color: new Color(tokens.ground), roughness: 1, metalness: 0 }));
+    // Keep the ground faint when the sub level shows (applySub runs after the fit, but a plane made anew starts opaque).
     this.ground.position.copy(toGl({ x: cx, y: cy, z: 0 }));
     this.ground.receiveShadow = true;
     this.scene.add(this.ground);
@@ -654,6 +681,27 @@ export class IrlRenderer {
     shadow.far = radius * 6;
     shadow.updateProjectionMatrix();
     this.far = Math.max(spanX, spanY) * 6 + 2000;
+  }
+
+  /** The sub level shown or hidden: shown, the ground fades, the surface ghosts, and the guideway, stops and entries appear. */
+  setSub(on: boolean): void {
+    if (on === this.sub) return;
+    this.sub = on;
+    this.applySub();
+  }
+
+  private applySub(): void {
+    const on = this.sub;
+    for (const c of this.chunks.values()) for (const m of c.sub) m.visible = on;
+    const ghost = (m: MeshStandardMaterial, opacity: number): void => {
+      m.transparent = on;
+      m.opacity = on ? opacity : 1;
+      m.depthWrite = !on;
+      m.needsUpdate = true;
+    };
+    for (const [key, m] of this.materials) if (!SUB_MATERIALS.has(key)) ghost(m, GHOST_SURFACE);
+    if (this.ground) ghost(this.ground.material as MeshStandardMaterial, GHOST_GROUND);
+    this.sun.castShadow = !on;
   }
 
   /** The time of day: noon, or night with the lit windows glowing. */
@@ -704,7 +752,7 @@ export class IrlRenderer {
 
   /** Let every GL resource go. */
   dispose(): void {
-    for (const c of this.chunks.values()) for (const m of c.meshes) m.geometry.dispose();
+    for (const c of this.chunks.values()) for (const m of [...c.meshes, ...c.sub]) m.geometry.dispose();
     this.chunks.clear();
     for (const g of this.homeGroups.values()) {
       g.mesh?.dispose();

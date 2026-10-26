@@ -4,16 +4,19 @@
  * of one townhouse (its place, which way it faces, its material variant seeded from the tile's key, and whether it
  * is lit); with the Ground's plans, a neighborhood's park and center as discs, its bike lane as paths, trees seeded
  * into the park, the ring's plaza, a scaffold and a crane on a tile under construction, and a survey strip for a
- * stretch on order. Each chunk carries a signature so the adapter rebuilds only the tiles that changed. Pure, no
+ * stretch on order; and under the ground, the sub level: a guideway under every stretch of line (closed, or named
+ * for a closure ahead, or on order, each its own material), a stop under every tile the line touches, and at near
+ * detail a neighborhood's entries, walkways and goods pipes. Each chunk carries a signature so the adapter rebuilds only the tiles that changed. Pure, no
  * DOM, no three.js: the same scene describes byte for byte the same (ADR-0023 Decisions 2 and 3). A chunk is
  * remembered by its signature, so a tile that did not change is handed back, not described again.
- * Public interface: Prism, MaterialId, MeshRecord, HomeInstance, Tree, Chunk, Described, DescribeContext,
- * FLAT_LIFT_M, HOME_TRIANGLES, TREE_SPACING_M, prismOf, describeScene.
+ * Public interface: Prism, MaterialId, Level, MeshRecord, HomeInstance, Tree, Chunk, Described, DescribeContext,
+ * FLAT_LIFT_M, HOME_TRIANGLES, TREE_SPACING_M, SUB_DEPTH_M, PIPE_DEPTH_M, prismOf, describeScene.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
 import { planNeighborhood, planRing } from '@city/ground';
 import type { Disc, Point, RingPlan, Segment } from '@city/ground';
-import type { Layout, SiteRates, TileKey } from '@city/site';
+import { edgeEnds, lineNetwork } from '@city/site';
+import type { EdgeKey, Layout, SiteRates, TileKey } from '@city/site';
 import type { GroundPoint } from '../angled/projection.ts';
 import { tileCenterM } from '../angled/scene.ts';
 import type { Scene, SceneBlock, SceneKind } from '../angled/scene.ts';
@@ -31,8 +34,33 @@ export const HOME_TRIANGLES = 14;
 /** Metres between trees in a park, one a square of this side (Mine). */
 export const TREE_SPACING_M = 20;
 
+/** Metres below the ground the sub level's floor lies, and the goods pipe below that (Mine). */
+export const SUB_DEPTH_M = -7;
+export const PIPE_DEPTH_M = -10;
+
 /** What a prism is made of: the adapter has a material for each. */
-export type MaterialId = 'massing' | 'office' | 'plant' | 'strip' | 'survey' | 'scaffold' | 'crane' | 'park' | 'plaza' | 'path';
+export type MaterialId =
+  | 'massing'
+  | 'office'
+  | 'plant'
+  | 'strip'
+  | 'survey'
+  | 'scaffold'
+  | 'crane'
+  | 'park'
+  | 'plaza'
+  | 'path'
+  | 'guideway'
+  | 'closed'
+  | 'warned'
+  | 'ordered'
+  | 'stop'
+  | 'entry'
+  | 'walkway'
+  | 'pipe';
+
+/** Where a prism stands: on the surface, or on the sub level under it. */
+export type Level = 'surface' | 'sub';
 
 /** A prism's geometry: positions and normals three a vertex and UVs two a vertex (metres along the face and up), in
  * scene metres (x east, y south, z up), and the triangles as indices into them. */
@@ -47,6 +75,7 @@ export interface Prism {
 export interface MeshRecord {
   readonly kind: SceneKind;
   readonly material: MaterialId;
+  readonly level: Level;
   readonly prism: Prism;
   readonly lit: number;
   /** Triangles in the prism. */
@@ -85,10 +114,17 @@ export interface Chunk {
   readonly trees: readonly Tree[];
 }
 
-/** What the describer needs beyond the scene to add the Ground's features: the Site's rates and the layout. */
+/** What the describer needs beyond the scene to add the Ground's features and the sub level: the Site's rates, the
+ * layout, and what the Run says of the line this year. */
 export interface DescribeContext {
   readonly rates: SiteRates;
   readonly layout: Layout;
+  /** Stretches closed for repairs this year (the Run's `stressAt`). */
+  readonly closed?: readonly EdgeKey[];
+  /** Stretches named for a closure ahead and not yet closed (the Run's `namedClosures`). */
+  readonly warned?: readonly EdgeKey[];
+  /** Stretches on order, not yet laid (the work in hand). */
+  readonly ordered?: readonly EdgeKey[];
 }
 
 /** The scene described, and the sums a test can hold it to. */
@@ -112,6 +148,12 @@ export interface Described {
   readonly homes: number;
   readonly litHomes: number;
   readonly trees: number;
+  /** The sub level: guideways under every stretch, how many closed and named ahead, stops, and entries. */
+  readonly guideways: number;
+  readonly closed: number;
+  readonly warned: number;
+  readonly stops: number;
+  readonly entries: number;
   /** The box round everything; null for an empty scene. */
   readonly bounds: Bounds | null;
 }
@@ -228,9 +270,32 @@ function boxPolygon(cx: number, cy: number, w: number, d: number): GroundPoint[]
   ];
 }
 
-function record(kind: SceneKind, material: MaterialId, prism: Prism, lit: number, block?: SceneBlock): MeshRecord {
-  const base = { kind, material, prism, lit, triangles: prism.indices.length / 3 };
+function record(kind: SceneKind, material: MaterialId, prism: Prism, lit: number, block?: SceneBlock, level: Level = 'surface'): MeshRecord {
+  const base = { kind, material, level, prism, lit, triangles: prism.indices.length / 3 };
   return block ? { ...base, block } : base;
+}
+
+/** A prism moved down (or up) by so many metres. */
+function lowered(prism: Prism, dz: number): Prism {
+  return { ...prism, positions: prism.positions.map((v, i) => (i % 3 === 2 ? v + dz : v)) };
+}
+
+/** The state of a stretch of line on the sub level, and the material it is built of. */
+type EdgeState = 'open' | 'closed' | 'warned' | 'ordered';
+const EDGE_MATERIAL: Readonly<Record<EdgeState, MaterialId>> = { open: 'guideway', closed: 'closed', warned: 'warned', ordered: 'ordered' };
+
+/** A guideway under a stretch: a box 8 m wide and 1 m high between the two tile middles, on the sub level's floor. */
+function guidewayOf(edge: EdgeKey, state: EdgeState, rates: SiteRates): MeshRecord {
+  const [a, b] = edgeEnds(edge);
+  const from = tileCenterM(a, rates);
+  const to = tileCenterM(b, rates);
+  const seg: Segment = { from, to, m: Math.hypot(to.x - from.x, to.y - from.y) };
+  return record('line', EDGE_MATERIAL[state], lowered(prismOf(stripPolygon(seg, { x: 0, y: 0 }, 8), 1), SUB_DEPTH_M), 1, undefined, 'sub');
+}
+
+/** A stop: a platform 60 m by 16 m and 3 m high on the sub level's floor, at the Ground's stop. */
+function stopOf(at: Point): MeshRecord {
+  return record('line', 'stop', lowered(prismOf(boxPolygon(at.x, at.y, 60, 16), 3), SUB_DEPTH_M), 1, undefined, 'sub');
 }
 
 /** The material a block is built of: what it is, and whether near enough to see its face. */
@@ -317,8 +382,24 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
     if (list) list.push(block);
     else byTile.set(block.key, [block]);
   }
-  const hoodPlan = context && near ? planNeighborhood(context.rates.shared, context.rates.walking, context.rates.base) : null;
+  const hoodPlan = context ? planNeighborhood(context.rates.shared, context.rates.walking, context.rates.base) : null;
   const rings: Record<number, RingPlan> = {};
+  // The line on the sub level, by the tile each stretch starts from, with what the Run says of it this year.
+  const edgesByTile = new Map<TileKey, { edge: EdgeKey; state: EdgeState }[]>();
+  const network = context ? lineNetwork(context.layout.lines) : null;
+  if (context) {
+    const closed = new Set(context.closed ?? []);
+    const warned = new Set(context.warned ?? []);
+    const add = (edge: EdgeKey, state: EdgeState): void => {
+      const [a] = edgeEnds(edge);
+      const list = edgesByTile.get(a);
+      if (list) list.push({ edge, state });
+      else edgesByTile.set(a, [{ edge, state }]);
+      if (!byTile.has(a)) byTile.set(a, []);
+    };
+    for (const edge of Object.keys(context.layout.lines)) add(edge, closed.has(edge) ? 'closed' : warned.has(edge) ? 'warned' : 'open');
+    for (const edge of context.ordered ?? []) if (!context.layout.lines[edge]) add(edge, 'ordered');
+  }
   const chunks: Chunk[] = [];
   const meshes: MeshRecord[] = [];
   const byKind: Partial<Record<SceneKind, number>> = {};
@@ -326,9 +407,26 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
   let homes = 0;
   let litHomes = 0;
   let trees = 0;
+  let guideways = 0;
+  let closedCount = 0;
+  let warnedCount = 0;
+  let stops = 0;
+  let entries = 0;
+  const tally = (c: Chunk): void => {
+    for (const m of c.meshes) {
+      if (m.level !== 'sub') continue;
+      if (m.material === 'guideway' || m.material === 'closed' || m.material === 'warned' || m.material === 'ordered') guideways++;
+      if (m.material === 'closed') closedCount++;
+      if (m.material === 'warned') warnedCount++;
+      if (m.material === 'stop') stops++;
+      if (m.material === 'entry') entries++;
+    }
+  };
   for (const [key, blocks] of byTile) {
     const tile = context?.layout.tiles[key];
-    let h = hashOf(`${key}|${scene.lod}|${tile ? `${tile.kind}:${(tile as { n?: number }).n ?? ''}` : 'none'}|${context ? 'features' : 'bare'}`);
+    const edges = edgesByTile.get(key) ?? [];
+    const onLine = Boolean(tile && network?.onLine(key));
+    let h = hashOf(`${key}|${scene.lod}|${tile ? `${tile.kind}:${(tile as { n?: number }).n ?? ''}` : 'none'}|${context ? 'features' : 'bare'}|${edges.map((e) => `${e.edge}=${e.state}`).join(',')}|${onLine ? 'stop' : ''}`);
     for (const block of blocks) h = foldBlock(h, block);
     const signature = `${scene.lod}|${blocks.length}|${h}`;
     const had = rememberedChunks.get(signature);
@@ -344,6 +442,7 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
       homes += had.homes.length;
       litHomes += had.homes.filter((x) => x.lit === 1).length;
       trees += had.trees.length;
+      tally(had);
       continue;
     }
     const chunkMeshes: MeshRecord[] = [];
@@ -361,7 +460,7 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
       if (block.kind === 'site' && center && !blocks.some((b) => b !== block && b.kind === 'site')) chunkMeshes.push(...craneOf(center));
     }
     if (homeBlocks.length) chunkHomes.push(...homesOf(key, homeBlocks));
-    if (center && hoodPlan && tile?.kind === 'hood') {
+    if (center && hoodPlan && near && tile?.kind === 'hood') {
       const s = hoodPlan.surface;
       chunkMeshes.push(record('hood', 'park', prismOf(discPolygon(s.park, center), 0, 0.1), 1));
       chunkMeshes.push(record('hood', 'plaza', prismOf(discPolygon(s.center, center), 0, 0.1), 1));
@@ -371,6 +470,22 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
       const plan = (rings[tile.n] ??= planRing(context.rates.walking, context.rates.base, tile.n));
       chunkMeshes.push(record('ring', 'plaza', prismOf(discPolygon(plan.surface.plaza, center), 0, 0.1), 1));
     }
+    // The sub level: guideways under the stretches that start here, a stop under the tile if the line touches it, and
+    // at near detail a neighborhood's entries (shafts up to the surface), walkways and goods pipes.
+    if (context && center) {
+      for (const e of edges) chunkMeshes.push(guidewayOf(e.edge, e.state, context.rates));
+      if (onLine && tile && hoodPlan) {
+        const at = tile.kind === 'hood' ? hoodPlan.sub.stop.at : tile.kind === 'ring' ? (rings[tile.n] ??= planRing(context.rates.walking, context.rates.base, tile.n)).sub.stop.at : { x: 0, y: 0 };
+        chunkMeshes.push(stopOf({ x: center.x + at.x, y: center.y + at.y }));
+      }
+      if (near && tile?.kind === 'hood' && hoodPlan) {
+        for (const entry of hoodPlan.sub.entries) {
+          chunkMeshes.push(record('hood', 'entry', lowered(prismOf(boxPolygon(center.x + entry.at.x, center.y + entry.at.y, 4, 4), -SUB_DEPTH_M), SUB_DEPTH_M), 1, undefined, 'sub'));
+          if (entry.walkway) chunkMeshes.push(record('hood', 'walkway', prismOf(stripPolygon(entry.walkway, center, 2.5), 0, SUB_DEPTH_M + 0.2), 1, undefined, 'sub'));
+        }
+        for (const pipe of hoodPlan.sub.pipes) chunkMeshes.push(record('hood', 'pipe', lowered(prismOf(stripPolygon(pipe, center, 1.5), 1.5), PIPE_DEPTH_M), 1, undefined, 'sub'));
+      }
+    }
     for (const m of chunkMeshes) triangles += m.triangles;
     homes += chunkHomes.length;
     litHomes += chunkHomes.filter((h) => h.lit === 1).length;
@@ -379,6 +494,25 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
     if (rememberedChunks.size >= REMEMBER_MAX) rememberedChunks.clear();
     rememberedChunks.set(signature, chunk);
     chunks.push(chunk);
+    tally(chunk);
   }
-  return { chunks, meshes, blocks: scene.blocks.length, stories: scene.stories, sites: scene.sites, lit: scene.lit, triangles, byKind, homes, litHomes, trees, bounds: boundsOf(scene) };
+  return {
+    chunks,
+    meshes,
+    blocks: scene.blocks.length,
+    stories: scene.stories,
+    sites: scene.sites,
+    lit: scene.lit,
+    triangles,
+    byKind,
+    homes,
+    litHomes,
+    trees,
+    guideways,
+    closed: closedCount,
+    warned: warnedCount,
+    stops,
+    entries,
+    bounds: boundsOf(scene),
+  };
 }

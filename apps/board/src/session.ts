@@ -7,10 +7,10 @@
  * Owner context: Board (adapter).
  */
 import type { Level } from '@city/ground';
-import { RULES, emergencyOf, inHand, livingOf, notices, stopsBuilding, stressAt } from '@city/run';
+import { RULES, emergencyOf, inHand, livingOf, namedClosures, notices, stopsBuilding, stressAt } from '@city/run';
 import type { Game, HeldBack, Notice, WorkInHand } from '@city/run';
 import { RATES, assess } from '@city/site';
-import type { AssessOptions, Assessment, TestId, TileKey } from '@city/site';
+import type { AssessOptions, Assessment, EdgeKey, TestId, TileKey } from '@city/site';
 import type { Orbit } from './draw/irl/camera.ts';
 import type { Light } from './draw/irl/gl.ts';
 import type { GameStore } from './storage.ts';
@@ -55,6 +55,11 @@ export interface Session {
   orbit: Orbit | null;
   /** The time of day the city IRL is lit for. Never saved. */
   light: Light;
+  /** Whether the city IRL shows its sub level. Never saved. */
+  sub: boolean;
+  /** Stretches closed for repairs this year, and those named for a closure ahead (ADR-0021); empty off the clock. */
+  closed: readonly EdgeKey[];
+  warned: readonly EdgeKey[];
   tool: ToolId;
   picked: TileKey | null;
   lineFrom: TileKey | null;
@@ -93,6 +98,8 @@ export interface Session {
   setOrbit(orbit: Orbit | null): void;
   /** Noon to night and back. */
   toggleLight(): void;
+  /** The sub level shown or hidden. */
+  toggleSub(): void;
   /** A quarter turn of the site from the air. */
   turnAir(): void;
   /** The next tilt: mid, high, low, round again. */
@@ -115,6 +122,9 @@ export function newSession(game: Game, store: GameStore): Session {
     air: AIR_START,
     orbit: null,
     light: 'noon',
+    sub: false,
+    closed: [],
+    warned: [],
     tool: 'inspect',
     picked: null,
     lineFrom: null,
@@ -141,6 +151,10 @@ export function newSession(game: Game, store: GameStore): Session {
       // On a clock the board is checked for the people living there, as its record was: with the month clock, the
       // month's people (ADR-0009); built in order, only those admitted (ADR-0012).
       const living = clock ? livingOf(s.game.layout, clock, RATES) : null;
+      // The line this year: what is closed, and what is named for a closure ahead and not yet closed (ADR-0021).
+      const now = clock ? stressAt(clock, RATES.band) : null;
+      s.closed = now?.closed ?? [];
+      s.warned = clock ? namedClosures(clock, clock.year).filter((e) => !s.closed.includes(e)) : [];
       const options: AssessOptions = {
         ...(s.showing ? { show: s.showing } : {}),
         ...(clock ? { now: stressAt(clock, RATES.band) } : {}),
@@ -187,6 +201,9 @@ export function newSession(game: Game, store: GameStore): Session {
     },
     toggleLight() {
       s.light = s.light === 'noon' ? 'night' : 'noon';
+    },
+    toggleSub() {
+      s.sub = !s.sub;
     },
     turnAir() {
       s.air = { ...s.air, turn: ((s.air.turn + 1) % 4) as Air['turn'] };
