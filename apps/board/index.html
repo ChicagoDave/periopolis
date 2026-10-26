@@ -85,7 +85,9 @@ p { margin: 0; }
 .boardscroll { overflow: auto; border: 1px solid var(--rule); background: var(--sheet); border-radius: 4px; }
 #angledcanvas { display: block; width: 100%; height: auto; background: var(--ground); cursor: grab; touch-action: none; }
 #angledcanvas.dragging { cursor: grabbing; }
-#angledcanvas[hidden], #board[hidden] { display: none; }
+#irlcanvas { display: block; width: 100%; height: auto; background: var(--ground); cursor: grab; touch-action: none; }
+#irlcanvas.dragging { cursor: grabbing; }
+#angledcanvas[hidden], #irlcanvas[hidden], #board[hidden] { display: none; }
 #board { display: block; width: 100%; height: auto; min-width: 520px; max-width: 760px; margin-inline: auto; touch-action: manipulation; }
 .said { min-height: 1.4em; font: 400 .9rem/1.4 var(--display); color: var(--ink-2); }
 .bar { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -347,15 +349,22 @@ p { margin: 0; }
           <button class="btn small" id="air-out" type="button">Farther</button>
           <button class="btn small" id="air-fit" type="button">Fit</button>
         </span>
+        <span class="levels" id="irlcontrols" role="group" aria-label="The orbit IRL" hidden>
+          <button class="btn small" id="irl-in" type="button">Nearer</button>
+          <button class="btn small" id="irl-out" type="button">Farther</button>
+          <button class="btn small" id="irl-fit" type="button">Fit</button>
+        </span>
       </div>
       <div class="boardscroll" id="boardscroll">
         <svg id="board" role="group" aria-label="The site. Each tile is the ground of one neighborhood." xmlns="http://www.w3.org/2000/svg"></svg>
         <canvas id="angledcanvas" hidden role="img" aria-label="The site from the air: every neighborhood, ring building and plant as a block with its stories."></canvas>
+        <canvas id="irlcanvas" hidden role="img" aria-label="The city IRL: every neighborhood, ring building and plant as a lit building with its stories, under the sun."></canvas>
       </div>
       <p class="said" id="said" role="status"></p>
       <div class="bar">
         <button class="btn" id="undo" type="button">Undo</button>
         <button class="btn" id="angled" type="button" aria-pressed="false">From the air</button>
+        <button class="btn" id="irl" type="button" aria-pressed="false">IRL</button>
         <button class="btn" id="starter" type="button">Load the ledger's city</button>
         <button class="btn" id="sized" type="button">Load it sized to its people</button>
         <button class="btn" id="clear" type="button">Clear the site</button>

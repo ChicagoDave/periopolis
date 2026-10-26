@@ -4,7 +4,7 @@
  * the city needs, the city sized to its people, a city founded month by month with its day hour by hour, and a
  * neighborhood standing empty while its line is under construction (ADR-0012), a city that grows itself (ADR-0015), and
  * the circles and the band: the band refusing what does not stand there, and a full circle growing into the second
- * (ADR-0016).
+ * (ADR-0016), and the city IRL built on a WebGL canvas (ADR-0023).
  * Owner context: Board (adapter), tests.
  */
 import { planNeighborhood, planRing } from '@city/ground';
@@ -553,6 +553,61 @@ test('the site from the air follows the clock: scaffolds for what is ordered, bl
   await expect(page.locator('#peoplenow')).toHaveText('Year 4, month 1 of 12. 6,000 people living in homes for 10,000. 86,479 people wait for a home.');
   await expect(page.locator('#angledcanvas')).toHaveAttribute('data-lit', '0.60');
   await expect(page.locator('#angled')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a WebGL canvas and rendered, nearer rebuilds in rows, the map comes back (ADR-0023)", async ({ page }) => {
+  await expect(page.locator('#irlcanvas')).toBeHidden();
+  await expect(page.locator('#irl')).toHaveAttribute('aria-pressed', 'false');
+  await page.click('#irl');
+  await expect(page.locator('#said')).toHaveText('The city IRL. Drag to turn, scroll or the buttons to come nearer, shift-drag to slide. Back to the map returns.');
+  await expect(page.locator('#irl')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#irlcanvas')).toBeVisible();
+  await expect(page.locator('#board')).toBeHidden();
+  await expect(page.locator('#angledcanvas')).toBeHidden();
+  // The canvas has a WebGL context, and what was built is the scene: 16 strips, 10 neighborhoods, 8 ring buildings, 4 plants.
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-webgl', 'yes');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-blocks', '38');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-stories', '238');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'far');
+  // Every strip is 2 triangles, every hexagonal block 16 (a fan of 4 and 6 sides of 2), every ring building 10 (2 and 4 sides of 2).
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-triangles', String(16 * 2 + 14 * 16 + 8 * 10));
+  const frames = Number(await page.locator('#irlcanvas').getAttribute('data-frames'));
+  expect(frames).toBeGreaterThanOrEqual(1);
+  await expect(page.locator('#viewbar')).toBeVisible();
+  await expect(page.locator('#viewtext')).toHaveText('The city IRL: 38 blocks, 238 stories in all.');
+  await expect(page.locator('#levels')).toBeHidden();
+  await expect(page.locator('#aircontrols')).toBeHidden();
+  await expect(page.locator('#irlcontrols')).toBeVisible();
+  // Nearer, until the rows of townhouses are built: more blocks, the same stories' worth of homes in rows.
+  for (let i = 0; i < 6; i++) await page.click('#irl-in');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'mid');
+  const rows = Number(await page.locator('#irlcanvas').getAttribute('data-blocks'));
+  expect(rows).toBeGreaterThan(38);
+  // Fit opens far again; a drag turns and renders another frame.
+  await page.click('#irl-fit');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'far');
+  const box = await page.locator('#irlcanvas').boundingBox();
+  if (!box) throw new Error('canvas');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 20, { steps: 3 });
+  await page.mouse.up();
+  const after = Number(await page.locator('#irlcanvas').getAttribute('data-frames'));
+  expect(after).toBeGreaterThan(frames);
+  // Back to the map, by the view bar.
+  await page.click('#back');
+  await expect(page.locator('#irlcanvas')).toBeHidden();
+  await expect(page.locator('#board')).toBeVisible();
+  await expect(page.locator('#viewbar')).toBeHidden();
+  await expect(page.locator('#irl')).toHaveAttribute('aria-pressed', 'false');
+  // A cleared site IRL has nothing to build; pressing the button again returns to the map.
+  await page.click('#clear');
+  await page.click('#irl');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-blocks', '0');
+  await expect(page.locator('#viewtext')).toHaveText('The city IRL. Nothing stands yet.');
+  await page.click('#irl');
+  await expect(page.locator('#viewbar')).toBeHidden();
+  await expect(page.locator('#board')).toBeVisible();
 });
 
 test('the viewer from the air: nearer shows rows then homes, a turn and a tilt repaint, a month repaints only what moved, a drag slides, fit returns', async ({ page }) => {

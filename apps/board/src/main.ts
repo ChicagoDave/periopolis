@@ -26,7 +26,8 @@ import type { Page } from './page.ts';
 import { newSession } from './session.ts';
 import { browserStore, restoreGame } from './storage.ts';
 import type { SavedGame } from './storage.ts';
-import { PAUSED_FOR_ORDER, clockStarted } from './wording.ts';
+import { dollyIrl, fitIrl, panIrl, turnIrl } from './draw/irl/view.ts';
+import { IRL_OPENED, PAUSED_FOR_ORDER, clockStarted } from './wording.ts';
 import type { ToolId } from './wording.ts';
 
 const KEY = 'future-city-builder-v1';
@@ -245,6 +246,61 @@ function start(data: { game?: unknown }): void {
     }
     page.render();
   });
+  // The city IRL: a toggle from any view; pressed again, or Back, returns to the map. A drag turns the orbit, a
+  // shift-drag slides it, the wheel and the buttons come nearer or farther, Fit opens it again.
+  byId('irl').addEventListener('click', () => {
+    if (s.view.at === 'irl') {
+      s.lookAway();
+      page.say('The map.');
+    } else {
+      s.lookIrl();
+      page.say(IRL_OPENED);
+    }
+    page.render();
+  });
+  byId('irl-in').addEventListener('click', () => {
+    dollyIrl(page, 1 / 1.5);
+    page.render();
+  });
+  byId('irl-out').addEventListener('click', () => {
+    dollyIrl(page, 1.5);
+    page.render();
+  });
+  byId('irl-fit').addEventListener('click', () => {
+    fitIrl(page);
+    page.render();
+  });
+  const irl = byId<HTMLCanvasElement>('irlcanvas');
+  let orbitDrag: { x: number; y: number; slide: boolean } | null = null;
+  irl.addEventListener('pointerdown', (e) => {
+    orbitDrag = { x: e.clientX, y: e.clientY, slide: e.shiftKey };
+    irl.classList.add('dragging');
+    irl.setPointerCapture(e.pointerId);
+  });
+  irl.addEventListener('pointermove', (e) => {
+    if (!orbitDrag) return;
+    const dx = e.clientX - orbitDrag.x;
+    const dy = e.clientY - orbitDrag.y;
+    if (orbitDrag.slide) panIrl(page, dx, dy);
+    else turnIrl(page, dx, dy);
+    orbitDrag = { ...orbitDrag, x: e.clientX, y: e.clientY };
+    page.render();
+  });
+  const orbitEnd = (): void => {
+    orbitDrag = null;
+    irl.classList.remove('dragging');
+  };
+  irl.addEventListener('pointerup', orbitEnd);
+  irl.addEventListener('pointercancel', orbitEnd);
+  irl.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      dollyIrl(page, e.deltaY > 0 ? 1.15 : 1 / 1.15);
+      page.render();
+    },
+    { passive: false },
+  );
   for (const level of ['surface', 'sub'] as const) {
     byId(`level-${level}`).addEventListener('click', () => {
       s.showLevel(level);

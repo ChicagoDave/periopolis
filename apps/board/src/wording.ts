@@ -1026,6 +1026,31 @@ export const SPEED_NAME: Readonly<Record<Speed, string>> = { slow: 'Slow', stead
 /** The button that opens the site from the air, and its pressed state. */
 export const ANGLED_LABEL = 'From the air';
 
+/** The button that opens the city IRL. */
+export const IRL_LABEL = 'IRL';
+
+/** Said when the city IRL opens. */
+export const IRL_OPENED = 'The city IRL. Drag to turn, scroll or the buttons to come nearer, shift-drag to slide. Back to the map returns.';
+
+/** Said, and shown in the view bar, when the browser cannot draw the city IRL. */
+export const NO_WEBGL = 'This browser cannot draw the city IRL: it has no WebGL. The site from the air still can.';
+
+/**
+ * The view bar's caption on the IRL view: what stands, in blocks and stories; what the crews are building; and how
+ * lit the homes are when not every home is lived in.
+ * @param blocks - blocks built, scaffolds and strips included
+ * @param stories - their stories in all
+ * @param sites - tiles under construction
+ * @param lit - the homes' lit share, 0 to 1
+ */
+export function irlCaption(blocks: number, stories: number, sites = 0, lit = 1): string {
+  if (!blocks) return 'The city IRL. Nothing stands yet.';
+  const parts = [`The city IRL: ${count(blocks, 'block', 'blocks')}, ${fmt(stories)} stories in all.`];
+  if (sites) parts.push(`${count(sites, 'tile', 'tiles')} under construction.`);
+  if (lit < 0.995) parts.push(`${num(100 * lit)}% of the homes are lit.`);
+  return parts.join(' ');
+}
+
 /** The three tilts of the view from the air, named. */
 export const TILT_NAME: Readonly<Record<Tilt, string>> = { low: 'low', mid: 'mid', high: 'high' };
 

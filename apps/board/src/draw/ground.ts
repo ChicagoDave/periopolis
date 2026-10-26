@@ -16,7 +16,8 @@ import type { Painted } from './angled/view.ts';
 import { ZOOM_MAX } from '../session.ts';
 import { fmt } from '../format.ts';
 import type { Page } from '../page.ts';
-import { LEVEL_NAME, SITE_NAME, TILT_NAME, angledCaption, layerLines, placeholderNote } from '../wording.ts';
+import { LEVEL_NAME, NO_WEBGL, SITE_NAME, TILT_NAME, angledCaption, irlCaption, layerLines, placeholderNote } from '../wording.ts';
+import { irlSupported } from './irl/view.ts';
 
 /** Room round the tile for the legend, the scale and the note, metres. */
 const MARGIN = 48;
@@ -148,7 +149,17 @@ export function drawViewBar(page: Page, painted: Painted | null = null): void {
   const bar = byId('viewbar');
   const levels = byId('levels');
   const air = byId('aircontrols');
+  const irl = byId('irlcontrols');
   byId('angled').setAttribute('aria-pressed', String(s.view.at === 'angled'));
+  byId('irl').setAttribute('aria-pressed', String(s.view.at === 'irl'));
+  irl.hidden = s.view.at !== 'irl';
+  if (s.view.at === 'irl') {
+    bar.hidden = false;
+    levels.hidden = true;
+    air.hidden = true;
+    byId('viewtext').textContent = irlSupported() ? irlCaption(painted?.blocks ?? 0, painted?.stories ?? 0, painted?.sites ?? 0, painted?.lit ?? 1) : NO_WEBGL;
+    return;
+  }
   if (s.view.at === 'angled') {
     bar.hidden = false;
     levels.hidden = true;

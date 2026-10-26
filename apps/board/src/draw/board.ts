@@ -1,7 +1,7 @@
 /**
  * @file The board: tiles, the city's circles and their bands, the lake along the shore, the 30-minute circles, the
  * mover line, what stands on each tile, and the labels. When the session looks at one tile, the ground module draws
- * that tile instead and the map waits; from the air, the angled view paints its canvas instead.
+ * that tile instead and the map waits; from the air, the angled view paints its canvas instead; IRL, the GL view renders its.
  * Public interface: drawBoard, describe, tileAtPixels, groundOf.
  * Owner context: Board (adapter).
  */
@@ -15,6 +15,7 @@ import { GROUND_TEXT, LAKE_LABEL, SITE_NAME, circleName, currentLabel } from '..
 import type { GroundKind } from '../wording.ts';
 import { drawAngled } from './angled/view.ts';
 import { drawGround, drawViewBar } from './ground.ts';
+import { drawIrl } from './irl/view.ts';
 
 const SIZE = 30;
 const W3 = Math.sqrt(3);
@@ -121,8 +122,9 @@ export function drawBoard(page: Page): void {
   const { s } = page;
   // From the air, the canvas shows in the SVG's place and the view bar says what was painted.
   const painted = drawAngled(page);
-  drawViewBar(page, painted);
-  if (s.view.at === 'angled') return;
+  const built = drawIrl(page);
+  drawViewBar(page, painted ?? built);
+  if (s.view.at === 'angled' || s.view.at === 'irl') return;
   if (s.view.at === 'tile') {
     drawGround(page);
     return;

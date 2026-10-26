@@ -1,7 +1,8 @@
 /**
  * @file The page's session: the game, the tool in hand, the tile picked, the line cursor, the stretch test shown, the
- * view (the map, one tile's ground at a level, or the site from the air), and the history undo keeps. Replaced, never changed in place.
- * The view is the page's alone: it is never saved with the city.
+ * view (the map, one tile's ground at a level, the site from the air, or the city IRL), the viewer from the air, the
+ * orbit IRL, and the history undo keeps. Replaced, never changed in place.
+ * The view and both viewers are the page's alone: they are never saved with the city.
  * Public interface: Session, View, Air, Tilt, AIR_START, ZOOM_MAX, newSession.
  * Owner context: Board (adapter).
  */
@@ -10,6 +11,7 @@ import { RULES, emergencyOf, inHand, livingOf, notices, stopsBuilding, stressAt 
 import type { Game, HeldBack, Notice, WorkInHand } from '@city/run';
 import { RATES, assess } from '@city/site';
 import type { AssessOptions, Assessment, TestId, TileKey } from '@city/site';
+import type { Orbit } from './draw/irl/camera.ts';
 import type { GameStore } from './storage.ts';
 import type { ToolId } from './wording.ts';
 
@@ -31,8 +33,9 @@ export const AIR_START: Air = { turn: 0, tilt: 'mid', zoom: 1, pan: { x: 0, y: 0
 /** The zoom's bounds: fitted to the site, to sixty-four times nearer. */
 export const ZOOM_MAX = 64;
 
-/** What the board shows: the whole map, the ground of one tile at one level, or the whole site from the air at an angle. */
-export type View = { readonly at: 'map' } | { readonly at: 'tile'; readonly key: TileKey; readonly level: Level } | { readonly at: 'angled' };
+/** What the board shows: the whole map, the ground of one tile at one level, the whole site from the air at an angle, or
+ * the city IRL in three dimensions (ADR-0023). */
+export type View = { readonly at: 'map' } | { readonly at: 'tile'; readonly key: TileKey; readonly level: Level } | { readonly at: 'angled' } | { readonly at: 'irl' };
 
 /** Whether a tile has ground to look at: a neighborhood or a ring. */
 function hasGround(game: Game, key: TileKey): boolean {
@@ -47,6 +50,8 @@ export interface Session {
   view: View;
   /** The viewer over the site, from the air. Never saved. */
   air: Air;
+  /** The orbit the city IRL is seen from; null is fitted to the site on the next frame. Never saved. */
+  orbit: Orbit | null;
   tool: ToolId;
   picked: TileKey | null;
   lineFrom: TileKey | null;
@@ -79,6 +84,10 @@ export interface Session {
   lookAway(): void;
   /** The whole site from the air, at an angle; from the map or a tile alike. */
   lookAngled(): void;
+  /** The city IRL, in three dimensions; from any view. The orbit opens fitted. */
+  lookIrl(): void;
+  /** The orbit the city IRL is seen from; null fits it again. */
+  setOrbit(orbit: Orbit | null): void;
   /** A quarter turn of the site from the air. */
   turnAir(): void;
   /** The next tilt: mid, high, low, round again. */
@@ -99,6 +108,7 @@ export function newSession(game: Game, store: GameStore): Session {
     game,
     view: { at: 'map' },
     air: AIR_START,
+    orbit: null,
     tool: 'inspect',
     picked: null,
     lineFrom: null,
@@ -161,6 +171,13 @@ export function newSession(game: Game, store: GameStore): Session {
     },
     lookAngled() {
       s.view = { at: 'angled' };
+    },
+    lookIrl() {
+      s.view = { at: 'irl' };
+      s.orbit = null;
+    },
+    setOrbit(orbit) {
+      s.orbit = orbit;
     },
     turnAir() {
       s.air = { ...s.air, turn: ((s.air.turn + 1) % 4) as Air['turn'] };

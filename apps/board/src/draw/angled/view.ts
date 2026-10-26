@@ -5,7 +5,7 @@
  * the last paint, only the tiles whose lit share moved are cleared and painted again. The canvas carries data-blocks,
  * data-stories, data-sites, data-lit, data-lod, data-repaint and data-faces so a test can hold what was painted to
  * the scene.
- * Public interface: Painted, drawAngled, cameraFor, ANGLED_YAW, TILT_RAD.
+ * Public interface: Painted, drawAngled, cameraFor, palette, ANGLED_YAW, TILT_RAD.
  * Owner context: Board (adapter), the angled view (plan angled-view-through-time).
  */
 import { RATES } from '@city/site';
@@ -32,8 +32,8 @@ export const ANGLED_YAW = Math.PI / 6;
 /** The three tilts, radians: low is side on enough to read heights, high is nearly the plan. */
 export const TILT_RAD: Readonly<Record<Tilt, number>> = { low: (30 * Math.PI) / 180, mid: (50 * Math.PI) / 180, high: (70 * Math.PI) / 180 };
 
-/** The page's colours for each kind, read from its tokens so the view follows the theme. */
-function palette(): Palette {
+/** The page's colours for each kind, read from its tokens so the view follows the theme (the IRL view's too). */
+export function palette(): Palette {
   const css = getComputedStyle(document.documentElement);
   const token = (name: string, fallback: string): string => css.getPropertyValue(name).trim() || fallback;
   const plant = token('--plant-edge', '#74867B');
