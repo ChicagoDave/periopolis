@@ -1053,6 +1053,17 @@ export function subCaption(guideways: number, stops: number, closed = 0, warned 
 /** The button that turns the city IRL to night and back, by what pressing it does. */
 export const LIGHT_LABEL: Readonly<Record<'noon' | 'night', string>> = { noon: 'Night', night: 'Day' };
 
+/** The four stops of the day, named, for the button that steps through them and the slider's caption. */
+export const PRESET_NAME: Readonly<Record<'dawn' | 'noon' | 'dusk' | 'night', string>> = { dawn: 'Dawn', noon: 'Noon', dusk: 'Dusk', night: 'Night' };
+
+/** The hour of the day as the view bar says it: a preset's name, or the clock time. */
+export function hourSaid(hour: number, preset: 'dawn' | 'noon' | 'dusk' | 'night' | null): string {
+  if (preset) return PRESET_NAME[preset];
+  const h = Math.floor(hour) % 24;
+  const m = Math.round((hour - Math.floor(hour)) * 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 /** Said, and shown in the view bar, when the browser cannot draw the city IRL. */
 export const NO_WEBGL = 'This browser cannot draw the city IRL: it has no WebGL. The site from the air still can.';
 

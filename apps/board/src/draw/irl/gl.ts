@@ -33,12 +33,21 @@ import {
   RepeatWrapping,
   SRGBColorSpace,
   Scene as GlScene,
+  Vector2,
   Vector3,
   WebGLRenderer,
   ACESFilmicToneMapping,
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import type { SunAt } from './sun.ts';
+import { sunAt } from './sun.ts';
 import { fitToFootprint, fitToFront, fitToHeight } from './kit.ts';
 import type { Fit, ModelId } from './kit.ts';
 import type { SurfaceKind } from './streets.ts';
@@ -60,8 +69,12 @@ export interface Tokens {
   readonly sky: string;
 }
 
-/** The time of day the city is lit for: the sun at noon, or night with the windows lit by who lives there. */
+/** The coarse time of day the city reads as: day, or night with the windows lit by who lives there. */
 export type Light = 'noon' | 'night';
+
+/** Past this many milliseconds a frame, the composer (ambient occlusion and bloom) is dropped for a plain render:
+ * software GL, where the flows run, cannot carry it. */
+const LITE_PAST_MS = 400;
 
 /** What a build did. */
 export interface BuildStats {
@@ -88,10 +101,6 @@ export function webglSupported(canvas: HTMLCanvasElement): boolean {
 function toGl(p: Point3): Vector3 {
   return new Vector3(p.x, p.z, -p.y);
 }
-
-/** Where the sun stands, scene metres from the target: from the south-west, forty-five degrees up, as the angled
- * view's light. */
-const SUN_OFFSET: Point3 = { x: -1, y: 1, z: Math.SQRT2 };
 
 /** Pixels a metre a facade is painted at. */
 const SHEET_PX_M = 32;
@@ -506,8 +515,14 @@ export class IrlRenderer {
   private focus: Focus = { x: 0, y: 0 };
   private homesSignature = '';
   private treesSignature = '';
-  private light: Light = 'noon';
+  private sun_: SunAt = sunAt(12);
   private sub = false;
+  private readonly skyDome = new Sky();
+  private composer: EffectComposer | null = null;
+  private bloom: UnrealBloomPass | null = null;
+  private lite = false;
+  private sunCenter: Point3 = { x: 0, y: 0, z: 0 };
+  private sunRadius = 1000;
   private tokens: Tokens = { ground: '#E1E8DF', sky: '#CFE0EE' };
   private far = 20000;
   private frames = 0;
@@ -533,6 +548,14 @@ export class IrlRenderer {
     this.sky = new HemisphereLight(0xbfd8f0, 0x6b6a5a, 0.9);
     this.ambient = new AmbientLight(0xffffff, 0.15);
     this.scene.add(this.sun, this.sun.target, this.sky, this.ambient);
+    // The physical sky: a dome far past the site, its sun set with the sun.
+    this.skyDome.scale.setScalar(300000);
+    const u = this.skyDome.material.uniforms;
+    (u.turbidity as { value: number }).value = 6;
+    (u.rayleigh as { value: number }).value = 1.6;
+    (u.mieCoefficient as { value: number }).value = 0.004;
+    (u.mieDirectionalG as { value: number }).value = 0.8;
+    this.scene.add(this.skyDome);
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
       onLost();
@@ -1048,9 +1071,10 @@ export class IrlRenderer {
       this.scene.add(soil, lake);
     }
     const radius = Math.hypot(spanX, spanY, bounds.maxZ) / 2 + 50;
-    const sunAt: Point3 = { x: cx + SUN_OFFSET.x * radius * 2, y: cy + SUN_OFFSET.y * radius * 2, z: SUN_OFFSET.z * radius * 2 };
-    this.sun.position.copy(toGl(sunAt));
+    this.sunCenter = { x: cx, y: cy, z: 0 };
+    this.sunRadius = radius;
     this.sun.target.position.copy(toGl({ x: cx, y: cy, z: 0 }));
+    this.placeSun();
     const shadow = this.sun.shadow.camera;
     shadow.left = -radius;
     shadow.right = radius;
@@ -1203,29 +1227,81 @@ export class IrlRenderer {
     this.sun.castShadow = !on;
   }
 
-  /** The time of day: noon, or night with the lit windows glowing. */
+  /** The time of day, coarsely: noon or night; the fine control is `setSun`. */
   setLight(light: Light): void {
-    if (light === this.light) return;
-    this.light = light;
+    this.setSun(sunAt(light === 'night' ? 23 : 12));
+  }
+
+  /**
+   * The sun set from the sun module's reading (ADR-0024 Decision 5): the sky dome's sun, the directional light's
+   * place, colour and strength, the hemisphere and ambient light, the fog's tint, and the lights that come on as
+   * daylight fades: the windows of the lived-in homes, the offices, the lamps.
+   */
+  setSun(sun: SunAt): void {
+    this.sun_ = sun;
     this.applyLight();
   }
 
+  /** The sun's direction as the renderer reads it. */
+  get sunReading(): SunAt {
+    return this.sun_;
+  }
+
+  /** Put the directional light where the sun is, far enough out that its shadow camera holds the site; under the
+   * horizon the light comes from a dim moon opposite. */
+  private placeSun(): void {
+    const d = this.sun_.direction;
+    const up = this.sun_.elevation > 0.02;
+    const dir = up ? d : { x: -d.x, y: -d.y, z: Math.max(0.35, -d.z) };
+    const r = this.sunRadius * 2;
+    this.sun.position.copy(toGl({ x: this.sunCenter.x + dir.x * r, y: this.sunCenter.y + dir.y * r, z: dir.z * r }));
+  }
+
   private applyLight(): void {
-    const night = this.light === 'night';
-    const sky = new Color(night ? '#0C1322' : this.tokens.sky);
-    this.scene.background = sky;
-    this.scene.fog = new Fog(sky, this.far * 0.35, this.far);
-    this.sun.intensity = night ? 0.18 : 3.2;
-    this.sun.color.set(night ? '#8FA6D6' : '#FFF4E0');
-    this.sky.intensity = night ? 0.2 : 0.9;
-    this.sky.color.copy(sky).lerp(new Color('#FFFFFF'), night ? 0.1 : 0.4);
-    this.sky.groundColor.set(night ? '#0A0D10' : this.tokens.ground);
-    this.ambient.intensity = night ? 0.06 : 0.15;
+    const sun = this.sun_;
+    const day = sun.daylight;
+    const night = 1 - day;
+    // How low the sun is while up: warms its light toward orange and the fog toward dusk.
+    const low = sun.elevation > 0 ? 1 - Math.min(1, sun.elevation / 0.5) : 1;
+    const daySky = new Color(this.tokens.sky);
+    const duskSky = new Color('#E8A66B');
+    const nightSky = new Color('#0C1322');
+    const tint = daySky.clone().lerp(duskSky, low * day * 0.7).lerp(nightSky, night);
+    this.scene.fog = new Fog(tint, this.far * 0.35, this.far);
+    const u = this.skyDome.material.uniforms;
+    (u.sunPosition as { value: Vector3 }).value.copy(toGl({ x: sun.direction.x, y: sun.direction.y, z: sun.direction.z }));
+    // Well under the horizon the dome is black; a deep night blue stands in for it.
+    const deepNight = sun.elevation < (-4 * Math.PI) / 180;
+    this.skyDome.visible = !deepNight;
+    this.scene.background = deepNight ? nightSky.clone().lerp(new Color('#1A2640'), 0.5) : null;
+    this.placeSun();
+    this.sun.intensity = 0.4 + 2.6 * day;
+    this.sun.color.set(new Color('#FFF4E0').lerp(new Color('#FFA85C'), low * day).lerp(new Color('#8FA6D6'), night));
+    this.sky.intensity = 0.3 + 0.6 * day;
+    this.sky.color.copy(tint).lerp(new Color('#FFFFFF'), 0.3 * day);
+    this.sky.groundColor.set(new Color(this.tokens.ground).lerp(new Color('#0A0D10'), night));
+    this.ambient.intensity = 0.06 + 0.1 * day;
+    this.renderer.toneMappingExposure = 0.55 + 0.25 * day;
+    if (this.bloom) {
+      this.bloom.strength = 0.05 + 0.45 * night;
+      this.bloom.threshold = 1.2 - 0.5 * night;
+    }
+    const glow = Math.max(0, 1 - day * 1.6);
     for (const [key, m] of this.materials) {
-      if (key.startsWith('home-')) m.emissiveIntensity = night ? 1.6 : 0;
-      else if (key === 'massing') m.emissiveIntensity = night ? 0.5 : 0;
-      else if (key === 'office') m.emissiveIntensity = night ? 1.0 : 0;
-      else if (key === 'plant') m.emissiveIntensity = night ? 0.6 : 0;
+      if (key.startsWith('home-')) m.emissiveIntensity = 1.6 * glow;
+      else if (key === 'massing') m.emissiveIntensity = 0.25 * glow;
+      else if (key === 'office') m.emissiveIntensity = 1.0 * glow;
+      else if (key === 'plant') m.emissiveIntensity = 0.6 * glow;
+    }
+    for (const [id, loaded] of this.models) {
+      if (loaded === 'loading' || loaded === 'failed') continue;
+      if (id === 'lamp' || id === 'lamp-double') {
+        loaded.material.emissive = new Color('#FFE2A8');
+        loaded.material.emissiveIntensity = 2.2 * glow;
+      } else if (id.startsWith('townhouse-') || id.startsWith('tower-') || id.startsWith('school-')) {
+        // Lived-in homes glow faintly warm through `aLit`; towers and schools glow as offices do.
+        loaded.material.emissiveIntensity = (id.startsWith('townhouse-') ? 0.06 : 0.04) * glow;
+      }
     }
   }
 
@@ -1244,9 +1320,39 @@ export class IrlRenderer {
     this.camera.position.copy(toGl(eyeOf(orbit)));
     this.camera.up.set(0, 1, 0);
     this.camera.lookAt(toGl(orbit.target));
-    this.renderer.render(this.scene, this.camera);
+    const started = performance.now();
+    if (this.lite) this.renderer.render(this.scene, this.camera);
+    else {
+      if (!this.composer) {
+        const px = { x: Math.round(width * dpr), y: Math.round(height * dpr) };
+        this.composer = new EffectComposer(this.renderer);
+        this.composer.addPass(new RenderPass(this.scene, this.camera));
+        const ao = new GTAOPass(this.scene, this.camera, px.x, px.y);
+        ao.output = GTAOPass.OUTPUT.Default;
+        this.composer.addPass(ao);
+        this.bloom = new UnrealBloomPass(new Vector2(px.x, px.y), 0.05 + 0.45 * (1 - this.sun_.daylight), 0.4, 1.2 - 0.5 * (1 - this.sun_.daylight));
+        this.composer.addPass(this.bloom);
+        this.composer.addPass(new OutputPass());
+      }
+      this.composer.setPixelRatio(dpr);
+      this.composer.setSize(width, height);
+      this.composer.render();
+    }
+    const took = performance.now() - started;
+    if (!this.lite && took > LITE_PAST_MS) {
+      // Too slow for the composer: software GL. Plain renders from here on.
+      this.lite = true;
+      this.composer?.dispose();
+      this.composer = null;
+      this.bloom = null;
+    }
     this.frames++;
     return this.frames;
+  }
+
+  /** Whether the composer (ambient occlusion and bloom) is on, or a plain render stands in. */
+  get composed(): boolean {
+    return !this.lite;
   }
 
   /** Let every GL resource go. */
@@ -1270,6 +1376,7 @@ export class IrlRenderer {
     for (const m of this.shore) m.geometry.dispose();
     for (const m of this.materials.values()) m.dispose();
     this.ground?.geometry.dispose();
+    this.composer?.dispose();
     this.renderer.dispose();
   }
 }

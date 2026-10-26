@@ -278,6 +278,10 @@ function start(data: { game?: unknown }): void {
     s.toggleSub();
     page.render();
   });
+  byId('irl-hour').addEventListener('input', () => {
+    s.setHour(Number(byId<HTMLInputElement>('irl-hour').value));
+    page.render();
+  });
   const irl = byId<HTMLCanvasElement>('irlcanvas');
   let orbitDrag: { x: number; y: number; slide: boolean } | null = null;
   irl.addEventListener('pointerdown', (e) => {

@@ -13,6 +13,7 @@ import { RATES, assess } from '@city/site';
 import type { AssessOptions, Assessment, EdgeKey, TestId, TileKey } from '@city/site';
 import type { Orbit } from './draw/irl/camera.ts';
 import type { Light } from './draw/irl/gl.ts';
+import { PRESET_HOURS, nextPreset, sunAt } from './draw/irl/sun.ts';
 import type { GameStore } from './storage.ts';
 import type { ToolId } from './wording.ts';
 
@@ -53,7 +54,8 @@ export interface Session {
   air: Air;
   /** The orbit the city IRL is seen from; null is fitted to the site on the next frame. Never saved. */
   orbit: Orbit | null;
-  /** The time of day the city IRL is lit for. Never saved. */
+  /** The time of day the city IRL is lit for: the hour, 0 to 24, and the coarse light it reads as. Never saved. */
+  hour: number;
   light: Light;
   /** Whether the city IRL shows its sub level. Never saved. */
   sub: boolean;
@@ -96,8 +98,10 @@ export interface Session {
   lookIrl(): void;
   /** The orbit the city IRL is seen from; null fits it again. */
   setOrbit(orbit: Orbit | null): void;
-  /** Noon to night and back. */
+  /** Noon to night and back: the next preset of the day (dawn, noon, dusk, night, round again). */
   toggleLight(): void;
+  /** The hour of the day the city IRL is lit for, 0 to 24. */
+  setHour(hour: number): void;
   /** The sub level shown or hidden. */
   toggleSub(): void;
   /** A quarter turn of the site from the air. */
@@ -121,6 +125,7 @@ export function newSession(game: Game, store: GameStore): Session {
     view: { at: 'map' },
     air: AIR_START,
     orbit: null,
+    hour: 12,
     light: 'noon',
     sub: false,
     closed: [],
@@ -200,7 +205,11 @@ export function newSession(game: Game, store: GameStore): Session {
       s.orbit = orbit;
     },
     toggleLight() {
-      s.light = s.light === 'noon' ? 'night' : 'noon';
+      s.setHour(PRESET_HOURS[nextPreset(s.hour)]);
+    },
+    setHour(hour) {
+      s.hour = Math.max(0, Math.min(24, hour));
+      s.light = sunAt(s.hour).daylight >= 0.5 ? 'noon' : 'night';
     },
     toggleSub() {
       s.sub = !s.sub;

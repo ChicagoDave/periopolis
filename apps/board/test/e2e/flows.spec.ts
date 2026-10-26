@@ -630,11 +630,29 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-carts', String(10 * Math.round(hoodPlan.figures.homes / 100)));
   expect(nearDescribed.bulkProps).toBeGreaterThan(5000);
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'noon');
+  // The day (ADR-0024 Decision 5): the button steps noon to dusk, night, dawn and noon again, the slider sets any hour,
+  // and neither builds anything again; night is what little daylight there is.
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-hour', '12');
+  await expect(page.locator('#irl-night')).toHaveText('Dusk');
   await page.click('#irl-night');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-hour', '18');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'night');
-  await expect(page.locator('#irl-night')).toHaveText('Day');
+  await expect(page.locator('#irl-night')).toHaveText('Night');
+  await expect(page.locator('#irl-hour-said')).toHaveText('Dusk');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-rebuilt', '0');
   await page.click('#irl-night');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-hour', '23');
+  await expect(page.locator('#irl-hour-said')).toHaveText('Night');
+  await page.click('#irl-night');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-hour', '6.5');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'noon');
+  await page.click('#irl-night');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-hour', '12');
+  await page.locator('#irl-hour').fill('2');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-hour', '2');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'night');
+  await expect(page.locator('#irl-hour-said')).toHaveText('02:00');
+  await page.locator('#irl-hour').fill('12');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'noon');
   // Back on the map the fleet's loop stops: the frame count holds.
   // Fit opens far again; a drag turns and renders another frame.

@@ -16,7 +16,8 @@ import type { Painted } from './angled/view.ts';
 import { ZOOM_MAX } from '../session.ts';
 import { fmt } from '../format.ts';
 import type { Page } from '../page.ts';
-import { LEVEL_NAME, LIGHT_LABEL, NO_WEBGL, SITE_NAME, SUB_LABEL, TILT_NAME, angledCaption, irlCaption, layerLines, placeholderNote, subCaption } from '../wording.ts';
+import { LEVEL_NAME, NO_WEBGL, PRESET_NAME, SITE_NAME, SUB_LABEL, TILT_NAME, angledCaption, hourSaid, irlCaption, layerLines, placeholderNote, subCaption } from '../wording.ts';
+import { nextPreset, presetOf } from './irl/sun.ts';
 import { irlSupported, subCounts } from './irl/view.ts';
 
 /** Room round the tile for the legend, the scale and the note, metres. */
@@ -160,7 +161,9 @@ export function drawViewBar(page: Page, painted: Painted | null = null): void {
     const sub = subCounts();
     const caption = irlCaption(painted?.blocks ?? 0, painted?.stories ?? 0, painted?.sites ?? 0, painted?.lit ?? 1);
     byId('viewtext').textContent = irlSupported() ? (s.sub ? `${caption} ${subCaption(sub.guideways, sub.stops, sub.closed, sub.warned)}` : caption) : NO_WEBGL;
-    byId('irl-night').textContent = LIGHT_LABEL[s.light];
+    byId('irl-night').textContent = PRESET_NAME[nextPreset(s.hour)];
+    byId<HTMLInputElement>('irl-hour').value = String(s.hour);
+    byId('irl-hour-said').textContent = hourSaid(s.hour, presetOf(s.hour));
     byId('irl-sub').textContent = SUB_LABEL[s.sub ? 'on' : 'off'];
     byId('irl-sub').setAttribute('aria-pressed', String(s.sub));
     return;
