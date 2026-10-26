@@ -257,10 +257,12 @@ describe('the city on the clock', () => {
       prev = d;
     }
     expect(prev.homes).toBe(36 * hood.figures.homes);
-    // A frame is 16.7 ms; the bound here is loose so a slow machine does not fail the suite, and the figure is printed.
-    expect(worst).toBeLessThan(100);
+    // A frame is 16.7 ms; the bound here is loose so a slow machine does not fail the suite, four times looser on the
+    // publish workflow's runner (about three times slower than the dev machine, and it sets CI), and the figure is printed.
+    expect(worst).toBeLessThan(100 * (process.env.CI ? 4 : 1));
     process.stdout.write(`seed 42 full circle, 36 months near: ${prev.homes} homes in ${prev.chunks.length} chunks, worst month ${worst.toFixed(1)} ms, at most ${changedMost} chunks changed\n`);
-  });
+    // Filling the circle and running 36 months takes a few seconds here and more on the runner: past vitest's five.
+  }, 60000);
   it("the ledger's city at 100,000 people describes 40,000 homes within a bounded time", () => {
     const layout = city100k();
     const scene = sceneOf(layout, RATES, 'near');
@@ -269,7 +271,7 @@ describe('the city on the clock', () => {
     const ms = performance.now() - started;
     expect(d.homes).toBe(20 * hood.figures.homes);
     expect(d.trees).toBe(20 * Math.floor(hood.surface.park.areaM2 / (TREE_SPACING_M * TREE_SPACING_M)));
-    expect(ms).toBeLessThan(1000);
+    expect(ms).toBeLessThan(1000 * (process.env.CI ? 4 : 1));
     process.stdout.write(`describe 100k near: ${d.homes} homes, ${d.trees} trees, ${d.triangles} triangles in ${ms.toFixed(1)} ms\n`);
   });
 });
