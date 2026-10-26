@@ -23,7 +23,7 @@ import { LAYERS, POPULATION, RATES, applyProposal, circleOf, emptyLayout, kindOf
 import type { Layout } from '@city/site';
 import { RULES, startRun, tickMonth, totalSpend } from '../src/index.ts';
 import type { Game, MonthRow, RunRules } from '../src/index.ts';
-import { slower } from './machine.ts';
+import { cpuMs, slower } from './machine.ts';
 
 const GROW = { growth: true, inOrder: true, infer: true } as const;
 
@@ -41,7 +41,7 @@ interface Long {
 }
 
 function run(layout: Layout, rules: RunRules): Long {
-  const t0 = Date.now();
+  const t0 = cpuMs();
   let g = startRun(layout, 42, RATES, rules, GROW);
   let past100k: string | null = null;
   let opened: string | null = null;
@@ -56,7 +56,7 @@ function run(layout: Layout, rules: RunRules): Long {
     const occ = g.clock?.growth?.occupied ?? {};
     if (livedSecond === null && Object.keys(occ).some((k) => circleOf(g.layout.circles, k) === '9,0' && (occ[k] ?? 0) > 0)) livedSecond = { at, game: g };
   }
-  return { game: g, months: g.clock?.growth?.months ?? [], past100k, opened, livedSecond, ms: Date.now() - t0 };
+  return { game: g, months: g.clock?.growth?.months ?? [], past100k, opened, livedSecond, ms: cpuMs() - t0 };
 }
 
 const hoods = (l: Layout, circle?: string): string[] =>
@@ -136,7 +136,7 @@ describe('seventy years growing itself, from one neighborhood and from nothing (
     expect(fromNothing.game.clock?.lineYears).toBe(0);
   });
 
-  it('every month the homes as built cover the people, and seventy years take under fifteen seconds', () => {
+  it('every month the homes as built cover the people, and seventy years take under fifteen seconds of CPU', () => {
     for (const r of [fromOne, fromNothing]) {
       for (const m of r.months) expect(m.people).toBeLessThanOrEqual(m.homes + 1e-6);
       expect(r.ms).toBeLessThan(15000 * slower());
