@@ -1,0 +1,38 @@
+# ADR-0024: The IRL city is built from CC0 model kits fitted to the Ground, with real streets, a sun, and assets beside the page
+
+**Date**: 2026-10-26
+**Kind**: technical
+**Scope**: apps/board, .github/workflows
+**Status**: ACCEPTED
+**Amends**: ADR-0023 Decisions 3 and 7; ADR-0011 Decision 2. ADR-0023 Decisions 1, 2, 4, 5, 6, 8 and 9 stand.
+
+## Context
+
+ADR-0023 chose three.js for the city IRL and, for geometry, procedural massing from the Ground's footprints and story counts with authored assets "only for the three mover classes, when procedural vehicles look wrong". Six phases shipped on that choice (`docs/work/archive/irl-3d-city-view/plan.md`): instanced townhouse boxes with painted window sheets, hexagonal blocks for plants, square towers for the ring, discs for parks and the plaza, cones for trees, box movers on the sub level, a flat ground plane. David looked at it live and said "this is not what I asked for"; asked what the IRL city must look like, he said "I want SimCity detail": a game-grade city builder look that holds from a drone shot to a street corner.
+
+What stands between the massing model and that bar is not the architecture. The scene is derived from the Ground and the Run on every frame and never kept (ADR-0023 Decision 2), the describer and the GL adapter are split, the movers are a cosmetic layer (Decision 4), and the sub level and the fallback view stay. What has to change is where the shapes come from, what lies on the ground, and what lights it. Those are the decisions below, each weighed with the game lens (ADR-0022 Decision 1).
+
+The Ground's figures the street section rests on (read 2026-10-26 from `planNeighborhood` on the Site's rates): rows 12 m deep on a 24 m pitch, so 30 lines of rows a neighborhood with 12 m between lines; a line is skipped where the park or the center sits, leaving 48 m there. The lines face alternately, as the IRL view already places them, so a 12 m gap is a street between fronts and the next a garden between backs. `docs/domain/ground.md` had the pitch at 24.75 m, a figure from before ADR-0016 moved the tile; it is corrected with this ADR.
+
+## Decision
+
+1. **Buildings, vehicles, trees and street furniture are authored CC0 models, fitted to the Ground.** The kits are Kenney's City Kit (Suburban, Commercial, Industrial, Roads) and Car Kit, licensed CC0 1.0, as glTF/GLB; Quaternius and Poly Pizza CC0 models fill gaps. CC-BY and every other licence are refused: a public page cannot carry an attribution burden it would have to audit. Every file ships with a line in `apps/board/public/assets/MANIFEST.md` naming its kit, source URL, licence and what it stands for. A model never decides a footprint or a count: `kit.ts` (pure) maps a scene kind to a model id and returns the scale and placement that fit the model to the Ground's footprint, and a test holds the fitted footprint to the Ground's to the centimetre (ADR-0005). Procedural stays for what the Ground fixes exactly and no kit can: street surfaces and markings, terrain, the lake, the scaffold. *Game lens: a kit is the shape a modder or a scenario author would extend; fitted by rule, two cities differ by the player's choices, not the artist's.*
+2. **The art direction is stylized low-poly under physically based lighting.** The Kenney look, with shared palette textures and PBR materials, is what SimCity 2013 and Cities: Skylines read as at distance and what SimCity BuildIt reads as up close. Photoreal is rejected: no CC0 source covers townhouses, plants and cabs at one quality, and mixed realism reads as a mod. *Game lens: one coherent style reads as a game at every zoom.*
+3. **Streets are real, from the Ground's own numbers.** Between facing fronts, the 12 m gap is a street: 2 m sidewalks with curbs either side of an 8 m shared surface, a crossing at each row end, no centre line (a shared surface, not a carriageway); between backs, the 12 m gap is gardens with hedges. The bike lane is drawn where the Ground's `lane` runs, on the three tile edges it keeps. Parks get paths, the center is a paved plaza with benches and lamps, the ring's plaza likewise. The ground is terrain with grass, soil and paving textures, and the lake is water along the south edge where ADR-0016 puts the shore. *Game lens: a street a player can read is where the consequences of the line and the lane show.*
+4. **Assets ship beside the page on GitHub Pages.** The Board stays one built page for its code (vite-plugin-singlefile); models and textures go in `dist/assets/` next to `index.html`, compressed (meshopt or Draco for geometry, KTX2 or small WebP for textures), and the publish workflow stages the folder with the page. The budget is 25 MB in all and 8 MB before first paint, the rest loaded lazily by kind while the massing stands in. A server or CDN is chosen only if the budget is exceeded, and that is its own decision. ADR-0011 Decision 2 ("the built Board and nothing else") is amended to "the built Board and its assets folder". *Game lens: a server is where saves and scores would live; assets on Pages need none.*
+5. **Time of day is a sun on a slider, never saved.** A pure function gives the sun's elevation and azimuth from a time-of-day value; dawn, noon, dusk and night are presets, the existing Night button the last of them. Sky gradient, fog tint, shadows, window lights and street lamps follow the sun; ambient occlusion and bloom at night. No weather and no seasons. Time of day is a view control: tying it to the month clock would fight it. *Game lens: a player wants the lit city at dusk, at any clock speed.*
+6. **Surface traffic is cosmetic and seeded, and there are still no people.** Bikes run the lane at a count from the Ledger's lane length and delivery carts the streets at a per-home rate, pure and seeded like the fleet (ADR-0023 Decision 4); the fleet's pods, cabs and shuttles become real models on the sub level. No pedestrians. *Game lens: traffic is what makes a street read as lived in; people simulated would be a game engine's job (techstack note).*
+7. **Detail follows the camera's distance, and the frame budget holds.** Far, merged chunks and impostors; near, full models; instancing throughout; far kinds loaded lazily. The budget is the earlier plan's measurement at 105,000 people, a frame of about 21 ms through the whole page render, and it is measured again in Phase 7 of `docs/work/simcity-detail-city/plan.md` with draw calls and bytes. *Game lens: the zoom from drone to street corner is the game's camera; a pop that reads as a defect breaks it.*
+
+## Consequences
+
+- `apps/board` gains a GLB loader (in `gl.ts`, still the only three.js file), a pure `kit.ts`, `public/assets/` with its manifest, and new pure modules for streets, the sun and surface traffic; the domain packages do not change (ADR-0001, ADR-0005).
+- Schools and fields, which the Ground does not draw, become scene kinds in `sceneOf` so the one source of what stands is kept (ADR-0023 Decision 2); the view from the air gets the same blocks.
+- The publish workflow copies `dist/assets/` beside `index.html`; a flow asserts a loaded model is painted; the asset budget is a number a test holds.
+- The massing model stays as the first-paint stand-in and, with the canvas 2D view from the air, as the fallback (ADR-0023 Decision 8).
+- ADR-0023 Decision 3 and Decision 7 and ADR-0011 Decision 2 carry dated notes to this ADR; `docs/domain/ground.md` corrects the row pitch to 24 m.
+- Measured figures land in Phase 7 of the plan and in `docs/domain/board.md`.
+
+## Session
+
+Session ad0c3b, 2026-10-26; Phase 1 of `docs/work/simcity-detail-city/plan.md`.

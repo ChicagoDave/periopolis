@@ -38,7 +38,7 @@ Fixed by the Ledger and reconciled by guards in `planNeighborhood` (the plan ref
 | Walkway | (entries − 1) one-minute steps | 3.7 km |
 | Pipe | frontage ÷ rows per pipe | 6.1 km |
 
-Chosen, and listed in `plan.placeholders`: the row pitch (the widest quarter-metre step at or under the Ledger's ground per home at which the homes fit; 24.75 m today), where the rows sit, the center's size (80 m radius), the park's position (toward the top corner), which three edges carry the lane, where the entries sit (a hexagonal grid at the Ledger's one-minute spacing, its six directions pointing at the tile's corners; inner rings kept whole, the outer ring's points kept where the homes are), and where the pipe runs.
+Chosen, and listed in `plan.placeholders`: the row pitch (the widest quarter-metre step at or under the Ledger's ground per home at which the homes fit; 24 m today, 24.75 m before ADR-0016 moved the tile; corrected 2026-10-26 with ADR-0024), where the rows sit, the center's size (80 m radius), the park's position (toward the top corner), which three edges carry the lane, where the entries sit (a hexagonal grid at the Ledger's one-minute spacing, its six directions pointing at the tile's corners; inner rings kept whole, the outer ring's points kept where the homes are), and where the pipe runs.
 
 Two consequences of the placeholders worth knowing: an entry under the center or the park may serve no homes (the stop's does not today), and the farthest home walks about 1.7 minutes to its entry rather than the Ledger's one, because 33 cells do not tile a hexagon exactly. Both move when a placeholder does.
 
