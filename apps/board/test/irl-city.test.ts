@@ -157,9 +157,12 @@ describe('the city described at near detail', () => {
     expect(new Set(chunk.homes.map((h) => h.variant)).size).toBe(HOME_VARIANTS);
     expect(d.homes).toBe(10 * hood.figures.homes);
     expect(d.litHomes).toBe(9 * hood.figures.homes + litRows('1,0', hood.figures.homes, 0.5).filter(Boolean).length);
-    // No prism stands for a home: the neighborhood's prisms are its park, its center and its three lane paths (and the
-    // strips of line that start on its tile, which share its chunk).
-    expect(chunk.meshes.filter((m) => m.level === 'surface').map((m) => m.material).filter((m) => m !== 'strip').sort()).toEqual(['park', 'path', 'path', 'path', 'plaza']);
+    // No prism stands for a home: the neighborhood's surface prisms are its park, its center, its streets and open
+    // ground (streets.test.ts holds their counts), and the strips of line that start on its tile, which share its chunk.
+    const surface = new Set(chunk.meshes.filter((m) => m.level === 'surface').map((m) => m.material));
+    for (const kind of ['park', 'plaza', 'lane', 'asphalt', 'sidewalk', 'kerb', 'crossing', 'parkpath']) expect(surface.has(kind as never), kind).toBe(true);
+    expect(surface.has('path')).toBe(false);
+    expect(surface.has('massing')).toBe(false);
   });
   it("trees stand inside the park, one a 20 m square of it, the same for the same tile", () => {
     if (!chunk) throw new Error('chunk');

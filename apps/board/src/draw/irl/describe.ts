@@ -6,16 +6,19 @@
  * into the park, the ring's plaza, a scaffold and a crane on a tile under construction, and a survey strip for a
  * stretch on order; and under the ground, the sub level: a guideway under every stretch of line (closed, or named
  * for a closure ahead, or on order, each its own material), a stop under every tile the line touches, and at near
- * detail a neighborhood's entries, walkways and goods pipes. Each chunk carries a signature so the adapter rebuilds only the tiles that changed. Pure, no
+ * detail a neighborhood's entries, walkways and goods pipes. At near detail a neighborhood also gets its streets,
+ * sidewalks, kerbs, crossings, bike lane and park paths as flat prisms and its plaza furniture as props (kit models
+ * placed by the streets module, ADR-0024 Decision 3), and the site gets its terrain: the shore the Site names. Each chunk carries a signature so the adapter rebuilds only the tiles that changed. Pure, no
  * DOM, no three.js: the same scene describes byte for byte the same (ADR-0023 Decisions 2 and 3). A chunk is
  * remembered by its signature, so a tile that did not change is handed back, not described again.
- * Public interface: Prism, MaterialId, Level, MeshRecord, HomeInstance, Tree, Chunk, Described, DescribeContext,
- * FLAT_LIFT_M, HOME_TRIANGLES, TREE_SPACING_M, SUB_DEPTH_M, PIPE_DEPTH_M, prismOf, describeScene.
+ * Public interface: Prism, MaterialId, Level, MeshRecord, HomeInstance, Tree, PropInstance, Terrain, Chunk,
+ * Described, DescribeContext, FLAT_LIFT_M, HOME_TRIANGLES, TREE_SPACING_M, SUB_DEPTH_M, PIPE_DEPTH_M, SHORE_SOIL_M,
+ * prismOf, describeScene.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
 import { planNeighborhood, planRing } from '@city/ground';
 import type { Disc, Point, RingPlan, Segment } from '@city/ground';
-import { edgeEnds, lineNetwork } from '@city/site';
+import { edgeEnds, extent, lineNetwork } from '@city/site';
 import type { EdgeKey, Layout, SiteRates, TileKey } from '@city/site';
 import type { GroundPoint } from '../angled/projection.ts';
 import { tileCenterM } from '../angled/scene.ts';
@@ -26,6 +29,8 @@ import { hashOf, randomOf, variantOf } from './facade.ts';
 import type { HomeVariant } from './facade.ts';
 import { townhouseFor } from './kit.ts';
 import type { ModelId } from './kit.ts';
+import { plazaOf, streetsOf } from './streets.ts';
+import type { Prop, SurfaceKind } from './streets.ts';
 
 /** Metres a flat block (a strip of line) is lifted off the ground, so it draws over it and not through it. */
 export const FLAT_LIFT_M = 0.3;
@@ -59,7 +64,8 @@ export type MaterialId =
   | 'stop'
   | 'entry'
   | 'walkway'
-  | 'pipe';
+  | 'pipe'
+  | SurfaceKind;
 
 /** Where a prism stands: on the surface, or on the sub level under it. */
 export type Level = 'surface' | 'sub';
@@ -109,6 +115,21 @@ export interface Tree {
   readonly heightM: number;
 }
 
+/** A kit model placed on the ground as a prop (a lamp, a planter): the streets module's record. */
+export type PropInstance = Prop;
+
+/** The site's terrain: where the shore lies (the Site's south edge, ADR-0016), and how far the land reaches. */
+export interface Terrain {
+  /** Scene y of the shore line; water lies south of it (greater y). */
+  readonly shoreY: number;
+  readonly west: number;
+  readonly east: number;
+  readonly north: number;
+}
+
+/** Metres of soil between the grass and the water (Mine). */
+export const SHORE_SOIL_M = 30;
+
 /** One tile's share of the scene, with a signature that changes when any of it does. */
 export interface Chunk {
   readonly key: TileKey;
@@ -116,6 +137,7 @@ export interface Chunk {
   readonly meshes: readonly MeshRecord[];
   readonly homes: readonly HomeInstance[];
   readonly trees: readonly Tree[];
+  readonly props: readonly PropInstance[];
 }
 
 /** What the describer needs beyond the scene to add the Ground's features and the sub level: the Site's rates, the
@@ -158,6 +180,12 @@ export interface Described {
   readonly warned: number;
   readonly stops: number;
   readonly entries: number;
+  /** Streets laid, crossings and props placed. */
+  readonly streets: number;
+  readonly crossings: number;
+  readonly props: number;
+  /** The site's terrain; null without a context. */
+  readonly terrain: Terrain | null;
   /** The box round everything; null for an empty scene. */
   readonly bounds: Bounds | null;
 }
@@ -178,6 +206,22 @@ function foldBlock(h: number, block: SceneBlock): number {
   fold(block.block.corners.length);
   fold(Math.round(block.block.heightM * 10));
   return x;
+}
+
+/** How far each paving is lifted off the ground, metres, so what lies over reads over (Mine). */
+const SURFACE_LIFT: Readonly<Record<SurfaceKind, number>> = { asphalt: 0.08, sidewalk: 0.2, kerb: 0.22, crossing: 0.1, lane: 0.14, parkpath: 0.12, plaza: 0.1 };
+
+/** The site's terrain from the Site's outline: the shore is the south edge, one tile radius south of the last row
+ * of tiles (ADR-0016); the land runs a tile radius past the outline on the other sides. */
+function terrainOf(context: DescribeContext): Terrain {
+  const r = context.rates.tileKm * 1000;
+  const e = extent(context.rates.outline);
+  const south = e.south;
+  const shoreY = 1.5 * r * south + r;
+  const north = 1.5 * r * e.north - r;
+  const west = Math.sqrt(3) * r * (e.west + Math.min(e.north, e.south) / 2) - 2 * r;
+  const east = Math.sqrt(3) * r * (e.east + Math.max(e.north, e.south) / 2) + 2 * r;
+  return { shoreY, west, east, north };
 }
 
 /** Twice the signed area of a ground polygon: positive when its corners go counter-clockwise (y up). */
@@ -412,6 +456,8 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
   let homes = 0;
   let litHomes = 0;
   let trees = 0;
+  let streetsLaid = 0;
+  let crossingsLaid = 0;
   let guideways = 0;
   let closedCount = 0;
   let warnedCount = 0;
@@ -419,6 +465,11 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
   let entries = 0;
   const tally = (c: Chunk): void => {
     for (const m of c.meshes) {
+      if (m.level === 'surface') {
+        if (m.material === 'asphalt') streetsLaid++;
+        if (m.material === 'crossing') crossingsLaid++;
+        continue;
+      }
       if (m.level !== 'sub') continue;
       if (m.material === 'guideway' || m.material === 'closed' || m.material === 'warned' || m.material === 'ordered') guideways++;
       if (m.material === 'closed') closedCount++;
@@ -453,6 +504,7 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
     const chunkMeshes: MeshRecord[] = [];
     const chunkHomes: HomeInstance[] = [];
     let chunkTrees: Tree[] = [];
+    const chunkProps: PropInstance[] = [];
     const center = context ? tileCenterM(key, context.rates) : null;
     const homeSet = new Set(near && tile?.kind === 'hood' ? blocks.filter((b) => b.kind === 'hood') : []);
     const homeBlocks = [...homeSet];
@@ -469,11 +521,16 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
       const s = hoodPlan.surface;
       chunkMeshes.push(record('hood', 'park', prismOf(discPolygon(s.park, center), 0, 0.1), 1));
       chunkMeshes.push(record('hood', 'plaza', prismOf(discPolygon(s.center, center), 0, 0.1), 1));
-      for (const seg of s.lane) chunkMeshes.push(record('hood', 'path', prismOf(stripPolygon(seg, center, 3), 0, 0.2), 1));
       chunkTrees = treesOf(key, s.park, center);
+      // The streets and open ground: each strip a flat prism lifted by its kind so kerbs stand over asphalt and
+      // crossings over the street; the furniture as props.
+      const laid = streetsOf(hoodPlan, center);
+      for (const strip of laid.strips) chunkMeshes.push(record('hood', strip.kind, prismOf(strip.corners, 0, SURFACE_LIFT[strip.kind]), 1));
+      chunkProps.push(...laid.props);
     } else if (center && context && near && tile?.kind === 'ring') {
       const plan = (rings[tile.n] ??= planRing(context.rates.walking, context.rates.base, tile.n));
       chunkMeshes.push(record('ring', 'plaza', prismOf(discPolygon(plan.surface.plaza, center), 0, 0.1), 1));
+      chunkProps.push(...plazaOf(plan, center).props);
     }
     // The sub level: guideways under the stretches that start here, a stop under the tile if the line touches it, and
     // at near detail a neighborhood's entries (shafts up to the surface), walkways and goods pipes.
@@ -495,7 +552,7 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
     homes += chunkHomes.length;
     litHomes += chunkHomes.filter((h) => h.lit === 1).length;
     trees += chunkTrees.length;
-    const chunk: Chunk = { key, signature, meshes: chunkMeshes, homes: chunkHomes, trees: chunkTrees };
+    const chunk: Chunk = { key, signature, meshes: chunkMeshes, homes: chunkHomes, trees: chunkTrees, props: chunkProps };
     if (rememberedChunks.size >= REMEMBER_MAX) rememberedChunks.clear();
     rememberedChunks.set(signature, chunk);
     chunks.push(chunk);
@@ -518,6 +575,10 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
     warned: warnedCount,
     stops,
     entries,
+    streets: streetsLaid,
+    crossings: crossingsLaid,
+    props: chunks.reduce((t, c) => t + c.props.length, 0),
+    terrain: context ? terrainOf(context) : null,
     bounds: boundsOf(scene),
   };
 }

@@ -5,7 +5,7 @@
  * floor sits on the ground and its back edge sits on the footprint's front edge, so a townhouse leaves the rest of
  * its 12 m plot as garden. A model never decides a footprint or a count: the Ground does. Pure, no DOM, no three.js.
  * Public interface: ModelId, ModelEntry, Fit, MANIFEST, TOWNHOUSES, TOWERS, modelOf, townhouseFor, fitToFront,
- * fitToFootprint, fittedBox, assetBudget.
+ * fitToFootprint, fitToHeight, fittedBox, assetBudget.
  * Owner context: Board (adapter), the IRL view (plan simcity-detail-city).
  */
 import manifest from '../../../public/assets/manifest.json' with { type: 'json' };
@@ -93,6 +93,20 @@ export function fitToFootprint(id: ModelId, sideM: number): Fit {
   const [w, , d] = m.native.size as [number, number, number];
   const [minX, minY, minZ] = m.native.min as [number, number, number];
   const scale = sideM / Math.max(w, d);
+  return { scale, offset: { x: -(minX + w / 2) * scale, y: -minY * scale, z: -(minZ + d / 2) * scale } };
+}
+
+/**
+ * A model fitted by its height, centred on its own footprint, floor on the ground: for a lamp, a tree or a planter
+ * placed as a prop.
+ * @throws RangeError on a height that is not positive
+ */
+export function fitToHeight(id: ModelId, heightM: number): Fit {
+  if (!(heightM > 0)) throw new RangeError(`height ${heightM} is not a length`);
+  const m = modelOf(id);
+  const [w, h, d] = m.native.size as [number, number, number];
+  const [minX, minY, minZ] = m.native.min as [number, number, number];
+  const scale = heightM / h;
   return { scale, offset: { x: -(minX + w / 2) * scale, y: -minY * scale, z: -(minZ + d / 2) * scale } };
 }
 

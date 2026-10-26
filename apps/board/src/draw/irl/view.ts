@@ -239,6 +239,10 @@ export function drawIrl(page: Page): Painted | null {
     canvas.setAttribute('data-chunks', String(stats.chunks));
     canvas.setAttribute('data-rebuilt', String(stats.rebuilt));
     canvas.setAttribute('data-models', String(renderer.kitModels));
+    canvas.setAttribute('data-streets', String(described.streets));
+    canvas.setAttribute('data-crossings', String(described.crossings));
+    canvas.setAttribute('data-props', String(described.props));
+    canvas.setAttribute('data-shore', described.terrain ? described.terrain.shoreY.toFixed(0) : '');
     canvas.setAttribute('data-guideways', String(described.guideways));
     canvas.setAttribute('data-closed', String(described.closed));
     canvas.setAttribute('data-warned', String(described.warned));

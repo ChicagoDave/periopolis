@@ -39,14 +39,16 @@ import {
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { fitToFront } from './kit.ts';
+import { fitToFront, fitToHeight } from './kit.ts';
 import type { Fit, ModelId } from './kit.ts';
+import type { SurfaceKind } from './streets.ts';
 import { DARK } from '../angled/canvas.ts';
 import type { Palette } from '../angled/canvas.ts';
 import { eyeOf } from './camera.ts';
 import type { Orbit, Point3 } from './camera.ts';
 import { SUB_DEPTH_M } from './describe.ts';
-import type { Chunk, Described, HomeInstance, MaterialId, Tree } from './describe.ts';
+import type { Chunk, Described, HomeInstance, MaterialId, PropInstance, Tree } from './describe.ts';
+import { SHORE_SOIL_M } from './describe.ts';
 import type { MoverClass, Placed } from './movers.ts';
 import { homeFacade, officeFacade, plantFacade, HOME_VARIANTS } from './facade.ts';
 import type { FacadeSheet, HomeVariant } from './facade.ts';
@@ -279,14 +281,102 @@ function treeGeometry(): BufferGeometry {
   return geometry;
 }
 
+/**
+ * A paving painted procedurally: a base colour with seeded grain, and for some kinds a pattern (paver joints, a
+ * crossing's stripes), repeated every so many metres over the prisms' metre UVs (ADR-0024 Decision 3 keeps street
+ * surfaces procedural).
+ */
+interface PavingSpec {
+  readonly base: string;
+  readonly grain: number;
+  readonly pattern?: 'pavers' | 'stripes' | 'gravel';
+  readonly metres: number;
+  readonly roughness: number;
+}
+const PAVINGS: Readonly<Record<SurfaceKind | 'grass' | 'soil', PavingSpec>> = {
+  asphalt: { base: '#4B4F52', grain: 14, metres: 6, roughness: 0.95 },
+  sidewalk: { base: '#B9B4A8', grain: 8, pattern: 'pavers', metres: 2, roughness: 0.9 },
+  kerb: { base: '#D6D2C8', grain: 4, metres: 2, roughness: 0.8 },
+  crossing: { base: '#4B4F52', grain: 6, pattern: 'stripes', metres: 4, roughness: 0.9 },
+  lane: { base: '#4F8A5B', grain: 8, metres: 3, roughness: 0.9 },
+  parkpath: { base: '#B8A98C', grain: 16, pattern: 'gravel', metres: 2, roughness: 1 },
+  plaza: { base: '#CFC9BB', grain: 6, pattern: 'pavers', metres: 3, roughness: 0.85 },
+  grass: { base: '#6E9A58', grain: 18, pattern: 'gravel', metres: 8, roughness: 1 },
+  soil: { base: '#A8906A', grain: 14, metres: 6, roughness: 1 },
+};
+
+/** A seeded stream for painting, the same picture every load. */
+function paintRandom(seed: number): () => number {
+  let x = seed >>> 0 || 1;
+  return () => {
+    x = (Math.imul(x, 1664525) + 1013904223) >>> 0;
+    return x / 4294967296;
+  };
+}
+
+/** Paint a paving into a repeating texture. */
+function paintPaving(kind: SurfaceKind | 'grass' | 'soil'): CanvasTexture {
+  const spec = PAVINGS[kind];
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = spec.base;
+    ctx.fillRect(0, 0, size, size);
+    const next = paintRandom(kind.length * 7919 + 17);
+    const base = new Color(spec.base);
+    for (let i = 0; i < 2600; i++) {
+      const v = (next() - 0.5) * spec.grain * 2;
+      const c = new Color(base.r + v / 255, base.g + v / 255, base.b + v / 255);
+      ctx.fillStyle = `#${c.getHexString()}`;
+      ctx.fillRect(Math.floor(next() * size), Math.floor(next() * size), 2, 2);
+    }
+    if (spec.pattern === 'pavers') {
+      ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i <= 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, (i * size) / 4);
+        ctx.lineTo(size, (i * size) / 4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo((i * size) / 4, 0);
+        ctx.lineTo((i * size) / 4, size);
+        ctx.stroke();
+      }
+    } else if (spec.pattern === 'stripes') {
+      ctx.fillStyle = 'rgba(245,245,240,0.9)';
+      for (let i = 0; i < 4; i++) ctx.fillRect(0, (i * size) / 4 + size / 16, size, size / 8);
+    } else if (spec.pattern === 'gravel') {
+      for (let i = 0; i < 400; i++) {
+        const v = next() * 40 - 20;
+        const c = new Color(base.r + v / 255, base.g + v / 255, base.b + v / 255);
+        ctx.fillStyle = `#${c.getHexString()}`;
+        ctx.fillRect(Math.floor(next() * size), Math.floor(next() * size), 3, 3);
+      }
+    }
+  }
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.repeat.set(1 / spec.metres, 1 / spec.metres);
+  texture.anisotropy = 4;
+  return texture;
+}
+
+/** The kinds painted as pavings rather than plain colours. */
+const PAVED: ReadonlySet<string> = new Set(Object.keys(PAVINGS));
+
 /** Plain colours for the materials that are not facades. */
-const PLAIN: Readonly<Record<Exclude<MaterialId, 'massing' | 'office' | 'plant'>, { color: string; roughness: number }>> = {
+const PLAIN: Readonly<Record<Exclude<MaterialId, 'massing' | 'office' | 'plant' | SurfaceKind>, { color: string; roughness: number }>> = {
   strip: { color: '#4A5250', roughness: 0.95 },
   survey: { color: '#C98A2E', roughness: 0.9 },
   scaffold: { color: '#B9772A', roughness: 0.9 },
   crane: { color: '#E0B228', roughness: 0.6 },
   park: { color: '#6E9A58', roughness: 1 },
-  plaza: { color: '#C9C4B8', roughness: 0.95 },
   path: { color: '#B8A98C', roughness: 1 },
   guideway: { color: '#34495A', roughness: 0.55 },
   closed: { color: '#B3261E', roughness: 0.7 },
@@ -379,6 +469,9 @@ export class IrlRenderer {
   private readonly treeGeometry = treeGeometry();
   private trees: InstancedMesh | null = null;
   private readonly movers = new Map<MoverClass, InstancedMesh>();
+  private readonly props = new Map<ModelId, InstancedMesh>();
+  private propsSignature = '';
+  private shore: Mesh[] = [];
   private readonly loader = new GLTFLoader();
   private readonly models = new Map<ModelId, LoadedModel | 'loading' | 'failed'>();
   private readonly onLoaded: () => void;
@@ -472,7 +565,7 @@ export class IrlRenderer {
   }
 
   /** The material for a prism: plain colours, the facade sheets painted once, massing by vertex colour. */
-  private material(id: MaterialId): MeshStandardMaterial {
+  private material(id: MaterialId | 'grass' | 'soil'): MeshStandardMaterial {
     let m = this.materials.get(id);
     if (m) return m;
     if (id === 'massing') {
@@ -481,9 +574,10 @@ export class IrlRenderer {
     }
     else if (id === 'office') m = sheetMaterial(officeFacade());
     else if (id === 'plant') m = sheetMaterial(plantFacade());
-    else m = new MeshStandardMaterial({ color: new Color(PLAIN[id].color), roughness: PLAIN[id].roughness, metalness: 0 });
+    else if (PAVED.has(id)) m = new MeshStandardMaterial({ map: paintPaving(id as SurfaceKind | 'grass' | 'soil'), roughness: PAVINGS[id as SurfaceKind | 'grass' | 'soil'].roughness, metalness: 0 });
+    else m = new MeshStandardMaterial({ color: new Color(PLAIN[id as keyof typeof PLAIN].color), roughness: PLAIN[id as keyof typeof PLAIN].roughness, metalness: 0 });
     if (id === 'stop' || id === 'closed' || id === 'warned') {
-      m.emissive = new Color(id === 'stop' ? WINDOW_LIGHT : PLAIN[id].color);
+      m.emissive = new Color(id === 'stop' ? WINDOW_LIGHT : PLAIN[id as 'closed' | 'warned'].color);
       m.emissiveIntensity = 0.35;
     }
     this.materials.set(id, m);
@@ -553,7 +647,7 @@ export class IrlRenderer {
       }
       geometry.setIndex(b.indices);
       const mesh = new Mesh(geometry, this.material(material));
-      const flat = material === 'strip' || material === 'survey' || material === 'park' || material === 'plaza' || material === 'path';
+      const flat = material === 'strip' || material === 'survey' || material === 'park' || material === 'path' || PAVED.has(material);
       const sub = SUB_MATERIALS.has(material);
       mesh.castShadow = !flat && !sub;
       mesh.receiveShadow = !sub;
@@ -676,6 +770,53 @@ export class IrlRenderer {
     }
   }
 
+  /**
+   * Rebuild the props (lamps, planters) from every chunk's: one instanced mesh a kit model, each placed by its height
+   * fit; a model not yet loaded leaves its props out until it arrives.
+   */
+  private buildProps(chunks: readonly Chunk[]): void {
+    const byModel = new Map<ModelId, PropInstance[]>();
+    for (const c of chunks) {
+      for (const p of c.props) {
+        const list = byModel.get(p.model);
+        if (list) list.push(p);
+        else byModel.set(p.model, [p]);
+      }
+    }
+    for (const [id, mesh] of this.props) {
+      if (byModel.has(id)) continue;
+      this.scene.remove(mesh);
+      mesh.dispose();
+      this.props.delete(id);
+    }
+    const dummy = new Object3D();
+    for (const [id, list] of byModel) {
+      const loaded = this.model(id);
+      const had = this.props.get(id);
+      if (had) {
+        this.scene.remove(had);
+        had.dispose();
+        this.props.delete(id);
+      }
+      if (!loaded) continue;
+      const mesh = new InstancedMesh(loaded.geometry, loaded.material, list.length);
+      list.forEach((p, i) => {
+        const fit = fitToHeight(id, p.heightM);
+        dummy.position.copy(toGl({ x: p.x, y: p.y, z: 0 }));
+        dummy.rotation.set(0, p.yaw, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        dummy.matrix.multiply(new Matrix4().makeTranslation(fit.offset.x, fit.offset.y, fit.offset.z).multiply(new Matrix4().makeScale(fit.scale, fit.scale, fit.scale)));
+        mesh.setMatrixAt(i, dummy.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.scene.add(mesh);
+      this.props.set(id, mesh);
+    }
+  }
+
   /** Rebuild the trees from every chunk's: one instanced mesh. */
   private buildTrees(chunks: readonly Chunk[]): void {
     const trees: Tree[] = [];
@@ -763,6 +904,14 @@ export class IrlRenderer {
       this.buildTrees(described.chunks);
       this.treesSignature = treesSignature;
     }
+    const propsSignature = `${this.modelsArrived}|${described.chunks
+      .filter((c) => c.props.length)
+      .map((c) => `${c.key}:${c.props.length}`)
+      .join(';')}`;
+    if (propsSignature !== this.propsSignature) {
+      this.buildProps(described.chunks);
+      this.propsSignature = propsSignature;
+    }
     this.fitGround(described, tokens);
     this.applyLight();
     this.applySub();
@@ -784,6 +933,11 @@ export class IrlRenderer {
       (this.ground.material as MeshStandardMaterial).dispose();
       this.ground = null;
     }
+    for (const m of this.shore) {
+      this.scene.remove(m);
+      m.geometry.dispose();
+    }
+    this.shore = [];
     const bounds = described.bounds;
     if (!bounds) return;
     const spanX = bounds.maxX - bounds.minX;
@@ -791,13 +945,35 @@ export class IrlRenderer {
     const margin = Math.max(spanX, spanY) * 0.6 + 200;
     const cx = (bounds.minX + bounds.maxX) / 2;
     const cy = (bounds.minY + bounds.maxY) / 2;
-    const plane = new PlaneGeometry(spanX + 2 * margin, spanY + 2 * margin);
-    plane.rotateX(-Math.PI / 2);
-    this.ground = new Mesh(plane, new MeshStandardMaterial({ color: new Color(tokens.ground), roughness: 1, metalness: 0 }));
-    // Keep the ground faint when the sub level shows (applySub runs after the fit, but a plane made anew starts opaque).
-    this.ground.position.copy(toGl({ x: cx, y: cy, z: 0 }));
-    this.ground.receiveShadow = true;
+    const terrain = described.terrain;
+    // The land: grass to the shore (ADR-0024 Decision 3), then a strip of soil, then water off the south edge; without
+    // a terrain (no context) a plain plane in the page's ground colour.
+    const land = terrain ? { x0: Math.min(terrain.west, cx - margin), x1: Math.max(terrain.east, cx + margin), y0: Math.min(terrain.north, cy - margin), y1: terrain.shoreY - SHORE_SOIL_M } : { x0: cx - spanX / 2 - margin, x1: cx + spanX / 2 + margin, y0: cy - spanY / 2 - margin, y1: cy + spanY / 2 + margin };
+    const slab = (x0: number, x1: number, y0: number, y1: number, material: MeshStandardMaterial, z: number): Mesh => {
+      const plane = new PlaneGeometry(x1 - x0, y1 - y0);
+      plane.rotateX(-Math.PI / 2);
+      // Metre UVs so a paving repeats by its own size.
+      const uv = plane.getAttribute('uv');
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (x1 - x0), uv.getY(i) * (y1 - y0));
+      const mesh = new Mesh(plane, material);
+      mesh.position.copy(toGl({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, z }));
+      mesh.receiveShadow = true;
+      return mesh;
+    };
+    this.ground = slab(land.x0, land.x1, land.y0, land.y1, terrain ? this.material('grass' as MaterialId) : new MeshStandardMaterial({ color: new Color(tokens.ground), roughness: 1, metalness: 0 }), 0);
     this.scene.add(this.ground);
+    if (terrain) {
+      const soil = slab(land.x0, land.x1, terrain.shoreY - SHORE_SOIL_M, terrain.shoreY, this.material('soil' as MaterialId), -0.05);
+      const waterKey = 'water';
+      let water = this.materials.get(waterKey);
+      if (!water) {
+        water = new MeshStandardMaterial({ color: new Color('#2F6F9E'), roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.85 });
+        this.materials.set(waterKey, water);
+      }
+      const lake = slab(land.x0, land.x1, terrain.shoreY, terrain.shoreY + 4000, water, -0.4);
+      this.shore = [soil, lake];
+      this.scene.add(soil, lake);
+    }
     const radius = Math.hypot(spanX, spanY, bounds.maxZ) / 2 + 50;
     const sunAt: Point3 = { x: cx + SUN_OFFSET.x * radius * 2, y: cy + SUN_OFFSET.y * radius * 2, z: SUN_OFFSET.z * radius * 2 };
     this.sun.position.copy(toGl(sunAt));
@@ -874,6 +1050,7 @@ export class IrlRenderer {
     };
     for (const [key, m] of this.materials) if (!SUB_MATERIALS.has(key) && !key.startsWith('mover-')) ghost(m, GHOST_SURFACE);
     if (this.ground) ghost(this.ground.material as MeshStandardMaterial, GHOST_GROUND);
+    for (const m of this.shore) ghost(m.material as MeshStandardMaterial, GHOST_GROUND);
     this.sun.castShadow = !on;
   }
 
@@ -938,6 +1115,8 @@ export class IrlRenderer {
       m.geometry.dispose();
       m.dispose();
     }
+    for (const m of this.props.values()) m.dispose();
+    for (const m of this.shore) m.geometry.dispose();
     for (const m of this.materials.values()) m.dispose();
     this.ground?.geometry.dispose();
     this.renderer.dispose();
