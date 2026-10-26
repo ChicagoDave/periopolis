@@ -587,6 +587,16 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sub', 'on');
   await expect(page.locator('#irl-sub')).toHaveText('Surface');
   await expect(page.locator('#viewtext')).toHaveText(`The city IRL: 38 blocks, 238 stories in all. The sub level: 16 stretches of guideway, ${described.stops} stops.`);
+  // The fleet runs the line: the Ledger's 159 movers at 50,000 people, and the first of them is somewhere else a second later.
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-movers', String(Math.round(RATES.base.fleet)));
+  const wasAt = await page.locator('#irlcanvas').getAttribute('data-mover0');
+  await page.waitForTimeout(1200);
+  const nowAt = await page.locator('#irlcanvas').getAttribute('data-mover0');
+  expect(wasAt).not.toBeNull();
+  expect(nowAt).not.toBe(wasAt);
+  const framesBefore = Number(await page.locator('#irlcanvas').getAttribute('data-frames'));
+  await page.waitForTimeout(300);
+  expect(Number(await page.locator('#irlcanvas').getAttribute('data-frames'))).toBeGreaterThan(framesBefore);
   await page.click('#irl-sub');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sub', 'off');
   await expect(page.locator('#irl-sub')).toHaveText('Sub level');
@@ -611,6 +621,7 @@ test("the city IRL: the ledger's city built as 38 blocks of 238 stories on a Web
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-rebuilt', '0');
   await page.click('#irl-night');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-light', 'noon');
+  // Back on the map the fleet's loop stops: the frame count holds.
   // Fit opens far again; a drag turns and renders another frame.
   await page.click('#irl-fit');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lod', 'far');
@@ -665,6 +676,9 @@ test('the city IRL follows the clock: cranes on what is ordered, homes standing 
   await page.click('#tick');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-sites', '0');
   await expect(page.locator('#irlcanvas')).toHaveAttribute('data-lit', '0.60');
+  // This founding has laid no line yet, so there is no guideway for the fleet to run: none runs.
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-guideways', '0');
+  await expect(page.locator('#irlcanvas')).toHaveAttribute('data-movers', '0');
   const lit = Number(await page.locator('#irlcanvas').getAttribute('data-lit-homes'));
   expect(lit).toBeGreaterThan(0);
   expect(lit).toBeLessThan(2 * hoodPlan.figures.homes);

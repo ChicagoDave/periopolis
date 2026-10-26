@@ -6,7 +6,11 @@
  * data-stories, data-sites, data-lit, data-lod, data-triangles, data-homes, data-lit-homes, data-trees, data-chunks,
  * data-rebuilt, data-rebuild-ms, data-light, data-sub, data-guideways, data-closed, data-warned, data-stops, data-entries,
  * data-webgl and data-frames so a test can hold what was built to the scene.
- * Public interface: drawIrl, turnIrl, dollyIrl, panIrl, fitIrl, irlSupported, SubCounts, subCounts.
+ * The fleet of movers is kept here as the last frame's states, the basis for the next (a cache of the animation, never
+ * a fact of the city), reconciled to the Ledger's fleet for the people living there and to the line as it stands,
+ * and stepped by the wall clock in a frame loop that runs while the view is open.
+ * Public interface: drawIrl, turnIrl, dollyIrl, panIrl, fitIrl, irlSupported, SubCounts, subCounts, moverCount,
+ * MOVER_LOOP_MS.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
 import { RATES } from '@city/site';
@@ -21,6 +25,8 @@ import { boundsOf, dollyOrbit, fitOrbit, panOrbit, pixelsPerMetre, turnOrbit } f
 import type { Bounds, Orbit } from './camera.ts';
 import { describeScene } from './describe.ts';
 import { IrlRenderer, webglSupported } from './gl.ts';
+import { fleetOf, graphOf, placeOf, reconcile, step } from './movers.ts';
+import type { LineGraph, MoverClass, MoverState, Placed } from './movers.ts';
 
 /** The renderer on the page's canvas, made on first use; null once the browser has said it cannot. */
 let renderer: IrlRenderer | null = null;
@@ -47,6 +53,75 @@ let lastSub: SubCounts = { guideways: 0, closed: 0, warned: 0, stops: 0 };
 /** What the sub level holds as last built. */
 export function subCounts(): SubCounts {
   return lastSub;
+}
+
+/** How often the fleet moves on while the view is open, milliseconds. */
+export const MOVER_LOOP_MS = 50;
+
+/** The fleet as last placed: the states, the line they ran on, and when. */
+interface FleetFrame {
+  readonly movers: readonly MoverState[];
+  readonly graph: LineGraph;
+  readonly lineKey: string;
+  readonly at: number;
+}
+let fleet: FleetFrame | null = null;
+let loop: ReturnType<typeof setInterval> | null = null;
+
+/** Movers running now. */
+export function moverCount(): number {
+  return fleet?.movers.length ?? 0;
+}
+
+/** The people living in the city now: on a clock those the Run admits, off it every home full. */
+function peopleOf(page: Page): number {
+  const { s } = page;
+  if (s.occupied) return Object.values(s.occupied).reduce((t, n) => t + n, 0);
+  return Object.values(s.game.layout.tiles).filter((t) => t?.kind === 'hood').length * RATES.hood;
+}
+
+/**
+ * The fleet moved on to now: the line rebuilt when a stretch or a closure changed (the movers set down only where
+ * their stretch went), the fleet reconciled to the Ledger's for the people living there, and every mover stepped
+ * by the seconds since the last frame (at most five, so a tab left in the background does not run a mover far).
+ */
+function fleetNow(page: Page, now: number): Readonly<Record<MoverClass, Placed[]>> {
+  const { s } = page;
+  const lineKey = `${Object.keys(s.game.layout.lines).sort().join(';')}|${[...s.closed].sort().join(';')}`;
+  const seed = s.game.clock?.seed ?? 42;
+  const graph = fleet && fleet.lineKey === lineKey ? fleet.graph : graphOf(s.game.layout, RATES, s.closed);
+  const wanted = fleetOf(peopleOf(page), RATES.base);
+  const before = fleet ? step(graph, fleet.movers, Math.min(5, (now - fleet.at) / 1000), seed) : [];
+  const movers = reconcile(graph, before, wanted, seed);
+  fleet = { movers, graph, lineKey, at: now };
+  const placed: Record<MoverClass, Placed[]> = { pod: [], cab: [], shuttle: [] };
+  for (const m of movers) placed[m.cls].push(placeOf(graph, m));
+  return placed;
+}
+
+/** Keep the fleet moving while the view is open: a tick places the movers and renders a frame, while the sub level
+ * shows; with the surface over them the movers are out of sight, so a tick then costs nothing and the fleet catches up
+ * (by at most five seconds) when the sub level is shown again. */
+function keepMoving(page: Page): void {
+  if (loop) return;
+  loop = setInterval(() => {
+    if (page.s.view.at !== 'irl' || !renderer || !frame) {
+      if (loop) clearInterval(loop);
+      loop = null;
+      return;
+    }
+    if (!page.s.sub) return;
+    renderer.setMovers(fleetNow(page, performance.now()));
+    const orbit = page.s.orbit ?? fitOrbit(frame.bounds, frame.width / frame.height);
+    const frames = renderer.render(orbit, frame.width, frame.height, Math.min(2, window.devicePixelRatio || 1));
+    const canvas = byId<HTMLCanvasElement>('irlcanvas');
+    canvas.setAttribute('data-frames', String(frames));
+    const first = fleet?.movers[0];
+    if (first && fleet) {
+      const p = placeOf(fleet.graph, first);
+      canvas.setAttribute('data-mover0', `${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+    }
+  }, MOVER_LOOP_MS);
 }
 
 /** Whether the browser can draw the city IRL; decided once, on the page's canvas. */
@@ -101,6 +176,8 @@ export function drawIrl(page: Page): Painted | null {
   if (on) board.toggleAttribute('hidden', true);
   if (!on) {
     frame = null;
+    if (loop) clearInterval(loop);
+    loop = null;
     return null;
   }
   const scroller = byId('boardscroll');
@@ -166,8 +243,11 @@ export function drawIrl(page: Page): Painted | null {
   canvas.setAttribute('data-light', s.light);
   canvas.setAttribute('data-sub', s.sub ? 'on' : 'off');
   frame = { signature, bounds, width: cssWidth, height: cssHeight };
+  renderer.setMovers(fleetNow(page, performance.now()));
+  canvas.setAttribute('data-movers', String(moverCount()));
   const frames = renderer.render(orbit, cssWidth, cssHeight, dpr);
   canvas.setAttribute('data-frames', String(frames));
+  keepMoving(page);
   return painted;
 }
 

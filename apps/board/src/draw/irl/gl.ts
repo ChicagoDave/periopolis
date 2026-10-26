@@ -5,12 +5,14 @@
  * of trees; it paints the procedural facades into textures, rebuilds only the chunks whose signature changed,
  * renders under the orbit camera, resizes with the canvas and survives a lost context. The sub level's meshes are
  * built with the rest and shown on the toggle, which fades the ground and ghosts everything on the surface. It
- * decides nothing about what is built: the describer does (ADR-0023 Decisions 1, 2 and 5).
+ * decides nothing about what is built: the describer does (ADR-0023 Decisions 1, 2 and 5). The fleet of movers is
+ * three instanced meshes, one a class, placed each frame where the mover module says (Decision 4).
  * Public interface: Tokens, Light, BuildStats, IrlRenderer, webglSupported.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
 import {
   AmbientLight,
+  BoxGeometry,
   BufferAttribute,
   InstancedBufferAttribute,
   BufferGeometry,
@@ -38,7 +40,9 @@ import { DARK } from '../angled/canvas.ts';
 import type { Palette } from '../angled/canvas.ts';
 import { eyeOf } from './camera.ts';
 import type { Orbit, Point3 } from './camera.ts';
+import { SUB_DEPTH_M } from './describe.ts';
 import type { Chunk, Described, HomeInstance, MaterialId, Tree } from './describe.ts';
+import type { MoverClass, Placed } from './movers.ts';
 import { homeFacade, officeFacade, plantFacade, HOME_VARIANTS } from './facade.ts';
 import type { FacadeSheet, HomeVariant } from './facade.ts';
 
@@ -289,6 +293,13 @@ const PLAIN: Readonly<Record<Exclude<MaterialId, 'massing' | 'office' | 'plant'>
   pipe: { color: '#7A6652', roughness: 0.6 },
 };
 
+/** A mover's body by class, metres: length along its heading, width, height (the Ledger's bodies, a height Mine). */
+const MOVER_BODY: Readonly<Record<MoverClass, { l: number; w: number; h: number; color: string }>> = {
+  pod: { l: 2.41, w: 1.39, h: 1.55, color: '#F2F0E8' },
+  cab: { l: 3.63, w: 1.9, h: 1.7, color: '#2E3A46' },
+  shuttle: { l: 4.75, w: 2.11, h: 2.6, color: '#3F7FBF' },
+};
+
 /** The materials that stand on the sub level; everything else is the surface, ghosted when the sub level shows. */
 const SUB_MATERIALS: ReadonlySet<string> = new Set(['guideway', 'closed', 'warned', 'ordered', 'stop', 'entry', 'walkway', 'pipe']);
 
@@ -324,6 +335,7 @@ export class IrlRenderer {
   private readonly homeGroups = new Map<string, HomeGroup>();
   private readonly treeGeometry = treeGeometry();
   private trees: InstancedMesh | null = null;
+  private readonly movers = new Map<MoverClass, InstancedMesh>();
   private homesSignature = '';
   private treesSignature = '';
   private light: Light = 'noon';
@@ -683,6 +695,49 @@ export class IrlRenderer {
     this.far = Math.max(spanX, spanY) * 6 + 2000;
   }
 
+  /**
+   * The fleet placed for this frame: one instanced mesh a class, remade when a class's count changes, each mover a
+   * box on the guideway's top turned to its heading. Movers ride the sub level, so they show with it.
+   */
+  setMovers(placed: Readonly<Record<MoverClass, readonly Placed[]>>): void {
+    const dummy = new Object3D();
+    for (const cls of ['pod', 'cab', 'shuttle'] as const) {
+      const list = placed[cls];
+      let mesh = this.movers.get(cls);
+      if (mesh && mesh.count !== list.length) {
+        this.scene.remove(mesh);
+        mesh.geometry.dispose();
+        mesh.dispose();
+        mesh = undefined;
+        this.movers.delete(cls);
+      }
+      if (!list.length) continue;
+      if (!mesh) {
+        const body = MOVER_BODY[cls];
+        const geometry = new BoxGeometry(body.l, body.h, body.w);
+        geometry.translate(0, body.h / 2, 0);
+        const key = `mover-${cls}`;
+        let material = this.materials.get(key);
+        if (!material) {
+          material = new MeshStandardMaterial({ color: new Color(body.color), roughness: 0.4, metalness: 0.2, emissive: new Color(WINDOW_LIGHT), emissiveIntensity: 0.25 });
+          this.materials.set(key, material);
+        }
+        mesh = new InstancedMesh(geometry, material, list.length);
+        mesh.frustumCulled = false;
+        this.scene.add(mesh);
+        this.movers.set(cls, mesh);
+      }
+      list.forEach((p, i) => {
+        dummy.position.copy(toGl({ x: p.x, y: p.y, z: SUB_DEPTH_M + 1 }));
+        // Scene heading is atan2 in (x east, y south); in three's space y south is -z, so the turn about y is the heading itself.
+        dummy.rotation.set(0, p.heading, 0);
+        dummy.updateMatrix();
+        (mesh as InstancedMesh).setMatrixAt(i, dummy.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+
   /** The sub level shown or hidden: shown, the ground fades, the surface ghosts, and the guideway, stops and entries appear. */
   setSub(on: boolean): void {
     if (on === this.sub) return;
@@ -699,7 +754,7 @@ export class IrlRenderer {
       m.depthWrite = !on;
       m.needsUpdate = true;
     };
-    for (const [key, m] of this.materials) if (!SUB_MATERIALS.has(key)) ghost(m, GHOST_SURFACE);
+    for (const [key, m] of this.materials) if (!SUB_MATERIALS.has(key) && !key.startsWith('mover-')) ghost(m, GHOST_SURFACE);
     if (this.ground) ghost(this.ground.material as MeshStandardMaterial, GHOST_GROUND);
     this.sun.castShadow = !on;
   }
@@ -761,6 +816,10 @@ export class IrlRenderer {
     this.homeGroups.clear();
     this.trees?.dispose();
     this.treeGeometry.dispose();
+    for (const m of this.movers.values()) {
+      m.geometry.dispose();
+      m.dispose();
+    }
     for (const m of this.materials.values()) m.dispose();
     this.ground?.geometry.dispose();
     this.renderer.dispose();
