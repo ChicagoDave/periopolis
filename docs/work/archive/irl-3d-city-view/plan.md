@@ -1,7 +1,7 @@
 # Session Plan: An IRL 3D view of the city, with movers running on the sub level
 
 **Created**: 2026-10-26
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: A real WebGL renderer (three.js) shows the whole site as a lit, shadowed, realistic-looking city under an orbit/zoom camera, following the Board's month clock, with the sub level made visible and the fleet of driverless movers animated along the line. People are not simulated. Walking at street level is a later plan; the camera and scene are built so it is cheap.
 **Bounded contexts touched**: Board (apps/board) only for code; Ground, Site, Run, Ledger are read, not changed. ADR work touches ADR-0011 (hosting) and ADR-0014 (Decision 3).
 **Key domain language**: Ground (plan-view footprints plus story counts), scene (derived, never kept), month clock, sub level, mover line / stretch / stop / closure, fleet.

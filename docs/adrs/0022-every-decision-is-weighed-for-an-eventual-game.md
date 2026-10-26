@@ -15,7 +15,7 @@ On 2026-10-21 David raised gamifying Periopolis out of curiosity, prompted by Pe
    - whether an event gives lead time to respond;
    - whether consequences stay visible.
 2. **The lens weighs. It does not decide.** The sim's truth comes first: physics and arithmetic stay non-negotiable, and the Ledger with its marks is what Periopolis has that a game like Permit Pending lacks. Where the lens and the sim disagree, the ADR says so, and David chooses.
-3. **Nothing is built for the game yet.** No game features, landing page, scenarios or 3D view are planned or built until David decides to gamify. *Amended 2026-10-26 by ADR-0023: the IRL 3D view (`docs/work/irl-3d-city-view/plan.md`) is a view of the simulator, planned on David's instruction of 2026-10-26, not a game feature; this clause now covers game features, the landing page and scenarios.*
+3. **Nothing is built for the game yet.** No game features, landing page, scenarios or 3D view are planned or built until David decides to gamify. *Amended 2026-10-26 by ADR-0023: the IRL 3D view (`docs/work/archive/irl-3d-city-view/plan.md`) is a view of the simulator, planned on David's instruction of 2026-10-26, not a game feature; this clause now covers game features, the landing page and scenarios.*
 
 ## Consequences
 

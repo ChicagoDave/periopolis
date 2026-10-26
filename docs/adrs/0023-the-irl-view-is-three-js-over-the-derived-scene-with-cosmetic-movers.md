@@ -10,7 +10,7 @@
 
 David, 2026-10-26: "did we ever figure out how to make an IRL version of the city in 3D?" — a real-life-looking city on screen, not a physical model. The answer was no, on purpose: ADR-0014 Decision 3 chose canvas 2D extruded blocks over three.js because the Board is one self-contained page on GitHub Pages (ADR-0011) and a GL library would triple it, and `docs/brainstorm/future-city/techstack.md` drew the line at "a full simulation: every person and mover simulated and animated, with real 3D art", which it called a game engine's job.
 
-David lifted both constraints the same day: "I'm not concerned about size; if we have to move the hosting to a server, I will do that", and "we don't need to sim people, but movers for sure." The view is an orbit camera over the whole site, lit and shadowed, following the Board's month clock as the view from the air does; walking at street level is a later plan. The plan is `docs/work/irl-3d-city-view/plan.md`.
+David lifted both constraints the same day: "I'm not concerned about size; if we have to move the hosting to a server, I will do that", and "we don't need to sim people, but movers for sure." The view is an orbit camera over the whole site, lit and shadowed, following the Board's month clock as the view from the air does; walking at street level is a later plan. The plan is `docs/work/archive/irl-3d-city-view/plan.md`.
 
 What the repository already has: the Ground returns plan-view footprints in metres plus story counts (ADR-0005), the angled view's `scene.ts` places them on the hex lattice and reads what stands, what is under construction and who lives where from the Run after every render (ADR-0014 Decision 2), the Ledger fixes the fleet (159 movers at 50,000 people, in three classes: pod, cab, shuttle), the Site lays the line in stretches between tiles with a stop under each center and the ring, and the Run names a closed stretch two years ahead (ADR-0021). ADR-0022 Decision 3 said no 3D view is planned until David decides to gamify; this view is a view of the simulator, planned on David's instruction, and not a game feature, so that clause is narrowed (amended below).
 
@@ -40,4 +40,4 @@ Each decision carries a game-lens line (ADR-0022 Decision 1).
 
 ## Session
 
-Session ad0c3b, 2026-10-26; Phase 1 of `docs/work/irl-3d-city-view/plan.md`.
+Session ad0c3b, 2026-10-26; Phase 1 of `docs/work/archive/irl-3d-city-view/plan.md`.
