@@ -1,0 +1,43 @@
+# ADR-0023: The IRL view is three.js on WebGL over the derived scene, with the fleet of movers a cosmetic layer of the Board
+
+**Date**: 2026-10-26
+**Kind**: technical
+**Scope**: apps/board, .github/workflows
+**Status**: ACCEPTED
+**Supersedes**: ADR-0014 Decision 3 (canvas 2D, no library). ADR-0014 Decisions 1, 2, 4 and 5 stand.
+
+## Context
+
+David, 2026-10-26: "did we ever figure out how to make an IRL version of the city in 3D?" — a real-life-looking city on screen, not a physical model. The answer was no, on purpose: ADR-0014 Decision 3 chose canvas 2D extruded blocks over three.js because the Board is one self-contained page on GitHub Pages (ADR-0011) and a GL library would triple it, and `docs/brainstorm/future-city/techstack.md` drew the line at "a full simulation: every person and mover simulated and animated, with real 3D art", which it called a game engine's job.
+
+David lifted both constraints the same day: "I'm not concerned about size; if we have to move the hosting to a server, I will do that", and "we don't need to sim people, but movers for sure." The view is an orbit camera over the whole site, lit and shadowed, following the Board's month clock as the view from the air does; walking at street level is a later plan. The plan is `docs/work/irl-3d-city-view/plan.md`.
+
+What the repository already has: the Ground returns plan-view footprints in metres plus story counts (ADR-0005), the angled view's `scene.ts` places them on the hex lattice and reads what stands, what is under construction and who lives where from the Run after every render (ADR-0014 Decision 2), the Ledger fixes the fleet (159 movers at 50,000 people, in three classes: pod, cab, shuttle), the Site lays the line in stretches between tiles with a stop under each center and the ring, and the Run names a closed stretch two years ahead (ADR-0021). ADR-0022 Decision 3 said no 3D view is planned until David decides to gamify; this view is a view of the simulator, planned on David's instruction, and not a game feature, so that clause is narrowed (amended below).
+
+Each decision carries a game-lens line (ADR-0022 Decision 1).
+
+## Decision
+
+1. **three.js on WebGL, as a third view "IRL" beside the map and "From the air".** The renderer, sun and sky, shadows, materials and the orbit camera live in `apps/board/src/draw/irl/`. The GL adapter (`gl.ts`) is the only file that imports three.js or touches a canvas; everything that decides what is built — `describe.ts` (scene to meshes-to-build records), the facade generator, the mover animation — is a pure module tested in numbers with no DOM. ADR-0014 Decision 3 is superseded: the pure projection and canvas 2D view stay as the fallback (Decision 5), and WebGL is no longer "revisited if the timing check fails" but chosen. *Game lens: a lit, shadowed city is what a player looks at; the pure modules are what a player's choices show in.*
+2. **The scene stays derived, never kept** (ADR-0014 Decision 2 stands). `sceneOf` is still the one source of what stands; the IRL view re-derives it from the game after each render and rebuilds only the instances of the tiles that changed. The instance cache is a pure function of the derived scene, invalidated by re-derivation, never a second record of the city. Under construction and occupancy are read from the Run's jobs and `occupiedOf` as before. *Game lens: consequences stay visible the month they happen, because the view cannot drift from the run.*
+3. **Geometry is procedural from the Ground, not authored.** Massing from footprints and story counts; facades (window grids, doors, rooflines, trim, materials by kind) generated from seeded noise on the tile key, so a building looks the same on every frame and every load and a different seed gives a different street; trees, paths and park surfaces from the Ground's open ground. A story is 3.2 m, as in the angled view. Authored assets, if ever, are for the three mover classes only, when procedural vehicles look wrong, and are its own amendment of this ADR and of ADR-0011 Decision 2. *Game lens: every neighborhood comes from the same rule, so what differs between two cities is the player's choices, not the artist's.*
+4. **The fleet of movers is a cosmetic layer of the Board.** `movers.ts` is a pure, seeded function: given the line as a graph of stretches and stops, the fleet by class from the Ledger, the closed stretches from the Run and a wall-clock time, it returns each mover's position and heading. Movers run between stops, dwell at stops, never enter a closed stretch, and a month's change in the fleet or the line adds or removes movers without moving the rest. The animation decides no fact of the city: no trip is counted, no cost moves, nothing is saved. People are not simulated. If a game ever needs movers that carry people, the module is promoted to a domain context by its own ADR. *Game lens: movers that are a pure function of the line and the fleet are the shape a player could take over; the closed stretch they avoid is the threat ADR-0021 gives a year's notice of.*
+5. **The sub level is seen through a toggle.** A "Sub level" control on the view bar fades the surface to translucent, ghosts the buildings and brightens the guideway, the stops and the movers; a closed stretch is drawn closed and a stretch on order as under construction, both read from the Run. A clipping-plane cutaway is a later refinement; a permanent X-ray, a split view and a dragged slice were weighed and not chosen. *Game lens: a toggle leaves the player a meaningful choice of layer and keeps the line's consequences visible.*
+6. **Movers run on the wall clock.** Vehicle speed is believable and independent of the month clock's speed; the fleet and the line they run on are read from the Run each month. Tying speed to the clock was weighed and rejected: at Fast speed it is absurd. *Game lens: the city feels alive at any speed, and the clock keeps its meaning.*
+7. **Hosting stays GitHub Pages, one built page, size unbounded.** three.js is bundled into the single page, which grows from about 200 kB to roughly 1 MB; the publish workflow is unchanged except that the browser flows run with software WebGL. ADR-0011 Decision 2 is amended to "one built page, any size". A server is needed only for authored assets or a shared gallery, and is its own decision then. *Game lens: a server is where saves and scores would live; nothing here needs one yet.*
+8. **The canvas 2D view from the air stays as the fallback** (no WebGL, tests, phones) until the IRL view passes the browser flows; whether to retire it is David's decision then. *Game lens: a game needs one view a player trusts; two are a cost until one wins.*
+9. **Entry and words are the Board's** (ADR-0014 Decision 5 stands): "IRL" on the button row, the view bar carries the caption, the sub-level toggle and the way back; the session's view and camera are never saved; every sentence is in `wording.ts` (ADR-0004). With WebGL absent the button is disabled with a sentence.
+
+## Consequences
+
+- `apps/board` gains a dependency on three.js, pinned; no domain package imports it (ADR-0001 Decision 2 holds: no DOM, no wall clock below `apps/`). The mover animation takes time as a parameter, so it is pure though the Board feeds it the wall clock.
+- The camera is a plain value (position, target, field of view) in a pure module, so a street-level walking camera is a second controller over the same scene, not a new view.
+- A new kind of thing on the site is still a new case in `sceneOf` plus a material in the IRL palette; the Ground gains no surface (ADR-0005 Decision 5 holds).
+- Performance is measured at 100,000 people on seed 42 (about 40,000 buildings, instanced) and written in the plan's Phase 6; level of detail follows the camera's distance as ADR-0014 Decision 4 follows scale.
+- The Playwright flows gain IRL flows that read painted counts from the canvas's data attributes, and run under software WebGL in `.github/workflows/publish-board.yml`.
+- `docs/brainstorm/future-city/techstack.md` "When to leave the web" is narrowed: movers animated on the web are in; people simulated and animated remain a game engine's job.
+- Amends ADR-0014 Decision 3, ADR-0011 Decision 2 and ADR-0022 Decision 3 with dated notes written in Phase 1.
+
+## Session
+
+Session ad0c3b, 2026-10-26; Phase 1 of `docs/work/irl-3d-city-view/plan.md`.

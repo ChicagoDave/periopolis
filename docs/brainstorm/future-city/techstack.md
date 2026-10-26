@@ -32,7 +32,7 @@ Dependencies point inward only. Each context exports one interface from its `ind
 
 Any one of these would change the answer:
 
-- **A full simulation.** Every person and mover simulated and animated, with real 3D art. That is a game engine's job.
+- **A full simulation.** Every person and mover simulated and animated, with real 3D art. That is a game engine's job. *Narrowed 2026-10-26 (ADR-0023): the movers are animated on the web, in three.js, as a cosmetic layer of the Board; people simulated and animated remain the line.*
 - **A store product.** Something sold and installed.
 - **An iPad-first app.** Drawn on with a pencil.
 
@@ -42,7 +42,8 @@ None is decided, and none is blocked by starting here.
 
 - **The tile map** is SVG today: 158 tiles since ADR-0016 (115 under ADR-0006, 91 in the sketch), a few hundred shapes. It stays the zoomed-out view.
 - **The physical plan** (next plan) wants a canvas with level of detail: rows of townhouses when far, single homes when near.
-- **An angled view with heights**, if it is wanted, is extruded footprints under a tilted camera, which WebGL map renderers already do.
+- **An angled view with heights**, if it is wanted, is extruded footprints under a tilted camera, which WebGL map renderers already do. *Done on canvas 2D, 2026-10-19 (ADR-0014).*
+- **The IRL view** (2026-10-26, ADR-0023, `docs/work/irl-3d-city-view/plan.md`) is three.js on WebGL: procedural facades and materials from the Ground's footprints and story counts, lit and shadowed under an orbit camera, the sub level seen through a toggle and the fleet of movers running the line on the wall clock. The page's size is no longer bounded.
 
 ## Conventions
 

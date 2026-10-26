@@ -1,0 +1,107 @@
+# Session Plan: An IRL 3D view of the city, with movers running on the sub level
+
+**Created**: 2026-10-26
+**Plan Status**: ACTIVE
+**Overall scope**: A real WebGL renderer (three.js) shows the whole site as a lit, shadowed, realistic-looking city under an orbit/zoom camera, following the Board's month clock, with the sub level made visible and the fleet of driverless movers animated along the line. People are not simulated. Walking at street level is a later plan; the camera and scene are built so it is cheap.
+**Bounded contexts touched**: Board (apps/board) only for code; Ground, Site, Run, Ledger are read, not changed. ADR work touches ADR-0011 (hosting) and ADR-0014 (Decision 3).
+**Key domain language**: Ground (plan-view footprints plus story counts), scene (derived, never kept), month clock, sub level, mover line / stretch / stop / closure, fleet.
+
+## Decisions David must answer first
+
+Defaults are given so Phase 1 can proceed on "go"; each is a line in the new ADR.
+
+1. **Where it is hosted.** David lifted the size constraint. Default: stay on GitHub Pages with three.js bundled into the single page (the page grows from about 200 kB to roughly 1 MB; no server, no change to the publish workflow), and amend ADR-0011 Decision 2 to say "one built page, any size". A server is needed only if authored assets (models, textures) or a shared gallery arrive; Pages can also serve a folder of assets beside the page. Game lens: a server is where a game's saves and scores would live, but nothing here needs one yet.
+2. **How movers on the sub level are seen.** Default: a "Sub level" toggle on the view bar that fades the surface (ground, paths, parks) to translucent and brightens the guideway, stops and movers, with the buildings ghosted; plus a clipping-plane cutaway as a later refinement. Alternatives: a permanent X-ray (cluttered), a split view with a sub-level inset (two renderers), or a slice you drag across the site. Game lens: a toggle leaves the player a meaningful choice of layer and keeps consequences visible.
+3. **Geometry source.** Default: procedural massing from the Ground's footprints and story counts, with procedural facades (window grids, rooflines, trim, materials by kind) generated from seeded noise on the tile key. Authored assets (modeled townhouses, vehicles) only for the three mover classes if the procedural vehicles look wrong, kept in a folder beside the page on Pages. Game lens: procedural keeps every neighborhood from the same rule, so a player's choices show in the shape.
+4. **Where the mover simulation lives.** Default: a pure cosmetic module in the Board (`apps/board/src/draw/irl/`), because the Ledger fixes only the fleet size and the Site only the line; the animation decides no fact of the city (no trip is counted, no cost moves). If a game later needs movers that carry people, promote the module into a domain context by its own ADR. Game lens: movers that are cosmetic now but a pure function of the line and the fleet are the shape a player could take over.
+5. **Does the canvas 2D "From the air" view stay?** Default: it stays beside the IRL view as the fallback (no WebGL, tests, phones) until the IRL view passes the flows, then David decides whether to retire it. ADR-0014 Decisions 1 and 2 (a pure derived scene) stay; only Decision 3 (canvas 2D, no library) is superseded.
+6. **Mover time.** Default: movers run on the wall clock at a believable speed, independent of the month clock's speed; their number and the line they run on are read from the Run each month, and a closed stretch has none on it. Alternative: tie vehicle speed to the clock (gets absurd at Fast speed).
+
+## References consulted
+- `docs/adrs/0001-typescript-workspace-with-pure-domain-packages.md` — domain stays pure; all rendering and the mover animation are Board code; no WebGL or three.js import below apps/board.
+- `docs/adrs/0002-no-regular-expressions.md` — no regex anywhere, tests and scripts included.
+- `docs/adrs/0003-parity-port-against-the-sketch.md` — the sketch is the parity oracle for domain figures; a view adds none, and the fleet count must come from the Ledger as it stands.
+- `docs/adrs/0004-domain-emits-facts-adapters-word-them.md` — every sentence in the new view bar and toggles goes through wording.ts.
+- `docs/adrs/0005-ground-is-its-own-context-over-the-ledger.md` — Ground stays plan-view metres plus story counts; facades and materials are the Board's, not a Ground surface.
+- `docs/adrs/0011-the-board-is-published-on-github-pages.md` — product ADR, Scope apps/board intersects: Decision 2 (one built page) and the workflow's browser flows are amended by Phase 1; flows must still run against the build.
+- `docs/adrs/0014-the-angled-view-is-a-projection-over-ground-on-canvas.md` — Decision 2 (scene derived, never kept; follows the clock by re-deriving) is kept; Decision 3 (canvas 2D, no library, WebGL revisited with projection.ts and scene.ts as the seam) is superseded by the new ADR.
+- `docs/adrs/0021-the-line-holds-through-a-closure.md` — closures name a stretch two years ahead; the animation must stop traffic on a closed stretch and read it from the Run, not decide it.
+- `docs/adrs/0022-every-decision-is-weighed-for-an-eventual-game.md` — each decision here carries a game-lens line; Decision 3 says no 3D view is planned until David decides, so this plan rests on David's 2026-10-26 instruction and the new ADR must say it is a view of the simulator, not a game feature, and build no game features.
+- `docs/brainstorm/future-city/techstack.md` — "full simulation is a game engine's job" is partly revised by David: movers yes, people no; the techstack note is updated in Phase 1.
+- `docs/context/project-profile.md` — Vite 8, vite-plugin-singlefile, Vitest and Playwright (Chromium), documentationStandard always, strict TypeScript, Board adds DOM.
+- `docs/context/session-20261026-0040-main.md` — most recent session; no open items bear on this plan.
+- Product ADRs not consulted (no Scope intersection): none
+
+## Phases
+
+### Phase 1: Decide the renderer and the hosting (ADRs)
+- **Tier**: Small
+- **Budget**: ~100 tool calls
+- **Domain focus**: Board, the angled view's rendering seam; no domain change.
+- **Entry state**: David has answered or accepted the defaults of the six decisions above.
+- **Deliverable**: A new ADR (Kind technical, Scope apps/board) superseding ADR-0014 Decision 3: three.js on WebGL for the IRL view, the scene still derived and never kept, movers a cosmetic Board layer, with a game-lens line per option; a dated amendment to ADR-0011 Decision 2 (size no longer bounded; hosting stays Pages unless assets need otherwise, and if authored assets ever sit beside the page Decision 2 and the single-file build are amended again); a dated amendment to ADR-0022 Decision 3 (the IRL view is a view of the simulator planned on David's 2026-10-26 instruction, not a game feature; the clause now covers game features only); the techstack note revised (movers yes, people no); `docs/domain/board.md` gets the IRL view's entry in words.
+- **Files**: `docs/adrs/` , `docs/brainstorm/future-city/techstack.md`, `docs/domain/board.md`
+- **Exit state**: The ADR is ACCEPTED with no open questions (or DRAFT with an interview offered per rule 11a), ADR-0014 and ADR-0011 carry dated notes pointing to it.
+- **Demonstration**: grep the new ADR for its Supersedes line and ADR-0014 for the dated note; both must be present.
+- **Demonstrated**: 2026-10-26 — ADR-0023 written (technical, Scope apps/board and .github/workflows, ACCEPTED, no open questions; nine decisions each with a game-lens line, the six defaults David accepted with "go" plus the fallback, entry and words); its `**Supersedes**` line names ADR-0014 Decision 3 and ADR-0014 Decision 3 carries the dated note, both present by grep; dated amendments on ADR-0011 Decision 2 (one built page, any size) and ADR-0022 Decision 3 (the IRL view is a view of the simulator, not a game feature); techstack.md "When to leave the web" narrowed to movers yes, people no, and a Rendering bullet for the IRL view; docs/domain/board.md gains the IRL view's row. [reported by session: documentation only, no suite to run]
+- **Status**: DONE
+
+### Phase 2: A WebGL view of the derived scene under an orbit camera
+- **Tier**: Medium
+- **Budget**: ~250 tool calls
+- **Domain focus**: Board adapter: `sceneOf` blocks become lit, shadowed meshes; a third view "IRL" beside "From the air".
+- **Entry state**: Phase 1 ADR ACCEPTED.
+- **Deliverable**: three.js added to `apps/board/package.json`; a pure scene-to-description module (`apps/board/src/draw/irl/describe.ts` (new)) that turns `SceneBlock` into meshes-to-build records (tested in numbers, no DOM, no three.js import) and a thin adapter (`apps/board/src/draw/irl/gl.ts` (new)) that owns the renderer, sun and sky, soft shadows, ground plane, orbit and zoom controls clamped to the site, resize and context loss; entry button and view bar through `apps/board/src/draw/angled/view.ts` and `apps/board/src/wording.ts`; massing only (flat-coloured blocks with real lighting), the camera in a session field never saved. Cheap-walk seam: the camera is a position, target and fov value in a pure module, so a street-level camera is a second controller later.
+- **Files**: `apps/board/package.json`, `apps/board/src/draw/irl/` (new), `apps/board/src/draw/angled/view.ts`, `apps/board/src/wording.ts`, `apps/board/src/session.ts`, `apps/board/src/page.ts`, `apps/board/test/`
+- **Exit state**: Choosing IRL shows the site's blocks lit with shadows; orbit, zoom and pan work; leaving restores the map; with WebGL absent the IRL button is disabled with a sentence; the build still emits one page.
+- **Demonstration**: `pnpm -r test` is green with the describe suite asserting block, story and kind counts equal the scene's; the Board e2e flows (pnpm test:e2e in apps/board) shows a new flow where the IRL canvas reports a WebGL context and the block count it painted.
+- **Demonstrated**: 
+- **Status**: PENDING
+
+### Phase 3: Procedural facades, materials and a living city that follows the clock
+- **Tier**: Large
+- **Budget**: ~400 tool calls
+- **Domain focus**: Board adapter: realistic look and the month clock; reads Run jobs and `occupiedOf`, keeps nothing.
+- **Entry state**: Phase 2 done.
+- **Deliverable**: Procedural facade generator (window grids, doors, rooflines, balconies, materials by kind, seeded from the tile key so a building looks the same every frame and every load); trees, paths and park surfaces from the Ground's open-ground shapes; sky, fog, tone mapping, and a time-of-day light value (fixed noon by default; a night mode lights windows by the neighborhood's occupied share, the IRL counterpart of the angled view's lit rows); scaffold and crane look for tiles under construction; stretches on order drawn as marked survey strips; instancing so about 40,000 buildings at 100,000 people stay within a frame budget; the scene re-derived after each render as ADR-0014 Decision 2 requires, with only the changed tiles' instances rebuilt.
+- **Files**: `apps/board/src/draw/irl/`, `apps/board/src/draw/angled/scene.ts`, `apps/board/test/`
+- **Exit state**: Stepping the month clock in the IRL view builds up tiles, fills neighborhoods and lights windows; the same seed gives byte-identical instance data; a Fast-speed tick on seed 42's full circle rebuilds in under one frame budget (measured and written down).
+- **Demonstration**: `pnpm -r test` green with a facade determinism suite and a clock suite (occupied share to lit windows); the Board e2e flows (pnpm test:e2e in apps/board) flow steps the clock and reads the painted instance and lit counts from data attributes.
+- **Demonstrated**: 
+- **Status**: PENDING
+
+### Phase 4: The sub level made visible
+- **Tier**: Medium
+- **Budget**: ~250 tool calls
+- **Domain focus**: Sub level: the mover line (stretches between tiles), stops under each center and the ring, closures (ADR-0021).
+- **Entry state**: Phase 3 done.
+- **Deliverable**: The line laid as a guideway in the ground under each stretch and stops under each center and the ring, derived from the layout (same edges the Site holds); a "Sub level" toggle that fades the surface and ghosts the buildings so the line reads from above (decision 2); a closed stretch drawn closed (barriers, dimmed) read from the Run's timeline; stretches on order drawn as under construction.
+- **Files**: `apps/board/src/draw/irl/`, `apps/board/src/wording.ts`, `apps/board/test/`
+- **Exit state**: With the toggle on, every stretch and stop of the layout is visible and the counts equal the layout's; closures match the Run's.
+- **Demonstration**: `pnpm -r test` asserts guideway and stop counts equal the layout's stretches and stops on seed 42 and that a closed stretch is marked; the e2e flow turns the toggle on and reads the counts from the canvas.
+- **Demonstrated**: 
+- **Status**: PENDING
+
+### Phase 5: The fleet runs the line
+- **Tier**: Medium
+- **Budget**: ~250 tool calls
+- **Domain focus**: Movers: fleet size from the Ledger (159 at 50,000), the three classes (Ami, robotaxi, shuttle), the line as a graph of stretches.
+- **Entry state**: Phase 4 done.
+- **Deliverable**: A pure, seeded mover animation (`apps/board/src/draw/irl/movers.ts` (new)): given the line graph, the fleet by class and a wall-clock time, a function returns each mover's position and heading; movers run between stops, dwell at stops, never enter a closed stretch, and a month's change in the fleet or the line adds or removes movers without teleporting the rest. Instanced vehicle models per class (procedural boxes with materials first; authored assets only if decision 3 changed). Time is the wall clock (decision 6), the animation is a function of time so it is testable without a browser. Behavior Statements per rule 12.
+- **Files**: `apps/board/src/draw/irl/`, `apps/board/test/`
+- **Exit state**: The count of movers painted equals the Ledger's fleet; none stands on a closed stretch; the same seed and time give the same positions.
+- **Demonstration**: `pnpm -r test` asserts fleet count equals the Ledger's at 50,000 people, positions lie on the line within tolerance, none on a closed stretch, determinism for a fixed time; the e2e flow reads the mover count from the canvas twice a second apart and sees positions change.
+- **Demonstrated**: 
+- **Status**: PENDING
+
+### Phase 6: Scale, publish and fallback
+- **Tier**: Medium
+- **Budget**: ~250 tool calls
+- **Domain focus**: Board, delivery: ADR-0011's workflow.
+- **Entry state**: Phase 5 done.
+- **Deliverable**: Performance measured at 100,000 people on seed 42 and written down, with level of detail and instancing adjusted until it holds on a laptop-class machine; headless WebGL in the Playwright flows (software GL) so the publish workflow still runs them; build size reported; the canvas 2D view kept as the fallback; project profile and `docs/domain/board.md` updated; the plan archived at the end.
+- **Files**: `.github/workflows/publish-board.yml`, `apps/board/playwright.config.ts`, `apps/board/src/draw/irl/`, `docs/context/project-profile.md`, `docs/domain/board.md`
+- **Exit state**: `pnpm -r test`, `pnpm -r typecheck` and the browser flows are green locally and in the workflow; the live page opens the IRL view.
+- **Demonstration**: the Board e2e flows (pnpm test:e2e in apps/board) passes all flows including IRL; the workflow run on main is green and the page at periopolis.city shows the IRL button.
+- **Demonstrated**: 
+- **Status**: PENDING
