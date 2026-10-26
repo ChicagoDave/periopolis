@@ -7,7 +7,7 @@
 
 ## Context
 
-After ADR-0020 the only line-years left in the full first circle's twenty-year record are stops and ways in years 7 and 16, the two closures of seed 42's timeline (events #2 and #4: a stretch of mover line closed for one year). ADR-0018's 2026-10-22 note found that stops and ways measure connection, not capacity, so no headroom reaches them, and ADR-0019 and ADR-0020 left "a line that holds through a closure" as a separate decision. The plan is `docs/work/line-holds-through-a-closure/plan.md`.
+After ADR-0020 the only line-years left in the full first circle's twenty-year record are stops and ways in years 7 and 16, the two closures of seed 42's timeline (events #2 and #4: a stretch of mover line closed for one year). ADR-0018's 2026-10-22 note found that stops and ways measure connection, not capacity, so no headroom reaches them, and ADR-0019 and ADR-0020 left "a line that holds through a closure" as a separate decision. The plan is `docs/work/archive/line-holds-through-a-closure/plan.md`.
 
 A throwaway probe (deleted) read each closure on the real path, seed 42, at the year's end:
 
@@ -67,10 +67,10 @@ Weighed with the game lens of ADR-0022:
 - `needsOf` and `proposeFor` take the year's closed stretches; `proposeFor` lays the line as if a closed stretch were not there and never over it, so the way round is never the closed stretch laid again. The needs are still a query of one layout: the Run passes the list, the Site never reads the clock.
 - `needsOf` and `proposeFor` take the year's named closures, so the Site is no longer a pure ordinary-year query. ADR-0018 Decision 5's invariant is restated: needs equal the checks broken under the year's known stresses. A year with no named closure reads exactly as before.
 - The Board shows the way round as a need with a proposal, in the same words as any other need; no second explanation path is added, and the player's veto (ADR-0015) reaches it as it reaches every order.
-- Amends ADR-0020 Decision 3 ("the needs do not read the timeline"): the needs read the timeline's named closures, and nothing else of it. ADR-0008 Decision 2's ordinary year is narrowed the same way. Phase 2 of `docs/work/line-holds-through-a-closure/plan.md` writes the dated notes on ADR-0008 and ADR-0020, and on ADR-0018 and ADR-0019 for the re-pinned figures.
+- Amends ADR-0020 Decision 3 ("the needs do not read the timeline"): the needs read the timeline's named closures, and nothing else of it. ADR-0008 Decision 2's ordinary year is narrowed the same way. Phase 2 of `docs/work/archive/line-holds-through-a-closure/plan.md` writes the dated notes on ADR-0008 and ADR-0020, and on ADR-0018 and ADR-0019 for the re-pinned figures.
 - Each closure adds a stretch that stays after the closure ends, so the line slowly gains loops where closures have fallen.
 - The record keeps line-years honest: a way round that is not built in time leaves the closure's breaks in the record.
 
 ## Session
 
-585eb2 (Phase 1 of `docs/work/line-holds-through-a-closure/plan.md`); 0ba30d resolved Q-2 and Q-3 (2026-10-25).
+585eb2 (Phase 1 of `docs/work/archive/line-holds-through-a-closure/plan.md`); 0ba30d resolved Q-2 and Q-3 (2026-10-25).

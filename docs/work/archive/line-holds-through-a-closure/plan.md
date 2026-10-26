@@ -1,7 +1,7 @@
 # Session Plan: The line holds through a closure (the stops and ways breaks in years 7 and 16)
 
 **Created**: 2026-10-22
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Measure why the line's stops and ways checks break in the closure years 7 and 16 of seed 42's timeline (the only line-year source left in the records), have David choose the mechanism in a new ADR, then build it and re-pin the records. The mechanism is David's to choose; this plan does not decide it.
 **Bounded contexts touched**: Site (line checks in `assess.ts`, `needsOf`, `proposeFor`), Run (the timeline's closures, founding and past records), Board (wording only if a need or closure gains a new reason)
 **Key domain language**: closure (a stretch of line closed for a year in the timeline), stops, ways, line-year, mover line, stretch, neighborhood, squeeze, crews as the brake

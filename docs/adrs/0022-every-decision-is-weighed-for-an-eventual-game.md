@@ -25,4 +25,4 @@ On 2026-10-21 David raised gamifying Periopolis out of curiosity, prompted by Pe
 
 ## Session
 
-585eb2, during Phase 1 of `docs/work/line-holds-through-a-closure/plan.md` (ADR-0021's interview).
+585eb2, during Phase 1 of `docs/work/archive/line-holds-through-a-closure/plan.md` (ADR-0021's interview).
