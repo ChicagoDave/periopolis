@@ -12,7 +12,7 @@
  * The surface traffic (bikes on the lane, carts on the streets) is kept the same way, one set a neighborhood, and
  * stepped in the same loop, which runs whenever the view is open and backs off when a frame is slow.
  * Public interface: drawIrl, turnIrl, dollyIrl, panIrl, fitIrl, irlSupported, SubCounts, subCounts, moverCount,
- * trafficCount, MOVER_LOOP_MS.
+ * trafficCount, lodAt, MOVER_LOOP_MS.
  * Owner context: Board (adapter), the IRL view (plan irl-3d-city-view, ADR-0023).
  */
 import { RATES } from '@city/site';
@@ -76,7 +76,7 @@ interface FleetFrame {
   readonly at: number;
 }
 let fleet: FleetFrame | null = null;
-let loop: ReturnType<typeof setTimeout> | null = null;
+let loop: number | null = null;
 
 /** Movers running now. */
 export function moverCount(): number {
@@ -155,16 +155,30 @@ function fleetNow(page: Page, now: number): Readonly<Record<MoverClass, Placed[]
 }
 
 /**
- * Keep the traffic moving while the view is open: a tick places the movers (when the sub level shows) and the
- * surface traffic (at near detail) and renders a frame. The next tick waits at least MOVER_LOOP_MS and at least four
- * times what the frame took, so a slow renderer (software GL) is never saturated and the page stays responsive.
+ * Keep the traffic moving while the view is open: on the browser's animation frames, a tick places the movers (when
+ * the sub level shows) and the surface traffic (at near detail) and renders a frame, no sooner than MOVER_LOOP_MS and
+ * four times what the last frame took after the last, so a slow renderer (software GL) is never saturated and the
+ * page stays responsive; a hidden tab gets no animation frames and the traffic waits.
  */
 function keepMoving(page: Page): void {
   if (loop) return;
+  let last = 0;
+  let lastEnd = 0;
+  let wait = MOVER_LOOP_MS;
+  let rendered = 0;
+  let slowGaps = 0;
   const tick = (): void => {
     loop = null;
     if (page.s.view.at !== 'irl' || !renderer || !frame) return;
     const started = performance.now();
+    // The first animation frame after a render arrives when the GPU has finished it: that gap is the frame's real
+    // cost where the CPU's clock saw little, and the next render waits four times it too.
+    if (lastEnd > 0 && rendered > 0 && started - lastEnd > wait) wait = Math.max(wait, 4 * (started - lastEnd));
+    lastEnd = 0;
+    if (started - last < wait) {
+      loop = requestAnimationFrame(tick);
+      return;
+    }
     const near = byId<HTMLCanvasElement>('irlcanvas').getAttribute('data-lod') === 'near';
     if (page.s.sub) renderer.setMovers(fleetNow(page, started));
     if (near) renderer.setTraffic(trafficNow(page, started, true));
@@ -180,9 +194,18 @@ function keepMoving(page: Page): void {
       }
     }
     const took = performance.now() - started;
-    loop = setTimeout(tick, Math.max(MOVER_LOOP_MS, 4 * took));
+    // The gap between two rendered frames is the GPU's time when the CPU's is small: three gaps past a second in a
+    // row mean software GL and the renderer goes lite; one alone is a rebuild, a pause or a hidden tab.
+    if (rendered > 0 && last > 0) slowGaps = started - last - wait > 1000 ? slowGaps + 1 : 0;
+    if (slowGaps >= 3) renderer.goLite();
+    rendered++;
+    last = started;
+    lastEnd = performance.now();
+    wait = Math.max(MOVER_LOOP_MS, 4 * took);
+    byId<HTMLCanvasElement>('irlcanvas').setAttribute('data-tick-ms', took.toFixed(1));
+    loop = requestAnimationFrame(tick);
   };
-  loop = setTimeout(tick, MOVER_LOOP_MS);
+  loop = requestAnimationFrame(tick);
 }
 
 /** Whether the browser can draw the city IRL; decided once, on the page's canvas. */
@@ -191,9 +214,11 @@ export function irlSupported(): boolean {
   return supported;
 }
 
-/** The detail the orbit deserves: far, one block a tile; from the angled view's mid scale, every home instanced. */
-function lodAt(scale: number): Lod {
-  return scale >= MID_SCALE ? 'near' : 'far';
+/** The detail the orbit deserves (plan Phase 7): far, one block a tile; from a third of the angled view's mid scale,
+ * the rows as massing with the streets and parks laid (mid); from the mid scale, every home a kit model with the
+ * vegetation, furniture and traffic (near). Three steps, so the zoom does not pop from hex blocks to townhouses. */
+export function lodAt(scale: number): Lod {
+  return scale >= MID_SCALE ? 'near' : scale >= MID_SCALE / 3 ? 'mid' : 'far';
 }
 
 /** Everything that changes what is built: what stands, what is on order, who lives where, and the detail. */
@@ -237,7 +262,7 @@ export function drawIrl(page: Page): Painted | null {
   if (on) board.toggleAttribute('hidden', true);
   if (!on) {
     frame = null;
-    if (loop) clearTimeout(loop);
+    if (loop !== null) cancelAnimationFrame(loop);
     loop = null;
     return null;
   }
@@ -305,6 +330,7 @@ export function drawIrl(page: Page): Painted | null {
     canvas.setAttribute('data-chunks', String(stats.chunks));
     canvas.setAttribute('data-rebuilt', String(stats.rebuilt));
     canvas.setAttribute('data-models', String(renderer.kitModels));
+    canvas.setAttribute('data-lite', renderer.isLite ? 'yes' : 'no');
     canvas.setAttribute('data-streets', String(described.streets));
     canvas.setAttribute('data-crossings', String(described.crossings));
     canvas.setAttribute('data-props', String(described.props));
@@ -332,6 +358,10 @@ export function drawIrl(page: Page): Painted | null {
   canvas.setAttribute('data-carts', String(traffic.cart));
   const frames = renderer.render(orbit, cssWidth, cssHeight, dpr);
   canvas.setAttribute('data-frames', String(frames));
+  const drawn = renderer.drawn;
+  canvas.setAttribute('data-calls', String(drawn.calls));
+  canvas.setAttribute('data-drawn', String(drawn.triangles));
+  canvas.setAttribute('data-frame-ms', drawn.ms.toFixed(1));
   keepMoving(page);
   return painted;
 }

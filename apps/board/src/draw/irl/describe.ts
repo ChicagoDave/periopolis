@@ -365,7 +365,7 @@ function materialOf(block: SceneBlock, near: boolean): MaterialId {
     case 'site':
       return 'scaffold';
     case 'ring':
-      return near ? 'office' : 'massing';
+      return 'massing';
     case 'hood':
     case 'school':
       return 'massing';
@@ -490,7 +490,9 @@ function craneOf(center: Point): MeshRecord[] {
  * @param context - the Site's rates and the layout, for the Ground's plans; absent, blocks alone are described
  */
 export function describeScene(scene: Scene, context?: DescribeContext): Described {
-  const near = scene.lod !== 'far';
+  // Near: every home a kit model with the props; mid: the rows as massing, the streets and parks laid, no props.
+  const near = scene.lod === 'near';
+  const laidOut = scene.lod !== 'far';
   const byTile = new Map<TileKey, SceneBlock[]>();
   for (const block of scene.blocks) {
     const list = byTile.get(block.key);
@@ -498,6 +500,7 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
     else byTile.set(block.key, [block]);
   }
   const hoodPlan = context ? planNeighborhood(context.rates.shared, context.rates.walking, context.rates.base) : null;
+  void laidOut;
   const rings: Record<number, RingPlan> = {};
   // The line on the sub level, by the tile each stretch starts from, with what the Run says of it this year.
   const edgesByTile = new Map<TileKey, { edge: EdgeKey; state: EdgeState }[]>();
@@ -606,7 +609,7 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
       if (block.kind === 'site' && center && !blocks.some((b) => b !== block && b.kind === 'site')) chunkMeshes.push(...craneOf(center));
     }
     if (homeBlocks.length) chunkHomes.push(...homesOf(key, homeBlocks));
-    if (center && hoodPlan && near && tile?.kind === 'hood') {
+    if (center && hoodPlan && laidOut && tile?.kind === 'hood') {
       const s = hoodPlan.surface;
       chunkMeshes.push(record('hood', 'park', prismOf(discPolygon(s.park, center), 0, 0.1), 1));
       chunkMeshes.push(record('hood', 'plaza', prismOf(discPolygon(s.center, center), 0, 0.1), 1));
@@ -616,11 +619,11 @@ export function describeScene(scene: Scene, context?: DescribeContext): Describe
       // crossings over the street; the furniture as props.
       const laid = streetsOf(hoodPlan, center, fields !== null);
       for (const strip of laid.strips) chunkMeshes.push(record('hood', strip.kind, prismOf(strip.corners, 0, SURFACE_LIFT[strip.kind]), 1));
-      chunkProps.push(...laid.props);
-    } else if (center && context && near && tile?.kind === 'ring') {
+      if (near) chunkProps.push(...laid.props);
+    } else if (center && context && laidOut && tile?.kind === 'ring') {
       const plan = (rings[tile.n] ??= planRing(context.rates.walking, context.rates.base, tile.n));
       chunkMeshes.push(record('ring', 'plaza', prismOf(discPolygon(plan.surface.plaza, center), 0, 0.1), 1));
-      chunkProps.push(...plazaOf(plan, center).props);
+      if (near) chunkProps.push(...plazaOf(plan, center).props);
     }
     // The sub level: guideways under the stretches that start here, a stop under the tile if the line touches it, and
     // at near detail a neighborhood's entries (shafts up to the surface), walkways and goods pipes.

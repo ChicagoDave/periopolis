@@ -44,7 +44,6 @@ import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import type { SunAt } from './sun.ts';
 import { sunAt } from './sun.ts';
@@ -85,6 +84,18 @@ export interface BuildStats {
   /** Townhouse instances standing, and trees. */
   readonly homes: number;
   readonly trees: number;
+}
+
+/** Whether the renderer is software: its own name says so. */
+function softwareGl(renderer: WebGLRenderer): boolean {
+  try {
+    const gl = renderer.getContext();
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).toLowerCase();
+    return ['swiftshader', 'llvmpipe', 'softpipe', 'software'].some((word) => name.includes(word));
+  } catch {
+    return false;
+  }
 }
 
 /** Whether the browser can give the canvas a WebGL context at all. */
@@ -470,6 +481,16 @@ function nearChunks(chunks: readonly Chunk[], focus: Focus): Set<string> {
   return new Set(ranked.filter((r, i) => i < MODELS_NEAREST || r.d <= MODELS_WITHIN_M).map((r) => r.key));
 }
 
+/** Lite: the one nearest neighborhood only. */
+function nearChunksLite(chunks: readonly Chunk[], focus: Focus): Set<string> {
+  const all = [...nearChunks(chunks, focus)];
+  const nearest = chunks
+    .filter((c) => c.homes.length && all.includes(c.key))
+    .map((c) => ({ key: c.key, d: Math.hypot(c.homes.reduce((t, x) => t + x.x, 0) / c.homes.length - focus.x, c.homes.reduce((t, x) => t + x.y, 0) / c.homes.length - focus.y) }))
+    .sort((a, b) => a.d - b.d)[0];
+  return new Set(nearest ? [nearest.key] : []);
+}
+
 /** The key of the group a home belongs to: its size, its kit model when its tile is near enough, and its variant. */
 function groupKey(h: HomeInstance, near: boolean): string {
   return `${h.frontM.toFixed(2)}x${h.depthM.toFixed(2)}x${h.heightM.toFixed(2)}|${near ? h.model : 'box'}|${h.variant}`;
@@ -521,6 +542,7 @@ export class IrlRenderer {
   private composer: EffectComposer | null = null;
   private bloom: UnrealBloomPass | null = null;
   private lite = false;
+  private lastMs = 0;
   private sunCenter: Point3 = { x: 0, y: 0, z: 0 };
   private sunRadius = 1000;
   private tokens: Tokens = { ground: '#E1E8DF', sky: '#CFE0EE' };
@@ -536,6 +558,12 @@ export class IrlRenderer {
     this.onLoaded = onLoaded;
     this.loader.setMeshoptDecoder(MeshoptDecoder);
     this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    // The frame's counters are reset by hand so a composed frame's passes add up rather than the last one standing.
+    this.renderer.info.autoReset = false;
+    // Software GL (SwiftShader on the publish workflow's runner and in Playwright's headless shell, llvmpipe on a bare
+    // Linux) cannot carry the composer or the full detail: it goes lite from the first frame rather than after the
+    // first slow ones. A GPU's name never matches.
+    if (softwareGl(this.renderer)) this.goLite();
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFShadowMap;
     this.renderer.toneMapping = ACESFilmicToneMapping;
@@ -727,7 +755,7 @@ export class IrlRenderer {
   private buildHomes(chunks: readonly Chunk[]): void {
     // What each group should hold, chunk by chunk in key order; a chunk near the focus takes kit models.
     const wanted = new Map<string, { chunk: Chunk; homes: HomeInstance[] }[]>();
-    const nearSet = nearChunks(chunks, this.focus);
+    const nearSet = this.lite ? nearChunksLite(chunks, this.focus) : nearChunks(chunks, this.focus);
     for (const chunk of [...chunks].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))) {
       const byGroup = new Map<string, HomeInstance[]>();
       const near = nearSet.has(chunk.key);
@@ -852,7 +880,8 @@ export class IrlRenderer {
     }
     const dummy = new Object3D();
     for (const [id, list] of byModel) {
-      const loaded = this.model(id);
+      // A hedge is a box, not the kit's fence: a thousand a neighborhood at twelve triangles instead of 180.
+      const loaded = id === 'hedge' ? this.hedge() : this.model(id);
       const had = this.props.get(id);
       if (had) {
         this.scene.remove(had);
@@ -862,7 +891,7 @@ export class IrlRenderer {
       if (!loaded) continue;
       const mesh = new InstancedMesh(loaded.geometry, loaded.material, list.length);
       list.forEach((p, i) => {
-        const fit = p.footprintM ? fitToFootprint(id, p.footprintM) : fitToHeight(id, p.heightM);
+        const fit: Fit = id === 'hedge' ? { scale: p.heightM / 1.2, offset: { x: 0, y: 0, z: 0 } } : p.footprintM ? fitToFootprint(id, p.footprintM) : fitToHeight(id, p.heightM);
         dummy.position.copy(toGl({ x: p.x, y: p.y, z: 0 }));
         dummy.rotation.set(0, p.yaw, 0);
         dummy.scale.set(1, 1, 1);
@@ -876,6 +905,19 @@ export class IrlRenderer {
       this.scene.add(mesh);
       this.props.set(id, mesh);
     }
+  }
+
+  private hedgeModel: LoadedModel | null = null;
+
+  /** The hedge: a dark green box 6 m long, 0.8 m deep and 1.2 m high, fitted by height like any prop. */
+  private hedge(): LoadedModel {
+    if (this.hedgeModel) return this.hedgeModel;
+    const geometry = new BoxGeometry(6, 1.2, 0.8);
+    geometry.translate(0, 0.6, 0);
+    const material = new MeshStandardMaterial({ color: new Color('#2F6B33'), roughness: 1, metalness: 0 });
+    this.materials.set('hedge-box', material);
+    this.hedgeModel = { geometry, material };
+    return this.hedgeModel;
   }
 
   /** Rebuild the trees from every chunk's: one instanced mesh a species on the kit's models, or the cone until a
@@ -983,8 +1025,8 @@ export class IrlRenderer {
       this.chunks.set(chunk.key, { signature: chunk.signature, meshes: built.surface, sub: built.sub });
       rebuilt++;
     }
-    const nearSet = nearChunks(described.chunks, this.focus);
-    const homesSignature = `${this.modelsArrived}|${described.chunks
+    const nearSet = this.lite ? nearChunksLite(described.chunks, this.focus) : nearChunks(described.chunks, this.focus);
+    const homesSignature = `${this.modelsArrived}|${this.lite ? 'lite' : 'full'}|${described.chunks
       .filter((c) => c.homes.length)
       .map((c) => `${c.key}:${c.signature}:${nearSet.has(c.key) ? 'kit' : 'box'}`)
       .join(';')}`;
@@ -1000,12 +1042,13 @@ export class IrlRenderer {
       this.buildTrees(described.chunks);
       this.treesSignature = treesSignature;
     }
-    const propsSignature = `${this.modelsArrived}|${described.chunks
+    const propsSignature = `${this.modelsArrived}|${this.lite ? 'lite' : 'full'}|${described.chunks
       .filter((c) => c.props.length)
       .map((c) => `${c.key}:${c.props.length}:${nearSet.has(c.key) ? 'near' : 'far'}`)
       .join(';')}`;
     if (propsSignature !== this.propsSignature) {
-      this.buildProps(described.chunks, nearSet);
+      // Lite skips the bulk vegetation altogether.
+      this.buildProps(described.chunks, this.lite ? new Set<string>() : nearSet);
       this.propsSignature = propsSignature;
     }
     this.fitGround(described, tokens);
@@ -1321,15 +1364,15 @@ export class IrlRenderer {
     this.camera.up.set(0, 1, 0);
     this.camera.lookAt(toGl(orbit.target));
     const started = performance.now();
+    this.renderer.info.reset();
     if (this.lite) this.renderer.render(this.scene, this.camera);
     else {
       if (!this.composer) {
         const px = { x: Math.round(width * dpr), y: Math.round(height * dpr) };
         this.composer = new EffectComposer(this.renderer);
         this.composer.addPass(new RenderPass(this.scene, this.camera));
-        const ao = new GTAOPass(this.scene, this.camera, px.x, px.y);
-        ao.output = GTAOPass.OUTPUT.Default;
-        this.composer.addPass(ao);
+        // Ambient occlusion (GTAOPass) was tried and dropped: its second pass over the scene cost a third of every
+        // frame at 100,000 people for little the eye could see at a city's scale (plan Phase 7).
         this.bloom = new UnrealBloomPass(new Vector2(px.x, px.y), 0.05 + 0.45 * (1 - this.sun_.daylight), 0.4, 1.2 - 0.5 * (1 - this.sun_.daylight));
         this.composer.addPass(this.bloom);
         this.composer.addPass(new OutputPass());
@@ -1339,20 +1382,37 @@ export class IrlRenderer {
       this.composer.render();
     }
     const took = performance.now() - started;
-    if (!this.lite && took > LITE_PAST_MS) {
-      // Too slow for the composer: software GL. Plain renders from here on.
-      this.lite = true;
-      this.composer?.dispose();
-      this.composer = null;
-      this.bloom = null;
-    }
+    this.lastMs = took;
+    if (!this.lite && took > LITE_PAST_MS) this.goLite();
     this.frames++;
     return this.frames;
+  }
+
+  /** Go lite: a plain render, one detailed neighborhood, no bulk vegetation. Called when a frame is too slow for the
+   * composer, by this renderer's own CPU time or by the view from the gap between animation frames (the GPU's time,
+   * which the CPU clock cannot see). */
+  goLite(): void {
+    if (this.lite) return;
+    this.lite = true;
+    this.composer?.dispose();
+    this.composer = null;
+    this.bloom = null;
   }
 
   /** Whether the composer (ambient occlusion and bloom) is on, or a plain render stands in. */
   get composed(): boolean {
     return !this.lite;
+  }
+
+  /** Whether the renderer has gone lite: a frame took too long for the composer, so it also details one neighborhood
+   * only and skips the bulk vegetation (software GL, where the flows run; a GPU never gets here). */
+  get isLite(): boolean {
+    return this.lite;
+  }
+
+  /** What the last frame drew: draw calls, triangles, and how long it took. */
+  get drawn(): { calls: number; triangles: number; ms: number } {
+    return { calls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, ms: this.lastMs };
   }
 
   /** Let every GL resource go. */

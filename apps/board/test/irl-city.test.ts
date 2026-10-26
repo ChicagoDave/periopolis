@@ -16,6 +16,8 @@ import type { Layout } from '@city/site';
 import { litRows, sceneOf, tileCenterM } from '../src/draw/angled/scene.ts';
 import type { Standing } from '../src/draw/angled/scene.ts';
 import { HOME_TRIANGLES, SUB_DEPTH_M, TREE_SPACING_M, describeScene } from '../src/draw/irl/describe.ts';
+import { MID_SCALE } from '../src/draw/angled/canvas.ts';
+import { lodAt } from '../src/draw/irl/view.ts';
 import { HOME_VARIANTS, STOREY_M, hashOf, homeFacade, officeFacade, plantFacade, randomOf, variantOf } from '../src/draw/irl/facade.ts';
 import { move } from '../src/moves.ts';
 
@@ -424,5 +426,32 @@ describe('buildings as models (ADR-0024)', () => {
     expect(vertical.length).toBe(1);
     const vy = vertical[0]?.prism.positions.filter((_, i) => i % 3 === 1) ?? [];
     expect(Math.max(...vy)).toBeLessThan(box.y0 + 1e-6);
+  });
+});
+
+describe('the zoom (plan Phase 7)', () => {
+  it("has three steps: far below a third of the mid scale, mid to the mid scale, near from it", () => {
+    expect(lodAt(MID_SCALE)).toBe('near');
+    expect(lodAt(MID_SCALE * 4)).toBe('near');
+    expect(lodAt(MID_SCALE / 2)).toBe('mid');
+    expect(lodAt(MID_SCALE / 3)).toBe('mid');
+    expect(lodAt(MID_SCALE / 4)).toBe('far');
+    expect(lodAt(0)).toBe('far');
+  });
+  it('mid, a neighborhood is its rows as massing with its streets and parks laid and no props, the ring massing round its plaza', () => {
+    const layout = starterLayout();
+    const mid = describeScene(sceneOf(layout, RATES, 'mid'), context(layout));
+    expect(mid.homes).toBe(0);
+    expect(mid.props).toBe(0);
+    expect(mid.streets).toBeGreaterThan(0);
+    expect(mid.trees).toBeGreaterThan(0);
+    const chunk = mid.chunks.find((c) => c.key === '1,0');
+    if (!chunk) throw new Error('chunk');
+    expect(chunk.meshes.filter((m) => m.material === 'massing' && m.kind === 'hood').length).toBe(hood.surface.rows.length);
+    expect(chunk.meshes.some((m) => m.material === 'asphalt')).toBe(true);
+    const ring = mid.chunks.find((c) => c.key === '0,0');
+    expect(ring?.meshes.filter((m) => m.material === 'massing' && m.kind === 'ring').length).toBe(8);
+    expect(ring?.meshes.some((m) => m.material === 'plaza')).toBe(true);
+    expect(ring?.props.length).toBe(0);
   });
 });
