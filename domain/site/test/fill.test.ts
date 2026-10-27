@@ -98,7 +98,8 @@ describe('a circle fills from the middle out', () => {
     expect(rings.filter((r) => r === 2)).toHaveLength(12);
     expect(rings.filter((r) => r === 3)).toHaveLength(2);
     expect(Math.max(...rings)).toBe(BAND_RING - 1);
-  });
+    // Filling the circle with proposals takes seconds, more on the publish workflow's runner: past vitest's five.
+  }, 60000);
 
   it('20 neighborhoods and what they call for hold every line at 100,000 people, on 2 units of each plant and 3 modules', () => {
     const city = grown(20);
