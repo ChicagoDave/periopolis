@@ -1,7 +1,7 @@
 # Session Plan: SimCity detail for the IRL city (real models, streets, vegetation, vehicles, light, zoom)
 
 **Created**: 2026-10-26
-**Plan Status**: ACTIVE
+**Plan Status**: DONE
 **Overall scope**: Replace the IRL view's massing model (instanced boxes, discs, cones, flat plane) with a game-grade city that holds from drone shot to street corner at 100,000+ people: authored CC0 models fitted to the Ground's footprints, real streets and terrain, vegetation, vehicle models, sun/sky/shadow/AO/bloom, and distance LOD. Domain stays pure; the describer/GL split and the derived scene stay.
 **Bounded contexts touched**: Board (apps/board) only for code; Ground, Site, Run, Ledger are read, not changed. ADR work touches ADR-0023 (Decisions 3 and 7), ADR-0011 (Decision 2), ADR-0022 (Decision 3 note).
 **Key domain language**: Ground (footprints, story counts, rows, lane), scene (derived, never kept), chunk (a tile's described meshes), mover / line / stretch / stop, fleet, sub level.
